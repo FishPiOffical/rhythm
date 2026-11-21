@@ -1,0 +1,97 @@
+{
+  "date": "2026-11-02",
+  "scope": "Additive current perfect flag from shared public article DTO through strict client and SSR projection to existing content badges",
+  "productionFiles": {
+    "backend": [
+      "src/main/java/org/b3log/symphony/service/ApiV3ContentDtoService.java"
+    ],
+    "client": [
+      "src/api/v3-content.ts",
+      "src/api/v3-article-list.ts",
+      "src/components/articles/ArticleFeed.vue"
+    ]
+  },
+  "testFiles": {
+    "backend": [
+      "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java"
+    ],
+    "client": [
+      "tools/v3-content-test.mjs",
+      "tools/v3-content-author-test.mjs",
+      "tools/v3-comments-test.mjs",
+      "tools/v3-long-reader-test.mjs"
+    ]
+  },
+  "tests": {
+    "beforeBackendFailsOnMissingFlag": true,
+    "beforeClientFailsOnDroppedFlag": true,
+    "currentContentSQLitePassGroups": 13,
+    "currentContentMySQLPassGroups": 13,
+    "temporaryMySQLRemoved": true,
+    "relatedBackend": [
+      {
+        "script": "api-v3-feed-query-test.mjs",
+        "exitCode": 0,
+        "passes": 4
+      },
+      {
+        "script": "api-v3-discovery-extras-test.mjs",
+        "exitCode": 0,
+        "passes": 11
+      },
+      {
+        "script": "api-v3-article-stick-test.mjs",
+        "exitCode": 0,
+        "passes": 8
+      }
+    ],
+    "clientScripts": 93,
+    "clientPassGroups": 1040,
+    "clientFailures": 0,
+    "clientNewGroups": 4,
+    "typeClientSSRBuild": true,
+    "routeContracts": 292,
+    "boundarySourceFiles": 336,
+    "boundaryFindings": 0,
+    "dynamicCallsSeparate": 47,
+    "otherServicePathsSeparate": 2,
+    "generatedJS": 78,
+    "versionFindings": 0,
+    "sourceMapFiles": 0,
+    "sourceMappingURLReferences": 0
+  },
+  "invariants": [
+    "Perfect is true only for stored flag1, false otherwise, ordinary and long records both supported",
+    "Shared summary and detail derive the same flag from their current authorized article snapshot",
+    "Cancelling perfect appears in next read, stale entity cache is not used to recover it",
+    "Flag cannot override invalid article visibility or reveal author identity",
+    "API boolean maps to optional legacy client numeric0/1; missing older metadata remains absent",
+    "SSR reprojection preserves exact0/1 and rejects malformed flags",
+    "Actual full/compact feed, ordinary page refreshed state and long reader SSR render/remove badges correctly"
+  ],
+  "deployment": {
+    "baselineJavaPid": 2590,
+    "newJavaVerified": false,
+    "pendingIDEARebuild": [
+      "ApiV3ContentDtoService.java"
+    ],
+    "migrationRequired": false
+  },
+  "security": {
+    "anonymousRouteChain": "Existing optionalContent then AnonymousViewCheckMidware remains on three forum GETs",
+    "authenticationAuthorization": "No new route or new viewer identity; current content/author/reader check remains before DTO",
+    "csrf": "Read-only projection; no new write/cookie handling",
+    "xss": "Validated scalar and constant Vue badge markup; no untrusted HTML",
+    "injectionSsrf": "No new SQL, URL or network fetch",
+    "abuse": "No added endpoint, pagination or fan-out",
+    "privacy": "Single public boolean, existing anonymous author projection unchanged",
+    "staticPaths": "Only normal hashed build assets; no map, CDN, directory or upload/download path added"
+  },
+  "limits": [
+    "New Java and actual browser full/compact/details/mobile badge verification require user-confirmed IDEA rebuild",
+    "Baseline real runtime proves defect, not that the new DTO is deployed",
+    "Read-only temporary perfect flag was finally restored; no business perfect reward event or system announcement generated",
+    "Production blacklists/CAPTCHA unlock/periodic visits and whole-site CDN-directory-upload audit not executed",
+    "Other content metadata such as creative statement/comment switch remains a separate coverage review; no claim all legacy aliases are migrated"
+  ]
+}

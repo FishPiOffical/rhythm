@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-02",
+  "scope": "Reactive membership nickname cache expiry, bounded visibility reload, HMR cleanup and profile avatar error fallback",
+  "productionFiles": [
+    "src/composables/useVipNickname.ts",
+    "src/views/MemberView.vue"
+  ],
+  "testFiles": [
+    "tools/v3-membership-style-expiry-test.mjs",
+    "tools/v3-member-page-test.mjs"
+  ],
+  "baselineFailures": [
+    "Mounted nickname computed kept stale style after clock exceeded existing TTL without another reactive event",
+    "Disposed HMR module could schedule new style work while notifying old watchers",
+    "Actual public profile screenshot showed broken avatar; component had no load-error handler"
+  ],
+  "changes": [
+    "One shared earliest-expiry timer prunes reactive cache and name aliases, then uses existing observer/batch queue for visible reloads",
+    "Offscreen nodes lose stale CSS but do not fetch until observed; same-batch entries share timestamp",
+    "Logout/reset/HMR dispose cancels timers and late jobs; disposed module cannot requeue itself",
+    "Profile image falls back once to existing local default, keeps stored URL intact and keys image by source"
+  ],
+  "focused": {
+    "expiryGroups": 5,
+    "actualVueNicknameWithControlledClock": true,
+    "memberPageAvatarAdditionalGroups": 1,
+    "memberPageHelperUsesActualAvatarUtility": true
+  },
+  "fullSuite": {
+    "scripts": 93,
+    "passLines": 1024,
+    "failures": [],
+    "evidence": "/tmp/v3-style-expiry-suite-complete.json"
+  },
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "log": "/tmp/v3-style-expiry-build-complete.log"
+  },
+  "boundary": {
+    "sourceFiles": 336,
+    "findings": 0,
+    "dynamicCalls": 47,
+    "otherServiceChecks": 2
+  },
+  "assets": {
+    "javascriptFiles": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "findings": 0
+  },
+  "runtimeEvidence": [
+    "api-v3-membership-style-current-live.json",
+    "api-v3-membership-style-expiry-live.json"
+  ],
+  "limits": [
+    "Exact expiry threshold uses deterministic clock; live browser observes before/after natural expiry, not millisecond deadline accuracy",
+    "HMR late-response and observer permutations use actual setup/component with controlled API/observer, not all real browser fault races",
+    "Profile avatar fallback does not assert every other image consumer or remote provider availability",
+    "No Java/FTL/API/schema/Maven/commit/push/release changes"
+  ]
+}

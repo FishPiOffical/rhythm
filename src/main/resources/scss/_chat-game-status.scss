@@ -1,0 +1,101 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+%chat-game-icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chat-game-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 5px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-color, #d6dbdf);
+  border-radius: 5px;
+  background: var(--panel-background-color, #fff);
+  color: var(--text-gray-color, #606870);
+  font: inherit;
+  font-size: 11px;
+  line-height: 17px;
+  vertical-align: middle;
+  white-space: nowrap;
+  cursor: pointer;
+
+  svg { @extend %chat-game-icon; width: 13px; height: 13px; }
+  &::after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border: solid currentColor;
+    border-width: 0 1px 1px 0;
+    transform: translateY(-1px) rotate(45deg);
+  }
+  &:hover, &[aria-expanded=true] { background: var(--background-secondary-color, #f0f5ef); color: var(--text-color, #35433a); }
+}
+
+.chat-game-panel {
+  position: fixed;
+  z-index: 1500;
+  box-sizing: border-box;
+  width: min(276px, calc(100vw - 16px));
+  overflow: auto;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #d6dbdf);
+  border-radius: 12px;
+  background: var(--panel-background-color, #fff);
+  color: var(--text-color, #292d32);
+  box-shadow: 0 6px 24px rgba(24, 40, 30, .15);
+  font-size: 13px;
+  line-height: 1.5;
+
+  .chat-game-heading { display: flex; align-items: center; justify-content: space-between; }
+  .chat-game-heading button {
+    padding: 0 6px;
+    border: 0;
+    background: transparent;
+    color: var(--text-gray-color, #606870);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  > a {
+    display: grid;
+    grid-template-columns: 24px auto minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    color: inherit;
+    text-decoration: none;
+  }
+  > a + a { border-top: 1px solid var(--border-color, #d6dbdf); }
+  > a:hover .chat-game-value { color: var(--text-color, #35433a); }
+  .chat-game-tile { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; font-weight: bold; }
+  .chat-game-tile svg { @extend %chat-game-icon; }
+  .pet { color: #507140; background: #e9f2e3; }
+  .parking { color: #355f88; background: #e4eff9; }
+  .partner { color: #77532e; background: #f7ebdb; }
+  .chat-game-value { text-align: end; color: var(--text-gray-color, #606870); overflow-wrap: anywhere; }
+  small { display: block; font-size: 11px; }
+}

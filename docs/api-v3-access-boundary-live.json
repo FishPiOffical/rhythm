@@ -1,0 +1,4508 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 91346,
+    "target": "IPv6 loopback Rhythm HTTP8081"
+  },
+  "scope": "Only required-Bearer missing/invalid and optional-Bearer invalid rejection; no valid credentials or normal business writes",
+  "expectedChecks": 498,
+  "completedChecks": 498,
+  "allCompletedPassed": true,
+  "results": [
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/admin/oauth/clients",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/admin/oauth/clients",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/column",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/heat",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/heat",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraph-comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraphs",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reads",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reads",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/realtime-ticket",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/realtime-ticket",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions/{revisionId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions/{revisionId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/random",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/decision",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/decision",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/requests",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/requests",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/status",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/status",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/breezemoons",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/breezemoons",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/barrager",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/barrager",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/barrager/price",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/barrager/price",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/messages",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/messages",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}/context",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}/context",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/music",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/music",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/mutes",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/mutes",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/online-users",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/online-users",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/realtime-ticket",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/realtime-ticket",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packet-types",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packet-types",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packets/{id}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packets/{id}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets/{id}/claims",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets/{id}/claims",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/topic",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/topic",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/topic",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/topic",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/weather",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/weather",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/users",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/columns/{columnId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/columns/{columnId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/cover",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/cover",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/title",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/title",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/hot",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions/{revisionId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions/{revisionId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/game-save-options",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/game-save-options",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/invitation-codes/status",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/invitation-codes/status",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/logs",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/logs",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/markdown/preview",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/markdown/preview",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-articles",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-comments",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/articles/{articleId}/source",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/articles/{articleId}/source",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/bag",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/bag",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin1day/use",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin1day/use",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin2days/use",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin2days/use",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/patchCheckinCard/use",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/patchCheckinCard/use",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/checkin",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/checkin",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/collections/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/collections/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/collections/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/collections/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/columns",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/columns",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/columns/order",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/columns/order",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/read",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/read",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/read",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/read",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/drafts",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/drafts",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}/download",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}/download",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/game-saves/{gameId}/migrations",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/game-saves/{gameId}/migrations",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications/{applicationId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications/{applicationId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/identity-applications/enterprise",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/identity-applications/enterprise",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/invitation-codes",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/invitation-codes",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/medals/{medalId}/display",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/medals/{medalId}/display",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/medals/{medalId}/move",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/medals/{medalId}/move",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals/image",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals/image",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/membership",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/membership",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/membership",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/membership",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/membership/config",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/membership/config",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/messages/{messageId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/messages/{messageId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/{messageId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/{messageId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/messages/realtime-ticket",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/messages/realtime-ticket",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/unread-count",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/unread-count",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones/{milestoneId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones/{milestoneId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/{notificationId}/read",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/{notificationId}/read",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/read",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/read",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/unread-count",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/unread-count",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/point-transfers",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/point-transfers",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/points",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/points",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}/records",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}/records",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/onboarding",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/onboarding",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/primary",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/primary",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/privacy",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/privacy",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/security/mfa",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/security/mfa",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/security/mfa",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/security/mfa",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/security/mfa",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/security/mfa",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/security/mfa/preparations",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/security/mfa/preparations",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/avatar",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/avatar",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/avatar",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/avatar",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/display",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/display",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/display",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/display",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/email",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/email",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/email/verification",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/email/verification",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-group-imports",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-group-imports",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/shares",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/shares",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-migrations",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-migrations",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emojis",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emojis",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotion-options",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotion-options",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emotions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emotions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/functions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/functions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/functions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/functions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/locale",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/locale",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale-options",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale-options",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/location",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/location",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/location",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/location",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/password",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/password",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/personality",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/personality",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality-options",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality-options",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/phone",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/phone",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/phone/verification",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/phone/verification",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/privacy",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/privacy",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/privacy",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/privacy",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/profile",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/profile",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/profile",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/profile",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/qq",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/qq",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/qq",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/qq",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/skins",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/skins",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/tags",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/tags",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/watching/breezemoons",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/watching/breezemoons",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/levels",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/levels",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/styles",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/styles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/milestones",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/milestones",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones/{milestoneId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/payments/donation-page",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/payments/donation-page",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/guides",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/guides",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/ranking",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/ranking",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/rankings/{type}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/reactions/emojis",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/realtime/tickets",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/realtime/tickets",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/recent-members",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/items",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/repeater/items",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/repeater/items",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/next",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/report/options",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/report/options",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/reports",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/reports",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/review/identity-applications",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/review/identity-applications",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/review/identity-applications/{applicationId}/decision",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/review/identity-applications/{applicationId}/decision",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/review/identity-applications/{applicationId}/material/open",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/review/identity-applications/{applicationId}/material/open",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/search",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/statistics",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/tags",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/users",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/users",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/uploads/tickets",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/uploads/tickets",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/breezemoons",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/comments",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/followers",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/tags",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/users",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals/image",
+      "mode": "missing",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals/image",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/professions",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching/articles",
+      "mode": "invalid",
+      "status": 401,
+      "code": "unauthorized",
+      "refreshCookieIssued": false,
+      "passed": true
+    }
+  ],
+  "selectedBusinessCountsUnchanged": true,
+  "businessCountChanges": {},
+  "failure": null,
+  "excludedRuntimeKinds": {
+    "anonymous-gate": 14,
+    "reviewed-oauth-protocol": 3,
+    "reviewed-websocket-protocol": 1
+  },
+  "limits": [
+    "Does not prove missing-scope or horizontal/vertical target authorization with valid credentials",
+    "No production captcha/blacklist or cross-instance/network matrix",
+    "No valid business payloads; all target placeholders use nonexistent synthetic ID 1"
+  ]
+}

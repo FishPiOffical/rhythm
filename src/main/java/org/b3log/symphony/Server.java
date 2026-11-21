@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony;
 
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.util.Date;
@@ -65,6 +66,8 @@ import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
+import org.b3log.symphony.service.UserOnlineService;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.service.CronMgmtService;
 import org.b3log.symphony.service.InitMgmtService;
 import org.b3log.symphony.util.*;
@@ -98,6 +101,18 @@ public final class Server extends BaseServer {
      * Startup time && static version
      */
     public static String STARTUP_STR = "";
+
+    @Override
+    public void start(final int listenPort) {
+        BeanManager.getInstance().getReference(UserOnlineService.class).start();
+        super.start(listenPort);
+    }
+
+    @Override
+    public void start(final String socketPath) {
+        BeanManager.getInstance().getReference(UserOnlineService.class).start();
+        super.start(socketPath);
+    }
 
     /**
      * Main.
@@ -212,6 +227,8 @@ public final class Server extends BaseServer {
         final InitMgmtService initMgmtService = beanManager.getReference(InitMgmtService.class);
         initMgmtService.initSym();
 
+        beanManager.getReference(UserIpLeaseService.class).start();
+
         // Register event listeners
         final EventManager eventManager = beanManager.getReference(EventManager.class);
         final ArticleAddNotifier articleAddNotifier = beanManager.getReference(ArticleAddNotifier.class);
@@ -307,8 +324,11 @@ public final class Server extends BaseServer {
         });
 
         Thread.startVirtualThread(() -> {
+            System.err.println("[Rhys-TRACE] === NodeUtil.init() start ===");
             NodeUtil.init();
+            System.err.println("[Rhys-TRACE] === NodeUtil.initOnline() start ===");
             NodeUtil.initOnline();
+            System.err.println("[Rhys-TRACE] === NodeUtil init cycle done ===");
         });
 
         String startupTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
@@ -326,8 +346,9 @@ public final class Server extends BaseServer {
 
         if (Latkes.getRuntimeMode() == Latkes.RuntimeMode.DEVELOPMENT) {
             org.b3log.symphony.util.Firewall.setEnabled(false);
-            org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware.setEnabled(false);
-            org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(false);
+            // 开发模式验证码盾初始状态；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
+            AnonymousCaptchaShield.setEnabled(false);
+            AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
             LOGGER.warn("Development mode: CC firewall and verification shield are disabled.");
         }
 
@@ -347,6 +368,21 @@ public final class Server extends BaseServer {
                     e.printStackTrace();
                 }
             });
+        }
+
+        for (final String host : List.of("new.fishpi.cn", "pic.fishpi.cn", "10.0.24.8")) {
+            try {
+                for (final InetAddress address : InetAddress.getAllByName(host)) {
+                    final String ip = address.getHostAddress();
+                    Firewall.unbanIp(ip);
+                    Firewall.addCcWhitelist(ip);
+                    // 启动时复用后台解封流程，将确认的服务地址加入全局白名单。
+                    AnonymousCaptchaShield.administratorUnban(ip);
+                    LOGGER.info("Startup unban requested and CC/captcha whitelist added [host={}, ip={}]", host, ip);
+                }
+            } catch (final Exception e) {
+                LOGGER.warn("Startup unban/whitelist failed [host={}]", host, e);
+            }
         }
 
         final String unixDomainSocketPath = commandLine.getOptionValue("unix_domain_socket_path");

@@ -1,0 +1,177 @@
+{
+  "date": "2026-11-03",
+  "batch": 82,
+  "productionFilesChanged": [],
+  "documentationFilesChanged": [
+    "Rhythm/AGENTS.md",
+    "Both repos: docs/api-v3-progress.md, docs/api-v3-current-completion-audit.md, docs/api-v3-live-integration-work.md, docs/api-v3-profession-growth-live.json",
+    "website_v3/docs/V3_MIGRATION.md"
+  ],
+  "scope": "Actual deployed Cron source consumption/effect application, source replay and reversal, read APIs/browser. Controlled input event, not actual reading settlement.",
+  "runtime": {
+    "javaPid": 47272,
+    "listenerAndCredentiallessJSONChecked": true,
+    "sourceConsumer": "ProfessionAutomationExecutionService existing Cron60s",
+    "effectConsumer": "ProfessionEffectApplyService existing Cron60s",
+    "manualJavaRebuildAlreadyConfirmed": true,
+    "newJavaOrFTL": false
+  },
+  "fixture": {
+    "database": "Dedicated local rhythm-dev-mysql /3319/b3log_symphony",
+    "ruleStatus": "PUBLISHED fixture rows, not published through admin UI/API",
+    "trigger": "long_article.read_settled",
+    "condition": "ALL exact disposable articleId AND independent development authorUserId",
+    "action": "profession.experience.adjust +15",
+    "levelThresholds": [
+      0,
+      10
+    ],
+    "pointMedalNotificationActions": 0,
+    "levelRewards": 0,
+    "initialProgress": 0,
+    "initialEffects": 0,
+    "inputs": [
+      "Controlled persisted PENDING source",
+      "Controlled linked reversal"
+    ],
+    "noFormalSeedImport": true,
+    "noSourceCaptureOrReadPointAwardClaim": true
+  },
+  "phases": {
+    "positive": {
+      "source": "SUCCEEDED",
+      "attempt": 1,
+      "effect": "APPLIED",
+      "effects": 1,
+      "before": 0,
+      "after": 15,
+      "beforeLevel": "basic",
+      "afterLevel": "advanced",
+      "version": 1,
+      "records": 1,
+      "contributionExperience": 15,
+      "contributionEvents": 1
+    },
+    "sourceReplay": {
+      "requeue": "SQL fixture with repository-equivalent fields; actual Cron, not admin route",
+      "attempts": 2,
+      "effects": 1,
+      "experience": 15,
+      "version": 1
+    },
+    "reversal": {
+      "source": "SUCCEEDED",
+      "effect": "APPLIED",
+      "effects": 2,
+      "delta": -15,
+      "before": 15,
+      "after": 0,
+      "level": "basic",
+      "version": 2,
+      "records": 2,
+      "contributionDBExperience": 0,
+      "contributionDBEvents": 0,
+      "ownerContributions": []
+    },
+    "bothReplay": {
+      "requeue": "Both fixture sources, then actual Cron",
+      "attempts": [
+        3,
+        2
+      ],
+      "effects": 2,
+      "experience": 0,
+      "version": 2,
+      "highestExperience": 15,
+      "highestLevel": "advanced"
+    }
+  },
+  "API": [
+    "Owner detail, contribution, exact +/- records and public profile agree with real persisted progress",
+    "Zero after reversal is existing progress, not fake progress for an absent user record",
+    "No profession_reward_grant or point transaction produced"
+  ],
+  "browser": {
+    "entry": "/settings/profession via normal local login",
+    "positive": "advanced /15 /threshold10; +15 /0->15 /basic->advanced",
+    "afterExplicitMineAndDetailReread": "basic /0; +/-15 records, contribution omitted at eventCount0",
+    "desktop": "1280x720",
+    "mobile": "390x844 emulated viewport",
+    "mobileDocumentWidth": 390,
+    "mobileRecordItems": 2,
+    "warnErrorLogs": [],
+    "afterCleanupEmptyProgressAndNoFixture": true,
+    "logoutCompleted": true,
+    "viewportReset": true,
+    "temporaryTabClosed": true
+  },
+  "cleanup": {
+    "transactionWithSourceEffectLocks": true,
+    "sourcesRemoved": 2,
+    "effectsRemoved": 2,
+    "ruleRevisionsAndProfessionProgressContributionsRemoved": true,
+    "temporaryArticleRemoved": true,
+    "originalPrivacyRestoredExactly": true,
+    "protectedFingerprintUnchanged": true,
+    "fingerprintTables": [
+      "profession",
+      "profession_revision",
+      "profession_level_scheme",
+      "profession_level",
+      "user_profession",
+      "user_profession_contribution",
+      "user_profession_privacy",
+      "profession_event_effect",
+      "profession_automation",
+      "profession_automation_revision",
+      "profession_reward_grant",
+      "profession_level_reward",
+      "pointtransfer",
+      "pointtransfer_redc",
+      "api_v3_request",
+      "all user point balances"
+    ],
+    "sourceScope": "Only exact fixture keys removed; unrelated events untouched",
+    "ownerDetail404": true
+  },
+  "schema": {
+    "externalUniqueColumns": [
+      "sourceAppId",
+      "externalRequestId"
+    ],
+    "internalMissingIdentityUsesNull": true,
+    "fixtureCorrections": [
+      "Exclude generated articleHotScore",
+      "NULL external identity avoids empty-string unique collision"
+    ],
+    "notProductionDefects": true
+  },
+  "security": {
+    "auth": "Existing normal local login and owner/public routes; no new permissions/admin roles",
+    "isolation": "Exact new article plus test author, no broad rule or formal import",
+    "sensitiveData": "No credentials in report; private harness stays ignored in .idea/rhythm-local",
+    "anonymousCaptchaBlacklist": "No route/viewSkips/credential or challenge exception changed; production unlock not tested",
+    "csrfXssSqlSsrf": "No production query/HTML/transport or external fetch change; fixture data encoded",
+    "assetsEnumerationUploads": "No new public resource/CDN/upload/download; no production or load-test claim"
+  },
+  "validation": {
+    "newFullSuiteBuild": false,
+    "reason": "Production source unchanged; actual runtime transitions/API/browser are new evidence",
+    "maven": false,
+    "newMigration": false,
+    "pendingIDEAJava": []
+  },
+  "manualSteps": [
+    "Use isolated profession levels0/10, no rewards, ALL rule bound to one disposable article and test author; initially no progress/effects",
+    "Queue controlled source input; observe actual Cron SUCCEEDED and generated APPLIED+15, owner15/advanced, contribution1 and recent record1",
+    "Requeue same source; wait attempt2 and verify effects1/XP15/version1",
+    "Queue linked reversal; wait APPLIED-15, verify XP0/basic, two records and contribution eventCount0; requeue both, verify effects2/version2/XP0",
+    "Verify desktop/390px after explicit reads; locked-transaction cleanup, exact privacy restore, unchanged protected fingerprint and detail404"
+  ],
+  "remaining": [
+    "One complete real v3 reading registration/expired-window point settlement/occupation-rule sequence; this phase begins with controlled source input",
+    "Actual POINT/MEDAL/notification grants, commit uncertainty/fault/concurrency/multi-instance",
+    "Production CAPTCHA/blacklist/CDN/directory and physical devices"
+  ],
+  "gitPolicy": "Local per-batch commits; no push"
+}

@@ -25,6 +25,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.cache.OptionCache;
 import org.b3log.symphony.model.Option;
+import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.json.JSONObject;
 
 /**
@@ -59,6 +60,7 @@ public class OptionRepository extends AbstractRepository {
 
     @Override
     public JSONObject get(final String id) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) return getForUpdate(id);
         JSONObject ret = optionCache.getOption(id);
         if (null != ret) {
             return ret;
@@ -76,9 +78,30 @@ public class OptionRepository extends AbstractRepository {
 
     @Override
     public void update(final String id, final JSONObject option, final String... propertyNames) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("publication transaction required");
+            ArticlePublicationCaches.afterTransaction("option:" + id, () -> optionCache.removeOption(id));
+            super.update(id, option, propertyNames);
+            return;
+        }
         super.update(id, option, propertyNames);
 
         option.put(Keys.OBJECT_ID, id);
         optionCache.putOption(option);
+    }
+
+    public void updateValueInCurrentTransaction(final String id, final String value) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("配置更新需要活动事务");
+        super.update(id, new JSONObject().put(Option.OPTION_VALUE, value), Option.OPTION_VALUE);
+    }
+
+    public void invalidateValue(final String id) {
+        optionCache.removeOption(id);
+    }
+
+    public JSONObject getForUpdate(final String id) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("option transaction required");
+        final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", id);
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 }

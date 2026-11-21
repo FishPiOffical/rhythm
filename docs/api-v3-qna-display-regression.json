@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-02",
+  "userApproved": true,
+  "scope": "Question detail metadata, shared current SQL snapshot and actual Vue/API/parent acceptance refresh; production runtime remains pending manual rebuild",
+  "backendFiles": [
+    "src/main/java/org/b3log/symphony/service/ApiV3ContentQueryService.java",
+    "src/main/java/org/b3log/symphony/util/ApiV3ContentSnapshots.java"
+  ],
+  "clientFiles": [
+    "src/api/v3-content.ts",
+    "src/components/articles/ArticleInteraction.vue",
+    "src/components/CommentItem.vue",
+    "src/views/ArticleView.vue"
+  ],
+  "tests": {
+    "backendSQLite": 12,
+    "backendTemporaryMySQL": 12,
+    "temporaryMySQLRemoved": true,
+    "clientScripts": 93,
+    "clientPassCount": 1032,
+    "clientFailureCount": 0,
+    "newClientGroups": 8,
+    "clientBuild": true,
+    "routeContracts": 292,
+    "staticSourceCount": 336,
+    "boundaryFindings": 0,
+    "dynamicCallsSeparatelyUnresolved": 47,
+    "otherServicePathsSeparate": 2,
+    "generatedJsCount": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0,
+    "sourceMappingReferences": 0
+  },
+  "invariants": [
+    "Question amount and accepted EXISTS use one current article SQL read, no independent comment query after snapshot",
+    "Question accepted counts hidden/anonymous/invalid-status marked answers and excludes other articles; no answer ID, actor or body",
+    "Non-question qna=null; corrupt negative stored offer fails rather than invent a value",
+    "Decoder projects only amount/boolean; malformed values reject, missing additive field on older server remains unknown",
+    "Acceptance lost ACK retains original key across remount and normal refresh; current accepted GET does not discard unresolved recovery",
+    "Confirmation aborts on reader change, cancellation sends nothing; definitive fresh 422 leaves no unresolved command",
+    "Only matching answer confirmation emits accepted; actual CommentItem forwards to ArticleView which GETs fresh status; failure has read-only retry"
+  ],
+  "browser": {
+    "verifiedOnlyExistingRuntime": true,
+    "currentQuestionHeader": "问答状态暂不可用",
+    "acceptedAnswerVisible": true,
+    "viewportWidth": 1280,
+    "scrollWidth": 1280,
+    "warnErrorCount": 0,
+    "screenshotPrivate": "browser-qna-old-server-fallback.png",
+    "newQnaPositiveStateNotYetVerified": true
+  },
+  "pendingJava": [
+    "ApiV3CommentMgmtService.java",
+    "CommentAcceptMgmtService.java",
+    "ApiV3CommentRewardQueryService.java",
+    "ApiV3ContentQueryService.java",
+    "ApiV3ContentSnapshots.java"
+  ],
+  "migrationRequired": false,
+  "limits": [
+    "New Java runtime verification and complete question browser submit/refresh/logout/mobile flows pending user-confirmed IDEA rebuild",
+    "Browser old backend fallback is not positive new metadata or new guard deployment proof",
+    "No claim of cross-node/physical-device or external content moderation verification",
+    "Production anonymous/blacklist/captcha unlock and whole-site CDN/directory/upload-download audit not exercised; no new such paths in this change"
+  ]
+}

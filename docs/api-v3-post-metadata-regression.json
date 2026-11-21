@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-02",
+  "changedSourceFiles": [
+    "src/views/PostView.vue",
+    "tools/v3-posts-test.mjs"
+  ],
+  "behavior": "Editor uses existing usePageSeo with reactive heading, route.path without query, robots noindex; no source/draft title or content in metadata.",
+  "baseline": "Existing real browser post page retained previous ranking title or site name; new case failed before adding metadata hook.",
+  "regressions": [
+    {
+      "runner": "tools/v3-posts-test.mjs",
+      "passLines": 33,
+      "exitCode": 0
+    },
+    {
+      "runner": "tools/v3-author-columns-test.mjs",
+      "passLines": 7,
+      "exitCode": 0
+    },
+    {
+      "runner": "tools/v3-editor-emojis-test.mjs",
+      "passLines": 12,
+      "exitCode": 0
+    }
+  ],
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "includes": [
+      "vue-tsc",
+      "Vite client",
+      "Vite SSR"
+    ],
+    "reason": "yarn is not installed; README npm build used."
+  },
+  "assets": {
+    "scannedJs": 77,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "boundary": {
+    "sourceFileCount": 334,
+    "apiSeedCount": 167,
+    "dynamicCallCount": 47,
+    "servicePathCheckCount": 2,
+    "findingCount": 0
+  },
+  "browser": {
+    "normalPost": {
+      "title": "发帖 - 摸鱼派",
+      "robots": "noindex",
+      "canonical": "http://localhost:8081/post"
+    },
+    "longPost": {
+      "title": "发布长文章 - 摸鱼派",
+      "robots": "noindex",
+      "canonical": "http://localhost:8081/post/long"
+    },
+    "viewport": {
+      "width": 390,
+      "scrollWidth": 390,
+      "reset": true
+    },
+    "mutations": false,
+    "limitations": [
+      "Actual owner-edit title covered by mounted component test; not repeated against a real owned source in browser.",
+      "No real mobile device tested.",
+      "Current backend echo fix still awaits user IDEA rebuild confirmation."
+    ]
+  },
+  "passLines": 52
+}

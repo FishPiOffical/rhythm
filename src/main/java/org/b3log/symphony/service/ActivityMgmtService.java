@@ -128,10 +128,13 @@ public class ActivityMgmtService {
     private LivenessQueryService livenessQueryService;
 
     /**
-     * Cloud service.
+     * Atomic daily checkin and patch operations.
      */
     @Inject
-    private CloudService cloudService;
+    private CheckinMgmtService checkins;
+
+    @Inject
+    private LivenessRewardMgmtService livenessRewardMgmtService;
 
     /**
      * Starts eating snake.
@@ -283,170 +286,12 @@ public class ActivityMgmtService {
      * @return {@code Random int} if checkin succeeded, returns {@code Integer.MIN_VALUE} otherwise
      */
     public synchronized int dailyCheckin(final String userId) {
-        if (activityQueryService.isCheckedinToday(userId)) {
-            return -1;
-        }
-
-        final Random random = new Random();
-        final int sum = random.nextInt(Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKIN_MAX)
-                % (Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKIN_MAX - Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKIN_MIN + 1)
-                + Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKIN_MIN;
-        final boolean succ = null != pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_CHECKIN, sum, userId, System.currentTimeMillis(), "");
-        if (!succ) {
-            return -1;
-        }
-
-        try {
-            final JSONObject user = userQueryService.getUser(userId);
-
-            int currentStreakStart = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_START);
-            int currentStreakEnd = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_END);
-
-            final Date today = new Date();
-            user.put(UserExt.USER_CHECKIN_TIME, today.getTime());
-
-            final String datePattern = "yyyyMMdd";
-            final String todayStr = DateFormatUtils.format(today, datePattern);
-            final int todayInt = Integer.valueOf(todayStr);
-
-            if (0 == currentStreakStart) {
-                user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_START, todayInt);
-                user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_END, todayInt);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_START, todayInt);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_END, todayInt);
-                user.put(UserExt.USER_CURRENT_CHECKIN_STREAK, 1);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK, 1);
-                userMgmtService.updateUser(userId, user);
-                return sum;
-            }
-
-            final Date endDate = DateUtils.parseDate(String.valueOf(currentStreakEnd), new String[]{datePattern});
-            final Date nextDate = DateUtils.addDays(endDate, 1);
-            if (!DateUtils.isSameDay(nextDate, today)) {
-                user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_START, todayInt);
-                // 断签，处理
-                int end = Integer.valueOf(DateFormatUtils.format(endDate, datePattern));
-                int now = todayInt;
-                // 如果要补签，续签的UserEXT.USER_CURRENT_CHECKIN_STREAK_START要调整到哪天
-                int patchStart;
-                if (now - end == 1) {
-                    // 只断签了一天
-                    // 只要用一次补签卡就可以恢复之前的start时间
-                    patchStart = currentStreakStart;
-                } else {
-                    // 断签了两天及以上，补签了也只能回到前一天
-                    patchStart = todayInt - 1;
-                }
-                // 把补签信息写入到云存档
-                cloudService.removeBag(userId, "patchStart");
-                cloudService.putBag(userId, "patchStart", patchStart, Integer.MAX_VALUE);
-            }
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_END, todayInt);
-
-            currentStreakStart = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_START);
-            currentStreakEnd = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_END);
-
-            final Date currentStreakStartDate = DateUtils.parseDate(String.valueOf(currentStreakStart), new String[]{datePattern});
-            final Date currentStreakEndDate = DateUtils.parseDate(String.valueOf(currentStreakEnd), new String[]{datePattern});
-            final int currentStreakDays = (int) ((currentStreakEndDate.getTime() - currentStreakStartDate.getTime()) / 86400000) + 1;
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK, currentStreakDays);
-
-            final int longestStreakStart = user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_START);
-            final int longestStreakEnd = user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_END);
-            final Date longestStreakStartDate = DateUtils.parseDate(String.valueOf(longestStreakStart), new String[]{datePattern});
-            final Date longestStreakEndDate = DateUtils.parseDate(String.valueOf(longestStreakEnd), new String[]{datePattern});
-            final int longestStreakDays = (int) ((longestStreakEndDate.getTime() - longestStreakStartDate.getTime()) / 86400000) + 1;
-            user.put(UserExt.USER_LONGEST_CHECKIN_STREAK, longestStreakDays);
-
-            if (longestStreakDays < currentStreakDays) {
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_START, currentStreakStart);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_END, currentStreakEnd);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK, currentStreakDays);
-            }
-
-            userMgmtService.updateUser(userId, user);
-
-            if (currentStreakDays > 0 && 0 == currentStreakDays % 10) {
-                // Additional Point
-                pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_CHECKIN_STREAK,
-                        Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKINT_STREAK, userId, System.currentTimeMillis(), "");
-            }
-            return sum;
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Checkin streak failed", e);
-            return -1;
-        }
+        return checkins.dailyLegacy(userId);
     }
 
-    /**
-     * 补签
-     *
-     * @param userId
-     */
+    /** Uses a patch card with the same owner/bag transaction as daily checkin. */
     public synchronized int patchCheckin(final String userId) {
-        try {
-            // 获取用户的补签后起始日期
-            int afterStart = Integer.valueOf(new JSONObject(cloudService.getBag(userId)).optString("patchStart"));
-            cloudService.removeBag(userId, "patchStart");
-            if (cloudService.putBag(userId, "patchCheckinCard", -1, Integer.MAX_VALUE) != 0) {
-                // 没有补签卡，不予受理
-                return -1;
-            }
-
-            final String datePattern = "yyyyMMdd";
-            final JSONObject user = userQueryService.getUser(userId);
-            int longestStart = user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_START);
-            int longestEnd = user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_END);
-            int currentStart = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_START);
-            int currentEnd = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_END);
-
-            if(longestStart == currentStart){
-                //当前签到是最长签到，不允许补签
-                return -2;
-            }
-
-            final Date nowDate = new Date();
-            final String todayStr = DateFormatUtils.format(nowDate, datePattern);
-            final int todayInt = Integer.valueOf(todayStr);
-            if(todayInt!=currentEnd){
-                //如果今天没签到 不能使用
-                return -3;
-            }
-
-            final Date afterStartDate = DateUtils.parseDate(String.valueOf(afterStart), new String[]{datePattern});
-            final Date longestEndDate = DateUtils.parseDate(String.valueOf(longestEnd), new String[]{datePattern});
-            if((int) ((afterStartDate.getTime() - longestEndDate.getTime()) / 86400000)<=1){
-                //如果补签后开始日期跟之前最长日期的结尾在一天内，说明是接上去的 所以afterStart要变成开始的start
-                afterStart =user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_START);
-            }
-
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_START, afterStart);
-            int currentStreakStart = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_START);
-            int currentStreakEnd = user.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK_END);
-            final Date currentStreakStartDate = DateUtils.parseDate(String.valueOf(currentStreakStart), new String[]{datePattern});
-            final Date currentStreakEndDate = DateUtils.parseDate(String.valueOf(currentStreakEnd), new String[]{datePattern});
-            final int currentStreakDays = (int) ((currentStreakEndDate.getTime() - currentStreakStartDate.getTime()) / 86400000) + 1;
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK, currentStreakDays);
-
-            final int longestStreakStart = user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_START);
-            final int longestStreakEnd = user.optInt(UserExt.USER_LONGEST_CHECKIN_STREAK_END);
-            final Date longestStreakStartDate = DateUtils.parseDate(String.valueOf(longestStreakStart), new String[]{datePattern});
-            final Date longestStreakEndDate = DateUtils.parseDate(String.valueOf(longestStreakEnd), new String[]{datePattern});
-            final int longestStreakDays = (int) ((longestStreakEndDate.getTime() - longestStreakStartDate.getTime()) / 86400000) + 1;
-            user.put(UserExt.USER_LONGEST_CHECKIN_STREAK, longestStreakDays);
-            if (longestStreakDays < currentStreakDays) {
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_START, currentStreakStart);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_END, currentStreakEnd);
-                user.put(UserExt.USER_LONGEST_CHECKIN_STREAK, currentStreakDays);
-            }
-
-            userMgmtService.updateUser(userId, user);
-            return 0;
-        } catch (final Exception e) {
-            return -4;
-        }
+        return checkins.patchLegacy(userId);
     }
 
     /**
@@ -562,53 +407,11 @@ public class ActivityMgmtService {
      * @param userId the specified user id
      */
     public synchronized void yesterdayLivenessReward(final String userId) {
-        if (activityQueryService.isCollectedYesterdayLivenessReward(userId)) {
-            return;
-        }
-
-        final JSONObject yesterdayLiveness = livenessQueryService.getYesterdayLiveness(userId);
-        if (null == yesterdayLiveness) {
-            return;
-        }
-
-        final int sum = Liveness.calcPoint(yesterdayLiveness);
-
-        if (0 == sum) {
-            return;
-        }
-
-        boolean succ = null != pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, sum, userId, System.currentTimeMillis(), "");
+        livenessRewardMgmtService.claimLegacy(userId);
     }
 
-    /**
-     * Collects yesterday's liveness reward.
-     *
-     * @param userId the specified user id
-     */
     public synchronized int yesterdayLivenessRewardApi(final String userId) {
-        if (activityQueryService.isCollectedYesterdayLivenessReward(userId)) {
-            return -1;
-        }
-
-        final JSONObject yesterdayLiveness = livenessQueryService.getYesterdayLiveness(userId);
-        if (null == yesterdayLiveness) {
-            return -1;
-        }
-
-        final int sum = Liveness.calcPoint(yesterdayLiveness);
-
-        if (0 == sum) {
-            return -1;
-        }
-
-        boolean succ = null != pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, sum, userId, System.currentTimeMillis(), "");
-        if (!succ) {
-            return -1;
-        }
-
-        return sum;
+        return livenessRewardMgmtService.claimLegacy(userId);
     }
 
     /**

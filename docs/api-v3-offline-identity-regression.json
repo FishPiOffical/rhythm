@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-02",
+  "scope": "Client offline notifications isolated to calling identity and existing shell notice cleared across identity boundaries",
+  "productionFiles": [
+    "src/api/http.ts",
+    "src/layouts/AppShell.vue"
+  ],
+  "testFiles": [
+    "tools/v3-offline-identity-test.mjs"
+  ],
+  "baselineFailures": [
+    "Old JSON request body failed after new login but emitted offline notice for new reader",
+    "Version-only guard missed token-presence changes during initial restore or definitive refresh rejection",
+    "Shell existing notice persisted across initial credential restore without version increment",
+    "Queued credential request captured dispatch identity instead of caller identity"
+  ],
+  "changes": [
+    "Capture version and token-presence snapshot when request is called, before credential queue",
+    "Fetch and response-body errors reject original caller but only notify the matching current identity",
+    "Ordinary token refresh preserves current-reader network notices and unresolved operation semantics",
+    "Shell clears existing notice on version/account/token-presence change; no API/credential ordering alteration"
+  ],
+  "focused": {
+    "groups": 6,
+    "actualTcpSockets": true,
+    "actualVueShellSetup": true,
+    "log": "/tmp/v3-offline-identity-final.log"
+  },
+  "fullSuite": {
+    "scripts": 92,
+    "passLines": 1018,
+    "failures": [],
+    "evidence": "/tmp/v3-offline-identity-suite.json"
+  },
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "log": "/tmp/v3-offline-identity-build-final.log"
+  },
+  "boundary": {
+    "sourceFiles": 336,
+    "findings": 0,
+    "dynamicCalls": 47,
+    "otherServiceChecks": 2
+  },
+  "assets": {
+    "javascriptFiles": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "findings": 0
+  },
+  "liveEvidence": "api-v3-offline-identity-live.json",
+  "limits": [
+    "Initial credential restore/rejection and serialized credential queue fault permutations use actual TCP/production transport with synthetic auth endpoints, not real browser credentials under these exact races",
+    "Browser actual read fault and account-switch race verified; not first monetary commit lost ACK",
+    "Cross-instance/mobile hardware/production captcha-blacklist/full CDN-directory matrices remain separate",
+    "No Java/FTL/server API schema changes, Maven, commit, push or release"
+  ]
+}

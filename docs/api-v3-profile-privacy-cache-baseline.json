@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-02",
+  "scope": "Warm target user cache followed by controlled dedicated development privacy/status change",
+  "results": [
+    {
+      "step": "warm-public-profile",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "warm/articles",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-hidden/articles",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "warm/comments",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-hidden/comments",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "warm/following/users",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-hidden/following/users",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "warm/followers",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-hidden/followers",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-deactivated-profile",
+      "status": 200,
+      "code": 0
+    }
+  ],
+  "allOriginalFieldsRestored": true,
+  "limits": [
+    "Current Java91346 baseline, before any new profile privacy fix",
+    "No body or credentials included; controlled SQL simulates out-of-node cache invalidation gap"
+  ]
+}

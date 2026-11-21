@@ -1,0 +1,260 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 91346
+  },
+  "scope": "Current language/timezone and exact-site homepage settings normal writes, strict inputs, replay and restoration",
+  "results": [
+    {
+      "step": "locale-normalize-trim",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "locale-equivalent-retry",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "locale-set-second",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "locale-replay-first",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "locale-replay-preserves-second",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "locale-key-conflict",
+      "group": "locale",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "unknown-language",
+      "group": "locale",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "unknown-timezone",
+      "group": "locale",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "null-timezone",
+      "group": "locale",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "numeric-language",
+      "group": "locale",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "overlong-timezone",
+      "group": "locale",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "owner-field",
+      "group": "locale",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "locale-invalid-preserves",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "locale-other-owner-unchanged",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-same-site-full-url",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-read-exact-query-fragment",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-root-normalizes-clear",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-replay-first",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-replay-keeps-clear",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-key-conflict",
+      "group": "functions",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "spoof-host",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "foreign-host",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "foreign-port",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "different-scheme",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "protocol-relative",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "relative-path",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "authority-credentials",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "encoded-leading-slashes",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "nested-backslash",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "overlong-url",
+      "group": "functions",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "redirect-invalid-preserves",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "redirect-other-owner-unchanged",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-locale",
+      "group": "locale",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-functions",
+      "group": "functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "localeRestored": true,
+  "allFunctionFieldsRestored": true,
+  "balancesUnchanged": true,
+  "limits": [
+    "Current localhost deployment has no context path; subpath deployment boundary remains covered by isolated tests, not this runtime",
+    "Classic legacy homepage endpoint and browser reload redirect behavior not exercised",
+    "Real server locale/timezone storage is checked; no claim that every page localizes or formats every date correctly"
+  ],
+  "clientConsumptionReview": {
+    "homepageSettingFoundInFormAndApiOnly": true,
+    "automaticHomepageRedirectNotFoundInCurrentSource": true,
+    "newTriggerPolicyAwaitingUserDecision": true
+  }
+}

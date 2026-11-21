@@ -1,0 +1,4264 @@
+{
+  "scope": "Syntactic explicit auth middleware inventory, not arbitrary Java control-flow or HTTP/WS verification; reviewed protocol exceptions remain separate",
+  "count": 292,
+  "kinds": {
+    "required-bearer": 224,
+    "optional-bearer": 50,
+    "anonymous-gate": 14,
+    "reviewed-oauth-protocol": 3,
+    "reviewed-websocket-protocol": 1
+  },
+  "problems": [],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientManagementProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ClientManagementProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "p::administrator"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/admin/oauth/clients",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientManagementProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ClientManagementProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "p::administrator",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientDisableProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ClientDisableProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "p::administrator",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientManagementProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ClientManagementProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "p::administrator"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientUpdateProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ClientUpdateProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "p::administrator",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContentProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ContentProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleWriteProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ArticleWriteProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleWriteProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ArticleWriteProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContentProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ContentProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleWriteProcessor.java",
+      "line": 27,
+      "registration": "ApiV3ArticleWriteProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/column",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 142,
+      "registration": "ApiV3Processor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContentProcessor.java",
+      "line": 31,
+      "registration": "ApiV3ContentProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 27,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/heat",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleHeatProcessor.java",
+      "line": 20,
+      "registration": "ApiV3ArticleHeatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraph-comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ParagraphProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraphs",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java",
+      "line": 23,
+      "registration": "ApiV3ParagraphProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reads",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleReadProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ArticleReadProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read",
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::contentRead",
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/realtime-ticket",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 40,
+      "registration": "ApiV3RealtimeProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 16,
+      "registration": "ApiV3RevisionProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions/{revisionId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 17,
+      "registration": "ApiV3RevisionProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ArticleRewardProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ArticleRewardProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleStickProcessor.java",
+      "line": 19,
+      "registration": "ApiV3ArticleStickProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write",
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 23,
+      "registration": "ApiV3ArticleRewardProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ArticleRewardProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3VoteProcessor.java",
+      "line": 25,
+      "registration": "ApiV3VoteProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3VoteProcessor.java",
+      "line": 23,
+      "registration": "ApiV3VoteProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3VoteProcessor.java",
+      "line": 24,
+      "registration": "ApiV3VoteProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 33,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/random",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java",
+      "line": 22,
+      "registration": "ApiV3DiscoveryExtrasProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/app-decision",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 33,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "p::privacy",
+        "p::budget",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/app-status",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 32,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "p::privacy",
+        "p::budget",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/claim",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 31,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "p::privacy",
+        "p::budget",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/decision",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 30,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "p::privacy",
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/exchange",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 34,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "p::privacy",
+        "p::budget",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/requests",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 28,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "p::privacy",
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/status",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 29,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "p::privacy",
+        "auth::profileRead",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/auth/captcha-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 39,
+      "registration": "ApiV3AccountProcessor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/login",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 134,
+      "registration": "ApiV3Processor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/logout",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 136,
+      "registration": "ApiV3Processor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/password-reset/complete",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 40,
+      "registration": "ApiV3AccountProcessor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/password-reset/request",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 41,
+      "registration": "ApiV3AccountProcessor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/refresh",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 135,
+      "registration": "ApiV3Processor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/auth/registration-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 38,
+      "registration": "ApiV3AccountProcessor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/registration/complete",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 43,
+      "registration": "ApiV3AccountProcessor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/registration/request",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 42,
+      "registration": "ApiV3AccountProcessor.register",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 56,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 36,
+      "registration": "ApiV3BreezemoonProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 37,
+      "registration": "ApiV3BreezemoonProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 33,
+      "registration": "ApiV3BreezemoonProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 35,
+      "registration": "ApiV3BreezemoonProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/barrager",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 40,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/barrager/price",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 41,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 36,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 35,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 42,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}/context",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 43,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 37,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 31,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 36,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/music",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 33,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/mutes",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatMuteProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ChatMuteProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/online-users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 37,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/realtime-ticket",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 41,
+      "registration": "ApiV3RealtimeProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packet-types",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RedPacketProcessor.java",
+      "line": 18,
+      "registration": "ApiV3RedPacketProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatRedPacketProcessor.java",
+      "line": 16,
+      "registration": "ApiV3ChatRedPacketProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write",
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packets/{id}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatRedPacketProcessor.java",
+      "line": 17,
+      "registration": "ApiV3ChatRedPacketProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets/{id}/claims",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatRedPacketProcessor.java",
+      "line": 18,
+      "registration": "ApiV3ChatRedPacketProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/topic",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 38,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/topic",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 39,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/weather",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 34,
+      "registration": "ApiV3ChatProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 30,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 29,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 138,
+      "registration": "ApiV3Processor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/columns/{columnId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ColumnProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 141,
+      "registration": "ApiV3Processor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 140,
+      "registration": "ApiV3Processor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/cover",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 27,
+      "registration": "ApiV3ColumnProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/title",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ColumnProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/hot",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 139,
+      "registration": "ApiV3Processor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 29,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ParagraphProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 28,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentRewardProcessor.java",
+      "line": 21,
+      "registration": "ApiV3CommentRewardProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 31,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 18,
+      "registration": "ApiV3RevisionProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions/{revisionId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 19,
+      "registration": "ApiV3RevisionProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentRewardProcessor.java",
+      "line": 20,
+      "registration": "ApiV3CommentRewardProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 30,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 34,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 32,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 33,
+      "registration": "ApiV3CommentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 35,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 34,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 42,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 45,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 44,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 43,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 23,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameSubmissionProcessor.java",
+      "line": 23,
+      "registration": "ApiV3FishGameSubmissionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 25,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameSubmissionProcessor.java",
+      "line": 24,
+      "registration": "ApiV3FishGameSubmissionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 24,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameProcessor.java",
+      "line": 28,
+      "registration": "ApiV3FishGameProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "comments.write"
+      ],
+      "middleware": [
+        "auth::commentsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameProcessor.java",
+      "line": 27,
+      "registration": "ApiV3FishGameProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameProcessor.java",
+      "line": 26,
+      "registration": "ApiV3FishGameProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "reactions.write"
+      ],
+      "middleware": [
+        "auth::reactionsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/game-save-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 22,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/invitation-codes/status",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3InvitationProcessor.java",
+      "line": 28,
+      "registration": "ApiV3InvitationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead",
+        "budget::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/logs",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java",
+      "line": 23,
+      "registration": "ApiV3DiscoveryExtrasProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/markdown/preview",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MarkdownProcessor.java",
+      "line": 39,
+      "registration": "ApiV3MarkdownProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 137,
+      "registration": "ApiV3Processor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "authenticated"
+      ],
+      "middleware": [
+        "auth::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ActivityProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ActivityProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ActivityProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ActivityProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AnonymousContentProcessor.java",
+      "line": 21,
+      "registration": "ApiV3AnonymousContentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AnonymousContentProcessor.java",
+      "line": 22,
+      "registration": "ApiV3AnonymousContentProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/articles/{articleId}/source",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 29,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/bag",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 24,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin1day/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 24,
+      "registration": "ApiV3BagProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin2days/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 25,
+      "registration": "ApiV3BagProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 27,
+      "registration": "ApiV3BagProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write",
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/patchCheckinCard/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 26,
+      "registration": "ApiV3BagProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/checkin",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 23,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 40,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/collections/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 47,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 38,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/collections/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 46,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/columns",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 28,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/columns/order",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ColumnProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 23,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.read"
+      ],
+      "middleware": [
+        "auth::messagesRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 24,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.read"
+      ],
+      "middleware": [
+        "auth::messagesRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 25,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.read"
+      ],
+      "middleware": [
+        "auth::messagesRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 28,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.write"
+      ],
+      "middleware": [
+        "auth::messagesWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 29,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.write"
+      ],
+      "middleware": [
+        "auth::messagesWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 30,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.write"
+      ],
+      "middleware": [
+        "auth::messagesWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 26,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/drafts",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DraftProcessor.java",
+      "line": 28,
+      "registration": "ApiV3DraftProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DraftProcessor.java",
+      "line": 30,
+      "registration": "ApiV3DraftProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 27,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DraftProcessor.java",
+      "line": 29,
+      "registration": "ApiV3DraftProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PostExportProcessor.java",
+      "line": 17,
+      "registration": "ApiV3PostExportProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write",
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "auth::profileRead",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PostExportProcessor.java",
+      "line": 18,
+      "registration": "ApiV3PostExportProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}/download",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PostExportProcessor.java",
+      "line": 19,
+      "registration": "ApiV3PostExportProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 36,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 45,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 37,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 44,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 34,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 43,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 35,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 42,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 23,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 24,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/game-saves/{gameId}/migrations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 25,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 27,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications/{applicationId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 28,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/identity-applications/enterprise",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 26,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/invitation-codes",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3InvitationPurchaseProcessor.java",
+      "line": 26,
+      "registration": "ApiV3InvitationPurchaseProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MedalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/medals/{medalId}/display",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalDisplayProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MedalDisplayProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/medals/{medalId}/move",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalOrderProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MedalOrderProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals/image",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java",
+      "line": 15,
+      "registration": "ApiV3MedalImageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/membership",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipProcessor.java",
+      "line": 22,
+      "registration": "ApiV3MembershipProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/membership",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipOpeningProcessor.java",
+      "line": 26,
+      "registration": "ApiV3MembershipOpeningProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/membership/config",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipSettingsProcessor.java",
+      "line": 25,
+      "registration": "ApiV3MembershipSettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 31,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.write"
+      ],
+      "middleware": [
+        "auth::messagesWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 27,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.read"
+      ],
+      "middleware": [
+        "auth::messagesRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/messages/realtime-ticket",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 42,
+      "registration": "ApiV3RealtimeProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.read"
+      ],
+      "middleware": [
+        "auth::messagesRead",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/unread-count",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 26,
+      "registration": "ApiV3PrivateMessageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "messages.read"
+      ],
+      "middleware": [
+        "auth::messagesRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MilestoneProcessor.java",
+      "line": 28,
+      "registration": "ApiV3MilestoneProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones/{milestoneId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MilestoneProcessor.java",
+      "line": 29,
+      "registration": "ApiV3MilestoneProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 41,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.write"
+      ],
+      "middleware": [
+        "auth::notificationsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 35,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.read"
+      ],
+      "middleware": [
+        "auth::notificationsRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 40,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.write"
+      ],
+      "middleware": [
+        "auth::notificationsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 37,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.read"
+      ],
+      "middleware": [
+        "auth::notificationsRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/{notificationId}/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 38,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.write"
+      ],
+      "middleware": [
+        "auth::notificationsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 39,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.write"
+      ],
+      "middleware": [
+        "auth::notificationsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/unread-count",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 36,
+      "registration": "ApiV3NotificationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.read"
+      ],
+      "middleware": [
+        "auth::notificationsRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/point-transfers",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PointTransferProcessor.java",
+      "line": 25,
+      "registration": "ApiV3PointTransferProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/points",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 25,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ProfessionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionDetailProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ProfessionDetailProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}/records",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionDetailProcessor.java",
+      "line": 22,
+      "registration": "ApiV3ProfessionDetailProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/onboarding",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionSettingsProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ProfessionSettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/primary",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionPrimaryProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ProfessionPrimaryProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/privacy",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionSettingsProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ProfessionSettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/security/mfa",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MfaProcessor.java",
+      "line": 19,
+      "registration": "ApiV3MfaProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/security/mfa",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SecurityProcessor.java",
+      "line": 17,
+      "registration": "ApiV3SecurityProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/security/mfa",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MfaProcessor.java",
+      "line": 18,
+      "registration": "ApiV3MfaProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/security/mfa/preparations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MfaProcessor.java",
+      "line": 17,
+      "registration": "ApiV3MfaProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 22,
+      "registration": "ApiV3PersonalProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/avatar",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 32,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/avatar",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 42,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/display",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 35,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/display",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 48,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/email",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 22,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/email/verification",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 20,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-group-imports",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiTransferProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmojiTransferProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmotionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiGroupProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmojiGroupProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiGroupProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmojiGroupProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiGroupProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmojiGroupProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmotionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmojiItemProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmojiItemProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmojiItemProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/shares",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiTransferProcessor.java",
+      "line": 22,
+      "registration": "ApiV3EmojiTransferProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-migrations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiTransferProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmojiTransferProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 22,
+      "registration": "ApiV3EmojiItemProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotion-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmotionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 22,
+      "registration": "ApiV3EmotionProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emotions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionSettingsProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmotionSettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/functions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 37,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/functions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 43,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 39,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/locale",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 45,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 40,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/location",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 38,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/location",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 44,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/password",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SecurityProcessor.java",
+      "line": 18,
+      "registration": "ApiV3SecurityProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 30,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/personality",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 41,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 31,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/phone",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/phone/verification",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 19,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/privacy",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 34,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/privacy",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 47,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/profile",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 33,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/profile",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 46,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/qq",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/qq",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 33,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/skins",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 36,
+      "registration": "ApiV3SettingsProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 34,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 35,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3UserNameProcessor.java",
+      "line": 16,
+      "registration": "ApiV3UserNameProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.write",
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::activityWrite",
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 41,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 49,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 39,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 48,
+      "registration": "ApiV3FollowProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "follows.write"
+      ],
+      "middleware": [
+        "auth::followsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/watching/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 34,
+      "registration": "ApiV3BreezemoonProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/levels",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MembershipProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/styles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipStyleProcessor.java",
+      "line": 14,
+      "registration": "ApiV3MembershipStyleProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 26,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/milestones",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MilestoneProcessor.java",
+      "line": 27,
+      "registration": "ApiV3MilestoneProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones/{milestoneId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 27,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/oauth/authorize",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 42,
+      "registration": "ApiV3OAuthProcessor.registerRoutes",
+      "kind": "anonymous-gate",
+      "middleware": [
+        "p::privacy",
+        "p::rate",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/oauth/consent",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 43,
+      "registration": "ApiV3OAuthProcessor.registerRoutes",
+      "kind": "reviewed-oauth-protocol",
+      "middleware": [
+        "p::privacy",
+        "p::rate",
+        "p::cookieOnly"
+      ],
+      "manualReviewRequired": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/oauth/revoke",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 45,
+      "registration": "ApiV3OAuthProcessor.registerRoutes",
+      "kind": "reviewed-oauth-protocol",
+      "middleware": [
+        "p::privacy",
+        "p::rate",
+        "p::protocolRevoke"
+      ],
+      "manualReviewRequired": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/oauth/token",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 44,
+      "registration": "ApiV3OAuthProcessor.registerRoutes",
+      "kind": "reviewed-oauth-protocol",
+      "middleware": [
+        "p::privacy",
+        "p::rate",
+        "p::protocolToken"
+      ],
+      "manualReviewRequired": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/payments/donation-page",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DonationProcessor.java",
+      "line": 20,
+      "registration": "ApiV3DonationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "activity.read"
+      ],
+      "middleware": [
+        "auth::activityRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionProcessor.java",
+      "line": 23,
+      "registration": "ApiV3ProfessionProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/guides",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionGuideProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ProfessionGuideProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/ranking",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionRankingProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ProfessionRankingProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/rankings/{type}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RankingProcessor.java",
+      "line": 22,
+      "registration": "ApiV3RankingProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/reactions/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ReactionProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "WEBSOCKET",
+      "path": "/api/v3/realtime",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 43,
+      "registration": "ApiV3RealtimeProcessor.register",
+      "kind": "reviewed-websocket-protocol",
+      "middleware": [],
+      "manualReviewRequired": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/realtime/tickets",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 39,
+      "registration": "ApiV3RealtimeProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "notifications.read"
+      ],
+      "middleware": [
+        "auth::notificationsRead",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/recent-members",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java",
+      "line": 21,
+      "registration": "ApiV3DiscoveryExtrasProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/items",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterProcessor.java",
+      "line": 20,
+      "registration": "ApiV3RepeaterProcessor.registerRoutes",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/repeater/items",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterPublicationProcessor.java",
+      "line": 21,
+      "registration": "ApiV3RepeaterPublicationProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterLikeProcessor.java",
+      "line": 22,
+      "registration": "ApiV3RepeaterLikeProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterLikeProcessor.java",
+      "line": 21,
+      "registration": "ApiV3RepeaterLikeProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/next",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterProcessor.java",
+      "line": 21,
+      "registration": "ApiV3RepeaterProcessor.registerRoutes",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/report/options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReportProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ReportProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/reports",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReportProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ReportProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.write"
+      ],
+      "middleware": [
+        "auth::contentWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/review/identity-applications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 29,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/review/identity-applications/{applicationId}/decision",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 31,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/review/identity-applications/{applicationId}/material/open",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 30,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "settings.write"
+      ],
+      "middleware": [
+        "auth::settingsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/search",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 38,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/statistics",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 28,
+      "registration": "ApiV3CommunityProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3TagSuggestionProcessor.java",
+      "line": 25,
+      "registration": "ApiV3TagSuggestionProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::contentRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3UserSuggestionProcessor.java",
+      "line": 25,
+      "registration": "ApiV3UserSuggestionProcessor.registerRoutes",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 39,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 41,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 40,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/uploads/tickets",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3UploadProcessor.java",
+      "line": 24,
+      "registration": "ApiV3UploadProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "uploads.write"
+      ],
+      "middleware": [
+        "auth::uploadsWrite",
+        "writes::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 55,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 49,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 50,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 46,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/followers",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 54,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 53,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 52,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 51,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalProcessor.java",
+      "line": 24,
+      "registration": "ApiV3MedalProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals/image",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java",
+      "line": 16,
+      "registration": "ApiV3MedalImageProcessor.register",
+      "kind": "required-bearer",
+      "requiredScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::profileRead"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/professions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionPublicProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ProfessionPublicProcessor.registerRoutes",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "profile.read"
+      ],
+      "middleware": [
+        "auth::optionalProfile",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 48,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 47,
+      "registration": "ApiV3DiscoveryProcessor.register",
+      "kind": "optional-bearer",
+      "optionalScopes": [
+        "content.read"
+      ],
+      "middleware": [
+        "auth::optionalContent",
+        "anonymous::handle"
+      ]
+    }
+  ]
+}

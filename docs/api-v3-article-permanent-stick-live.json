@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "results": [
+    {
+      "step": "warm-recent-list",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-detail",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-list-latest",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-list-active",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-list-hot",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-list-comments",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-list-month-comments",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "owner-cannot-override",
+      "status": 409,
+      "expected": 409,
+      "code": "permanent_stick",
+      "passed": true
+    },
+    {
+      "step": "failed-key-retry-same-refusal",
+      "status": 409,
+      "expected": 409,
+      "code": "permanent_stick",
+      "passed": true
+    },
+    {
+      "step": "other-owner-hidden",
+      "status": 404,
+      "expected": 404,
+      "code": "not_found",
+      "passed": true
+    },
+    {
+      "step": "guest-denied",
+      "status": 401,
+      "expected": 401,
+      "code": "unauthorized",
+      "passed": true
+    }
+  ],
+  "restoredUnchangedFingerprints": {
+    "article": true,
+    "balances": true,
+    "stickLedger": true,
+    "stickReceipts": true
+  },
+  "limits": [
+    "Temporary metadata fixture represents administrative permanent state; no admin UI action performed",
+    "Failure paths create no new paid stick; insufficient funds and concurrent successful charges are separate matrices",
+    "Five recent sorts only, not all list/filter/instance combinations",
+    "Production anonymous captcha/blacklist and full static/CDN/directory scan not repeated"
+  ]
+}

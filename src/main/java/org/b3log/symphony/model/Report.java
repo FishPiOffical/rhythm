@@ -88,6 +88,8 @@ public final class Report {
      */
     public static final int REPORT_DATA_TYPE_C_CHAT = 3;
 
+    public static final int REPORT_DATA_TYPE_C_REPEATER = 4;
+
     // Report type constants
     /**
      * Report type - Spam AD.

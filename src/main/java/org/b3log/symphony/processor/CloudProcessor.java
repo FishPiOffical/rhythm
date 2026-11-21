@@ -18,6 +18,8 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.latke.http.ApiV3GameSaveRawBody;
+import org.b3log.symphony.util.ApiV3Json;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
@@ -29,6 +31,10 @@ import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.service.CloudService;
+import org.b3log.symphony.service.ApiV3GameSaveService;
+import org.b3log.symphony.util.ApiV3GameSaveInputs;
+import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
 import org.json.JSONObject;
@@ -44,6 +50,9 @@ public class CloudProcessor {
     private CloudService cloudService;
 
     @Inject
+    private ApiV3GameSaveService gameSaves;
+
+    @Inject
     private CloudRepository cloudRepository;
 
     /**
@@ -55,6 +64,10 @@ public class CloudProcessor {
         final CSRFMidware csrfMidware = beanManager.getReference(CSRFMidware.class);
 
         final CloudProcessor cloudProcessor = beanManager.getReference(CloudProcessor.class);
+        registerRoutes(cloudProcessor, loginCheck);
+    }
+
+    public static void registerRoutes(CloudProcessor cloudProcessor, LoginCheckMidware loginCheck) {
         Dispatcher.post("/api/cloud/sync", cloudProcessor::sync, loginCheck::handle);
         Dispatcher.post("/api/cloud/get", cloudProcessor::get, loginCheck::handle);
     }
@@ -65,6 +78,7 @@ public class CloudProcessor {
      * @param context
      */
     public void sync(final RequestContext context) {
+        if (registeredGame(context, true)) return;
         try {
             JSONObject user = Sessions.getUser();
             try {
@@ -96,6 +110,7 @@ public class CloudProcessor {
      * @param context
      */
     public void get(final RequestContext context) {
+        if (registeredGame(context, false)) return;
         JSONObject user = Sessions.getUser();
         try {
             final JSONObject requestJSONObject = context.requestJSON();
@@ -109,4 +124,33 @@ public class CloudProcessor {
 
         context.renderJSON(StatusCodes.SUCC).renderData(data);
     }
+    /** Only registered games move to the new slot; all other legacy cloud keys retain their existing handlers. */
+    private boolean registeredGame(final RequestContext context, final boolean write) {
+        JSONObject body;
+        try { body=context.requestJSON(); } catch (Exception invalidLegacyBody) { return false; }
+        if (!(body.opt("gameId") instanceof String game)||!ApiV3GameSaveInputs.registered(game)) return false;
+        try {
+            if(write){
+                final String type=context.header("Content-Type");
+                if(type==null||!"application/json".equalsIgnoreCase(type.split(";",2)[0].trim()))throw new ApiV3Exception(415,"unsupported_media_type","请求体必须使用 application/json");
+                final byte[] bytes;
+                try{bytes=ApiV3GameSaveRawBody.copy(context.getRequest(),ApiV3GameSaveInputs.MAX_REQUEST_BYTES);}
+                catch(ApiV3GameSaveRawBody.TooLarge large){throw new ApiV3Exception(413,"body_too_large","请求体过大");}
+                try{body=ApiV3Json.parse(bytes);}
+                catch(IllegalArgumentException invalid){throw new ApiV3Exception(400,"invalid_json","JSON 请求体不合法");}
+                if(!game.equals(body.opt("gameId")))throw new ApiV3Exception(422,"invalid_input","游戏标识不合法");
+            }
+            final JSONObject user=context.attr(User.USER) instanceof JSONObject current?current:null;
+            if(user==null)throw new ApiV3Exception(401,"unauthorized","请重新登录");
+            final String actor=user.optString(Keys.OBJECT_ID);
+            final var proof=AccountCredentialVersions.snapshot(actor);
+            if(write){
+                gameSaves.legacySave(actor,proof,game,body.opt("data"));
+                context.renderJSON(StatusCodes.SUCC).renderMsg("摸鱼派账号 "+user.optString(User.USER_NAME)+" - 游戏存档已同步至摸鱼派云服务");
+            }else context.renderJSON(StatusCodes.SUCC).renderData(gameSaves.legacyGet(actor,proof,game));
+        }catch(ApiV3Exception error){context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());}
+        catch(Exception error){context.renderJSON(StatusCodes.ERR).renderMsg("游戏存档暂不可用");}
+        return true;
+    }
+
 }

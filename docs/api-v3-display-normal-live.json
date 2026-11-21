@@ -1,0 +1,130 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 91346
+  },
+  "scope": "Actual device-specific skin validation and display settings normal writes/atomic rejection/replay",
+  "results": [
+    {
+      "step": "legacy-skin-aliases-and-display-toggle",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "read-canonical-device-skins",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "set-second-display",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "replay-first-receipt",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "replay-preserves-current-second",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "same-key-different-display",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "unknown-installed-skin",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "mobile-as-pc-skin",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "pc-as-mobile-skin",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "skin-traversal",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "absolute-skin-path",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "html-skin-name",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "null-skin",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "invalid-comment-mode",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "string-avatar-mode",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "partial-invalid-is-atomic",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "failed-partial-write-preserves-all-fields",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "other-owner-display-unchanged",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-display",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "allDisplayFieldsRestored": true,
+  "balancesUnchanged": true,
+  "limits": [
+    "Only current installed classic pc/mobile skins exist; other installed themes are not fabricated",
+    "Stored display fields validated, not actual classic template rendering, GIF animation/static avatar selection or website_v3 theme consumption",
+    "Successful idempotency receipts remain; no business schema/source changed"
+  ]
+}

@@ -1,0 +1,356 @@
+{
+  "date": "2026-11-02",
+  "deployment": "user confirmed IDEA restart, Java PID80758 IPv6 localhost HTTP8081",
+  "results": [
+    {
+      "step": "login-single-quotes",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-duplicate",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-escaped-duplicate",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-broken",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-invalid-utf8",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-whitespace",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-array",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-unknown",
+      "status": 422,
+      "code": "invalid_request",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-wrong-media",
+      "status": 415,
+      "code": "unsupported_media_type",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-over-limit",
+      "status": 413,
+      "code": "body_too_large",
+      "cookieChanged": false
+    },
+    {
+      "step": "login-non-string",
+      "status": 422,
+      "code": "invalid_request",
+      "cookieChanged": false
+    },
+    {
+      "step": "valid-login",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": true
+    },
+    {
+      "step": "refresh-single-quotes",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-duplicate",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-escaped-duplicate",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-broken",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-invalid-utf8",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-whitespace",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-array",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-unknown",
+      "status": 422,
+      "code": "invalid_request",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-wrong-media",
+      "status": 415,
+      "code": "unsupported_media_type",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-over-limit",
+      "status": 413,
+      "code": "body_too_large",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-foreign-origin",
+      "status": 403,
+      "code": "forbidden",
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-bearer-still-valid",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-single-quotes",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-duplicate",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-escaped-duplicate",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-broken",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-invalid-utf8",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-whitespace",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-array",
+      "status": 400,
+      "code": "invalid_json",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-unknown",
+      "status": 422,
+      "code": "invalid_request",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-wrong-media",
+      "status": 415,
+      "code": "unsupported_media_type",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-over-limit",
+      "status": 413,
+      "code": "body_too_large",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-foreign-origin",
+      "status": 403,
+      "code": "forbidden",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-bearer-still-valid",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-json-empty",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": true
+    },
+    {
+      "step": "refresh-json-empty-me",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": false
+    },
+    {
+      "step": "refresh-true-empty",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": true
+    },
+    {
+      "step": "refresh-true-empty-me",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-true-empty",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": true
+    },
+    {
+      "step": "logout-bearer-revoked",
+      "status": 401,
+      "code": "unauthorized",
+      "cookieChanged": false
+    },
+    {
+      "step": "logout-json-empty-repeat",
+      "status": 200,
+      "code": 0,
+      "cookieChanged": true
+    },
+    {
+      "step": "refresh-after-logout",
+      "status": 401,
+      "code": "unauthorized",
+      "cookieChanged": true
+    }
+  ],
+  "rejectedLoginNoNewToken": true,
+  "rejectedRefreshLogoutNoTokenMutation": true,
+  "independentSessionsUnaffected": true,
+  "balanceUnchanged": true,
+  "testSessionLoggedOut": true,
+  "limits": [
+    "No production anti-scan/captcha/blacklist flow or physical mobile device verified.",
+    "Actual enabled-MFA login not repeated in this batch; typed MFA and existing behavior covered by isolated controller regression."
+  ],
+  "frameworkEchoRoutes": [
+    {
+      "origin": "http://localhost:8081",
+      "path": "/api/v3/me",
+      "status": 401,
+      "refreshCookieEcho": false,
+      "userAgentSet": true
+    },
+    {
+      "origin": "http://localhost:8081",
+      "path": "/api/user",
+      "status": 200,
+      "refreshCookieEcho": false,
+      "userAgentSet": true
+    },
+    {
+      "origin": "http://localhost:8081",
+      "path": "/test",
+      "status": 302,
+      "refreshCookieEcho": false,
+      "userAgentSet": true
+    },
+    {
+      "origin": "http://localhost:8081",
+      "path": "/api/v3/auth/no-such-local-probe",
+      "status": 404,
+      "refreshCookieEcho": false,
+      "userAgentSet": true
+    },
+    {
+      "origin": "http://localhost:8081",
+      "path": "/api/v3/me",
+      "status": 401,
+      "refreshCookieEcho": false,
+      "userAgentSet": false
+    },
+    {
+      "origin": "http://127.0.0.1:5173",
+      "path": "/api/v3/auth/refresh",
+      "status": 400,
+      "refreshCookieEcho": false,
+      "userAgentSet": true
+    },
+    {
+      "origin": "http://localhost:8081",
+      "path": "/api/v3/me",
+      "status": 418,
+      "refreshCookieEcho": false,
+      "missingUserAgent": true
+    }
+  ],
+  "normalCredentialCookieAttributes": {
+    "HttpOnly": true,
+    "Secure": true,
+    "SameSite": "Strict",
+    "Path": "/api/v3/auth"
+  },
+  "localRouting": "Rhythm IPv6 localhost:8081; unrelated IPv4 service not modified; website5173 process target temporarily set to http://[::1]:8081.",
+  "browser": {
+    "origin": "http://127.0.0.1:5173",
+    "backendTarget": "http://[::1]:8081",
+    "normalLogin": true,
+    "reloadRestoredAccount": true,
+    "menuLogout": true,
+    "reloadRemainedGuest": true,
+    "viewport": {
+      "width": 390,
+      "scrollWidth": 390,
+      "reset": true
+    },
+    "consoleWarningsErrors": 0,
+    "screenshots": [
+      "browser-auth-restored.png",
+      "browser-auth-logout-mobile.png"
+    ],
+    "noBusinessWrites": true
+  }
+}

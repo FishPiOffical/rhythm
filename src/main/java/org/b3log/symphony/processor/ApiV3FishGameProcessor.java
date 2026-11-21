@@ -1,0 +1,82 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.b3log.symphony.processor;
+
+import org.b3log.latke.Keys;
+import org.b3log.latke.http.Dispatcher;
+import org.b3log.latke.http.RequestContext;
+import org.b3log.latke.ioc.BeanManager;
+import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.ioc.Singleton;
+import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
+import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
+import org.b3log.symphony.service.ApiV3FishGameMgmtService;
+import org.b3log.symphony.util.ApiV3Json;
+import org.b3log.symphony.util.ApiV3Requests;
+import org.b3log.symphony.util.ApiV3WriteInputs;
+import org.json.JSONObject;
+
+import java.util.Set;
+
+@Singleton
+public class ApiV3FishGameProcessor {
+    @Inject
+    private ApiV3FishGameMgmtService management;
+
+    public static void register() {
+        final BeanManager beans = BeanManager.getInstance();
+        final ApiV3FishGameProcessor p = beans.getReference(ApiV3FishGameProcessor.class);
+        final ApiV3AuthMidware auth = beans.getReference(ApiV3AuthMidware.class);
+        final ApiV3WriteMidware writes = beans.getReference(ApiV3WriteMidware.class);
+        Dispatcher.put("/api/v3/fish-games/{gameId}/vote", p::vote, auth::reactionsWrite, writes::handle);
+        Dispatcher.delete("/api/v3/fish-games/{gameId}/vote", p::clearVote, auth::reactionsWrite, writes::handle);
+        Dispatcher.post("/api/v3/fish-games/{gameId}/comments", p::comment, auth::commentsWrite, writes::handle);
+    }
+
+    public void vote(final RequestContext c) {
+        vote(c, false);
+    }
+
+    public void clearVote(final RequestContext c) {
+        vote(c, true);
+    }
+
+    private void vote(final RequestContext c, final boolean clear) {
+        ApiV3Requests.respond(c, () -> {
+            final JSONObject body = ApiV3WriteInputs.body(c, clear ? Set.of() : Set.of("value"), clear);
+            final String value = clear ? "" : ApiV3WriteInputs.string(body, "value", 16, true);
+            if (!clear && value.isEmpty()) throw ApiV3WriteInputs.invalid();
+            return management.vote(actor(c), ApiV3Requests.id(c, "gameId"), value, ApiV3WriteInputs.idempotencyKey(c));
+        });
+    }
+
+    public void comment(final RequestContext c) {
+        ApiV3Requests.respond(c, () -> {
+            final JSONObject body = ApiV3WriteInputs.body(c, Set.of("content"), false);
+            final String content = ApiV3WriteInputs.string(body, "content", ApiV3Json.MAX_BODY_BYTES, true);
+            if (content.codePoints().anyMatch(cp -> Character.isISOControl(cp) && cp != '\n' && cp != '\r' && cp != '\t'))
+                throw ApiV3WriteInputs.invalid();
+            return management.comment(actor(c), ApiV3Requests.id(c, "gameId"), content, ApiV3WriteInputs.idempotencyKey(c));
+        });
+    }
+
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
+}

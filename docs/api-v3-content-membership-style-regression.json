@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-02",
+  "scope": "All four core content hosts consume shared v3 membership nickname presentation without exposing anonymous identity or changing routing",
+  "productionClientFiles": [
+    "src/components/articles/ArticleFeed.vue",
+    "src/components/CommentItem.vue",
+    "src/views/ArticleView.vue",
+    "src/components/articles/LongArticleReader.vue"
+  ],
+  "testAdapter": "tools/helpers/v3-nickname-fixture.mjs compiles the actual VipNickname.vue with a declared cache adapter; transport/batching/expiry use the separate actual composable suites",
+  "tests": {
+    "clientScripts": 93,
+    "passCount": 1036,
+    "failures": 0,
+    "newHostIdentityGroups": 4,
+    "buildTypeClientSSRPassed": true,
+    "initialHarnessImportFailuresResolved": 7,
+    "orchestrationNote": "Initial parallel build temporarily removed dist/server while production server test started. Build completed successfully; only failed server test rerun afterward, six checks passed.",
+    "staticSources": 336,
+    "boundaryFindings": 0,
+    "dynamicCallsSeparate": 47,
+    "otherServicePathsSeparate": 2,
+    "generatedJs": 78,
+    "versionFindings": 0,
+    "sourceMapFiles": 0,
+    "sourceMappingReferences": 0
+  },
+  "browser": {
+    "existingActiveMemberEffect": "rainbow, bold, underline",
+    "ordinaryArticleHeaderCardAndCommentStyled": 3,
+    "longAuthorAndParagraphStyled": 2,
+    "feedStyledMemberNames": 1,
+    "nonMemberNamePlain": true,
+    "anonymousComment": {
+      "text": "匿名用户",
+      "nicknameComponents": 0,
+      "profileLinks": 0
+    },
+    "mobile": {
+      "width": 390,
+      "ordinaryArticleScrollWidth": 390,
+      "longArticleScrollWidth": 390,
+      "feedScrollWidth": 390,
+      "questionScrollWidth": 390
+    },
+    "questionCurrentAcceptedVisible": true,
+    "capturedWarnErrorCount": 0,
+    "viewportRestored": true,
+    "screenshotsPrivate": [
+      "browser-content-vip-ordinary.png",
+      "browser-content-vip-long.png",
+      "browser-content-vip-feed.png",
+      "browser-content-vip-ordinary-mobile.png",
+      "browser-content-vip-long-mobile.png",
+      "browser-content-vip-feed-mobile.png",
+      "browser-qna-current-mobile.png"
+    ]
+  },
+  "runtime": {
+    "userConfirmedRebuild": true,
+    "javaPid": 8853,
+    "questionChecks": 22,
+    "noPendingJavaRestart": true
+  },
+  "retainedFixture": "Two normal dedicated-development E articles (ordinary and long) plus one ordinary comment and one paragraph comment, normal publication/comment charges and subsequent valid reading capture retained. No reassigned existing authors, no SQL refunds or deleting business records. Existing membership configuration used without modification.",
+  "limits": [
+    "Browser read/render and paragraph-open flows; no new browser acceptance purchase or real lost-ACK this batch",
+    "Actual style expiry/logout/current membership endpoint cases retain their earlier separate evidence; not re-run all those business mutations here",
+    "All hand-written names outside these four hosts not claimed migrated",
+    "No physical devices/multiple instances, external moderation proof or production CAPTCHA/blacklist/full CDN-directory-upload audit"
+  ],
+  "clientTestFiles": [
+    "tools/helpers/v3-nickname-fixture.mjs",
+    "tools/v3-content-author-test.mjs",
+    "tools/v3-comments-test.mjs",
+    "tools/v3-long-reader-test.mjs",
+    "tools/v3-comment-rewards-test.mjs",
+    "tools/v3-comment-votes-test.mjs",
+    "tools/v3-following-feed-test.mjs",
+    "tools/v3-reactions-test.mjs",
+    "tools/v3-saved-content-test.mjs"
+  ],
+  "documentationFiles": [
+    "AGENTS.md (client)",
+    "docs/api-v3-progress.md (both repositories)",
+    "docs/api-v3-current-completion-audit.md (both repositories)",
+    "docs/api-v3-live-integration-work.md (both repositories)",
+    "docs/V3_MIGRATION.md (client)",
+    "docs/api-v3-qna-current-live.json (both repositories)",
+    "docs/api-v3-content-membership-style-regression.json (both repositories)"
+  ]
+}

@@ -18,12 +18,9 @@
  */
 package org.b3log.symphony.cache;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
-import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.JSONs;
 import org.b3log.symphony.util.Sessions;
 import org.json.JSONObject;
@@ -62,15 +59,7 @@ public class UserCache {
         }
     });
 
-    /**
-     * IP, User.
-     */
-    private static final Map<String, String> IP_CACHE = Collections.synchronizedMap(new LinkedHashMap<String, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry eldest) {
-            return size() > 50000;
-        }
-    });
+    private static final Object USER_CACHE_LOCK = new Object();
 
     /**
      * Administrators cache.
@@ -126,21 +115,29 @@ public class UserCache {
         return JSONs.clone(user);
     }
 
-    public static boolean hasUserByIP(final String ip) {
-        return IP_CACHE.containsKey(ip);
-    }
-
     /**
      * Adds or updates the specified user.
      *
      * @param user the specified user
      */
     public void putUser(final JSONObject user) {
-        final JSONObject cached = JSONs.clone(user);
-        ID_CACHE.put(user.optString(Keys.OBJECT_ID), cached);
-        NAME_CACHE.put(user.optString(User.USER_NAME), cached);
-        IP_CACHE.put(user.optString(UserExt.USER_LATEST_LOGIN_IP), user.optString(Keys.OBJECT_ID));
-        Sessions.put(user.optString(Keys.OBJECT_ID), user);
+        final String userId = user.optString(Keys.OBJECT_ID);
+        synchronized (USER_CACHE_LOCK) {
+            final JSONObject previous = ID_CACHE.get(userId);
+            final JSONObject cached = null == previous ? JSONs.clone(user) : JSONs.clone(previous);
+            for (final String key : user.keySet()) {
+                cached.put(key, user.opt(key));
+            }
+            cached.put(Keys.OBJECT_ID, userId);
+            final String oldName = null == previous ? "" : previous.optString(User.USER_NAME);
+            final String name = cached.optString(User.USER_NAME);
+            ID_CACHE.put(userId, cached);
+            if (!oldName.isEmpty() && !oldName.equals(name)) {
+                NAME_CACHE.remove(oldName);
+            }
+            NAME_CACHE.put(name, cached);
+            Sessions.put(userId, cached);
+        }
     }
 
     /**
@@ -149,7 +146,13 @@ public class UserCache {
      * @param user the specified user
      */
     public void removeUser(final JSONObject user) {
-        ID_CACHE.remove(user.optString(Keys.OBJECT_ID));
-        NAME_CACHE.remove(user.optString(User.USER_NAME));
+        final String userId = user.optString(Keys.OBJECT_ID);
+        synchronized (USER_CACHE_LOCK) {
+            final JSONObject cached = ID_CACHE.remove(userId);
+            NAME_CACHE.remove(user.optString(User.USER_NAME));
+            if (null != cached) {
+                NAME_CACHE.remove(cached.optString(User.USER_NAME));
+            }
+        }
     }
 }

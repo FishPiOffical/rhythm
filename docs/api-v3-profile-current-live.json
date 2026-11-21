@@ -1,0 +1,263 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 93962,
+    "userConfirmedRebuild": true
+  },
+  "scope": "Current profile status/privacy/name on actual newly recompiled Discovery service, warmed dedicated account cache",
+  "results": [
+    {
+      "step": "warm-profile",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/articles",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/articles",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/articles",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/articles",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/comments",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/comments",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/comments",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/comments",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/breezemoons",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/breezemoons",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/breezemoons",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/breezemoons",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/following/users",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/following/users",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/following/users",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/following/users",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/following/tags",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/following/tags",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/following/tags",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/following/tags",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/following/articles",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/following/articles",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/following/articles",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/following/articles",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/followers",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/followers",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/followers",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/followers",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/watching",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/watching",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/watching",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/watching",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm/watching/articles",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-reader/watching/articles",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-guest/watching/articles",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "hidden-owner/watching/articles",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "deactivated-profile",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "deactivated-list",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "old-name-unavailable",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "new-current-name",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "allOriginalFieldsRestored": true,
+  "balancesUnchanged": true,
+  "limits": [
+    "Nine profile routes/eight distinct current privacy flags; point-list privacy and exact-admin role handled by isolated tests, not this runtime",
+    "No fabricated breezemoon business record; individual breezemoon permission covered by isolated current-author tests",
+    "No multi-node convergence, production risk shield or full browser account matrix claimed"
+  ]
+}

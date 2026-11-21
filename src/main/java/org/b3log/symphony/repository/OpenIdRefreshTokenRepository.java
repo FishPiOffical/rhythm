@@ -46,6 +46,12 @@ public class OpenIdRefreshTokenRepository extends AbstractRepository {
         return getFirst(query);
     }
 
+    public JSONObject getByTokenHashForUpdate(String hash)throws RepositoryException {
+        if(!hasTransactionBegun())throw new IllegalStateException("OpenID transaction required");
+        var rows=select("SELECT * FROM `"+getName()+"` WHERE tokenHash=? FOR UPDATE",hash);
+        if(rows.size()>1)throw new RepositoryException("OpenID token invalid");return rows.isEmpty()?null:rows.getFirst();
+    }
+
     public List<JSONObject> getActiveTokensByFamilyId(final String familyId) throws RepositoryException {
         final Query query = new Query().setFilter(CompositeFilterOperator.and(
                 new PropertyFilter(OpenIdRefreshToken.FAMILY_ID, FilterOperator.EQUAL, familyId),

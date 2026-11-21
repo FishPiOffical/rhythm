@@ -18,28 +18,20 @@
  */
 package org.b3log.symphony.processor;
 
-import jodd.http.HttpRequest;
-import jodd.http.HttpResponse;
-import org.apache.commons.codec.digest.HmacAlgorithms;
-import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.Response;
-import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
 import org.b3log.latke.http.renderer.PngRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.util.Requests;
 import org.b3log.latke.util.Strings;
 import org.b3log.symphony.model.Common;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
-import org.b3log.symphony.util.StatusCodes;
-import org.b3log.symphony.util.Symphonys;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.json.JSONObject;
 import org.patchca.background.BackgroundFactory;
 import org.patchca.color.GradientColorFactory;
@@ -102,6 +94,7 @@ public class CaptchaProcessor {
         final BeanManager beanManager = BeanManager.getInstance();
         final CaptchaProcessor captchaProcessor = beanManager.getReference(CaptchaProcessor.class);
 
+        // 验证码盾路由绑定；未经阿达明确允许，不得修改、移动、删除这两个入口。
         Dispatcher.get("/test", captchaProcessor::captcha);
         Dispatcher.post("/validateCaptcha", captchaProcessor::validateCaptcha);
         Dispatcher.get("/captcha", captchaProcessor::get);
@@ -109,84 +102,13 @@ public class CaptchaProcessor {
     }
 
     public void captcha(final RequestContext context) {
-        final String ip = Requests.getRemoteAddr(context.getRequest());
-        // 黑名单判断
-        if (AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null) {
-            final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "captcha.ftl");
-            final Map<String, Object> dataModel = renderer.getDataModel();
-        } else {
-            context.sendRedirect("/");
-        }
+        // 验证码盾页面入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        AnonymousCaptchaShield.showChallenge(context);
     }
 
     public void validateCaptcha(final RequestContext context) {
-        final JSONObject requestJSONObject = context.requestJSON();
-        final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
-        final String ip = Requests.getRemoteAddr(context.getRequest());
-        if (CaptchaProcessor.jiyan(captcha)) {
-            // 验证通过：清理黑名单和访问计数，并记录最近一次通过验证码的时间
-            AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
-            AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
-            AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
-            LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=放行 原因=验证码通过", ip);
-            context.renderJSON(StatusCodes.SUCC);
-        } else {
-            LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=拒绝 原因=验证码错误", ip);
-            context.renderJSON(StatusCodes.ERR);
-        }
-    }
-
-    public static boolean jiyan(String captcha) {
-        try {
-            String captchaId = Symphonys.get("jiyan.id");
-            String captchaKey = Symphonys.get("jiyan.key");
-            String domain = Symphonys.get("jiyan.domain");
-
-            JSONObject c = new JSONObject(captcha);
-            String lotNumber = c.optString("lot_number");
-            String captchaOutput = c.optString("captcha_output");
-            String passToken = c.optString("pass_token");
-            String genTime = c.optString("gen_time");
-
-            String signToken = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, captchaKey).hmacHex(lotNumber);
-
-            Map<String, String> queryParams = new HashMap<>();
-            queryParams.put("lot_number", lotNumber);
-            queryParams.put("captcha_output", captchaOutput);
-            queryParams.put("pass_token", passToken);
-            queryParams.put("gen_time", genTime);
-            queryParams.put("sign_token", signToken);
-
-            String url = String.format(domain + "/validate" + "?captcha_id=%s", captchaId);
-            JSONObject jsonObject = new JSONObject();
-
-            try {
-                HttpResponse response = HttpRequest.post(url)
-                        .form("lot_number", lotNumber)
-                        .form("captcha_output", captchaOutput)
-                        .form("pass_token", passToken)
-                        .form("gen_time", genTime)
-                        .form("sign_token", signToken)
-                        .charset("UTF-8")
-                        .timeout(5000)
-                        .send();
-                if (response.statusCode() == 200) {
-                    jsonObject = new JSONObject(response.bodyText());
-                } else {
-                    throw new IOException("HTTP Status: " + response.statusCode());
-                }
-            } catch (Exception e) {
-                jsonObject.put("result", "fail");
-                jsonObject.put("reason", "request geetest api fail");
-            }
-            if (jsonObject.getString("result").equals("success")) {
-                return true;
-            }
-
-            return false;
-        } catch (Exception e) {
-            return false;
-        }
+        // 验证与解封须经统一入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        AnonymousCaptchaShield.validateChallenge(context);
     }
 
     /**

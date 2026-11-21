@@ -223,32 +223,43 @@ public class VerifycodeMgmtService {
                 .connectionTimeout(30000).timeout(70000).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT)
                 .send();
         if (200 == response.statusCode() && "0".equals(response.bodyText())) {
-            LOGGER.log(Level.INFO, "SEND OK: " + response.bodyText());
+            LOGGER.info("SMS provider accepted request");
             return true;
         } else {
-            LOGGER.log(Level.ERROR, "Unable send SMS [phone={}, code={}, response={}]", phone, code, response.bodyText());
+            LOGGER.warn("SMS provider rejected request");
             return false;
         }
     }
 
-    public boolean sendMsgTencentCloud(String[] phoneNumber, String[] templateParam) {
-        Credential cred = new Credential(Symphonys.TEN_SMS_SECRET_ID, Symphonys.TEN_SMS_SECRET_KEY);
-        SmsClient client = new SmsClient(cred, Symphonys.TEN_SMS_DIYU);
-        SendSmsRequest req = new SendSmsRequest();
-        req.setSmsSdkAppId(Symphonys.TEN_SMS_SDK_APPID);
-        req.setSignName(Symphonys.TEN_SMS_SIGN_NAME);
-        req.setTemplateId(Symphonys.TEN_SMS_TEMPLATE_ID);
-        req.setPhoneNumberSet(phoneNumber);
-        req.setTemplateParamSet(templateParam);
-        SendSmsResponse res = null;
-        try {
-            res = client.SendSms(req);
-        } catch (TencentCloudSDKException e) {
-            LOGGER.log(Level.ERROR, "Unable send SMS [phoneNumber={}, templateParam={}]", phoneNumber, templateParam);
-            return false;
-        }
-        assert res != null;
-        LOGGER.log(Level.INFO, SendSmsResponse.toJsonString(res));
-        return true;
+    /** Account API delivery confirms acceptance for the one exact E.164 recipient. */
+    public boolean sendAccountVerifyCodeSMS(String phone,String code) {
+        if(phone==null||!phone.matches("1[0-9]{10}")||code==null||!code.matches("[0-9]{6}"))return false;
+        if(Latkes.getRuntimeMode().equals(Latkes.RuntimeMode.DEVELOPMENT))return true;
+        return switch(Symphonys.SMS_ENABLE){
+            case "bao" -> sendMsgSmsBao(phone,code);
+            case "tencent" -> {
+                final String target="+86"+phone;
+                final var response=requestTencentSms(new String[]{target},new String[]{code});
+                final var statuses=response==null?null:response.getSendStatusSet();
+                yield statuses!=null&&statuses.length==1&&statuses[0]!=null
+                        &&target.equals(statuses[0].getPhoneNumber())&&"Ok".equals(statuses[0].getCode());
+            }
+            default -> false;
+        };
+    }
+
+    /** Preserve the old provider success contract; account APIs use the confirmed variant. */
+    public boolean sendMsgTencentCloud(String[] phoneNumber,String[] templateParam) {
+        return requestTencentSms(phoneNumber,templateParam)!=null;
+    }
+
+    protected SendSmsResponse requestTencentSms(String[] phoneNumber,String[] templateParam) {
+        Credential cred=new Credential(Symphonys.TEN_SMS_SECRET_ID,Symphonys.TEN_SMS_SECRET_KEY);
+        SmsClient client=new SmsClient(cred,Symphonys.TEN_SMS_DIYU);
+        SendSmsRequest req=new SendSmsRequest();
+        req.setSmsSdkAppId(Symphonys.TEN_SMS_SDK_APPID);req.setSignName(Symphonys.TEN_SMS_SIGN_NAME);req.setTemplateId(Symphonys.TEN_SMS_TEMPLATE_ID);
+        req.setPhoneNumberSet(phoneNumber);req.setTemplateParamSet(templateParam);
+        try{return client.SendSms(req);}
+        catch(TencentCloudSDKException e){LOGGER.warn("SMS provider request failed");return null;}
     }
 }

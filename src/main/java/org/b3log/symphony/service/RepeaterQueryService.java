@@ -34,11 +34,13 @@ import org.b3log.symphony.model.RepeaterContent;
 import org.b3log.symphony.model.RepeaterLike;
 import org.b3log.symphony.repository.RepeaterContentRepository;
 import org.b3log.symphony.repository.RepeaterLikeRepository;
-import org.b3log.symphony.util.Escapes;
+import org.b3log.symphony.repository.UserRepository;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 /**
  * 复读机转录站查询服务。
@@ -47,7 +49,6 @@ import java.util.Random;
 public class RepeaterQueryService {
 
     private static final int MAX_FETCH_SIZE = 50;
-    private static final Random RANDOM = new Random();
 
     @Inject
     private RepeaterContentRepository repeaterContentRepository;
@@ -56,7 +57,7 @@ public class RepeaterQueryService {
     private RepeaterLikeRepository repeaterLikeRepository;
 
     @Inject
-    private UserQueryService userQueryService;
+    private UserRepository userRepository;
 
     public List<JSONObject> list(final String type, final String userId, final int fetchSize)
             throws ServiceException {
@@ -72,14 +73,67 @@ public class RepeaterQueryService {
         }
     }
 
+    public JSONObject next(final String type, final String userId, final List<String> excludedIds)
+            throws ServiceException {
+        try {
+            final List<String> ids = new ArrayList<>();
+            if (null != excludedIds) {
+                for (final String id : excludedIds) {
+                    if (id == null || !id.matches("[0-9]{1,32}")) throw new ServiceException("请求参数不合法");
+                    if (!ids.contains(id)) ids.add(id);
+                }
+            }
+            if (ids.size() > 250) throw new ServiceException("本轮浏览内容过多，请重新开始");
+            final String where = " WHERE c.repeaterContentStatus=?"
+                    + (RepeaterContent.isSupportedType(type) ? " AND c.repeaterContentType=?" : "")
+                    + (ids.isEmpty() ? "" : " AND c.oId NOT IN (" + String.join(",", Collections.nCopies(ids.size(), "?")) + ")");
+            final List<Object> args = new ArrayList<>();
+            args.add(RepeaterContent.STATUS_C_VALID);
+            if (RepeaterContent.isSupportedType(type)) args.add(type);
+            args.addAll(ids);
+            final String from = " FROM `" + repeaterContentRepository.getName() + "` c" + where;
+            final long count = repeaterContentRepository.select("SELECT COUNT(*) AS total" + from,
+                    args.toArray()).getFirst().getLong("total");
+            if (count == 0) return null;
+            // 按现有类型/状态索引计数后抽取偏移，不限制热门前 50 条，也不对正文随机排序。
+            final List<Object> queryArgs = new ArrayList<>(args);
+            queryArgs.add(java.util.concurrent.ThreadLocalRandom.current().nextLong(count));
+            final List<JSONObject> item = repeaterContentRepository.select("SELECT c.oId,c.repeaterContentType,"
+                    + "c.repeaterContent,c.repeaterContentAuthorId,c.repeaterContentLikeCount,c.repeaterContentCreatedTime,"
+                    + "c.repeaterContentSource,c.repeaterContentStatus,c.repeaterContentUpdatedTime"
+                    + from + " ORDER BY c.repeaterContentLikeCount,c.oId LIMIT 1 OFFSET ?", queryArgs.toArray());
+            if (item.isEmpty()) return null;
+            fillViewFields(item.getFirst(), userId);
+            return item.getFirst();
+        } catch (final RepositoryException e) {
+            throw new ServiceException(e);
+        }
+    }
+
     public JSONObject next(final String type, final String userId, final String excludedId)
             throws ServiceException {
-        final List<JSONObject> items = list(type, userId, MAX_FETCH_SIZE);
-        items.removeIf(item -> StringUtils.equals(item.optString(Keys.OBJECT_ID), excludedId));
-        if (items.isEmpty()) {
-            return null;
+        return next(type, userId, StringUtils.isBlank(excludedId) ? List.of() : List.of(excludedId));
+    }
+
+    public JSONObject leaderboard() throws ServiceException {
+        try {
+            final String contentTable = "`" + repeaterContentRepository.getName() + "`";
+            final String userTable = "`" + userRepository.getName() + "`";
+            final List<JSONObject> authors = repeaterContentRepository.select("SELECT c.repeaterContentAuthorId AS authorId,"
+                    + "u.userName AS authorName,SUM(c.repeaterContentLikeCount) AS likeCount FROM " + contentTable
+                    + " c JOIN " + userTable + " u ON u.oId=c.repeaterContentAuthorId WHERE c.repeaterContentStatus=?"
+                    + " AND c.repeaterContentAuthorId<>'' AND u.userStatus=0 GROUP BY c.repeaterContentAuthorId,u.userName"
+                    + " ORDER BY likeCount DESC,c.repeaterContentAuthorId LIMIT 20", RepeaterContent.STATUS_C_VALID);
+            final List<JSONObject> items = repeaterContentRepository.select("SELECT c.oId AS id,c.repeaterContent AS content,"
+                    + "c.repeaterContentLikeCount AS likeCount,CASE WHEN u.userStatus=0 THEN u.oId ELSE '' END AS authorId,"
+                    + "CASE WHEN u.userStatus=0 THEN u.userName ELSE '' END AS authorName"
+                    + " FROM " + contentTable + " c LEFT JOIN " + userTable + " u ON u.oId=c.repeaterContentAuthorId"
+                    + " WHERE c.repeaterContentStatus=? ORDER BY c.repeaterContentLikeCount DESC,c.oId DESC LIMIT 20",
+                    RepeaterContent.STATUS_C_VALID);
+            return new JSONObject().put("authors", new JSONArray(authors)).put("items", new JSONArray(items));
+        } catch (final RepositoryException e) {
+            throw new ServiceException(e);
         }
-        return items.get(RANDOM.nextInt(items.size()));
     }
 
     public JSONObject getValidContent(final String contentId) throws ServiceException {
@@ -122,9 +176,10 @@ public class RepeaterQueryService {
         item.put("repeaterContentLiked", isLiked(userId, item.optString(Keys.OBJECT_ID)));
         final String authorId = item.optString(RepeaterContent.AUTHOR_ID);
         if (StringUtils.isNotBlank(authorId)) {
-            final JSONObject author = userQueryService.getUser(authorId);
-            if (null != author) {
-                item.put("repeaterContentAuthorName", Escapes.escapeHTML(author.optString(User.USER_NAME)));
+            final List<JSONObject> authors = userRepository.select("SELECT userName FROM `" + userRepository.getName()
+                    + "` WHERE oId=? AND userStatus=0", authorId);
+            if (authors.size() == 1) {
+                item.put("repeaterContentAuthorName", authors.getFirst().getString(User.USER_NAME));
             }
         }
     }

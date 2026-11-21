@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-02",
+  "scope": "Current article/comment runtime verification and remaining legacy notification title renderer fix",
+  "runtime": {
+    "javaPid": 88600,
+    "articleReport": "api-v3-content-current-live.json",
+    "articleChecks": 15,
+    "commentReport": "api-v3-comment-current-live.json",
+    "commentChecks": 9,
+    "fixturesRestored": true,
+    "notificationTitleBaseline": "api-v3-notification-title-baseline.json",
+    "notificationTitleBugReproduced": true
+  },
+  "latestProductionChange": [
+    "src/main/java/org/b3log/symphony/service/ApiV3NotificationQueryService.java"
+  ],
+  "focused": [
+    {
+      "database": "SQLite",
+      "passLines": 8,
+      "exitCode": 0
+    },
+    {
+      "database": "MySQL",
+      "passLines": 8,
+      "exitCode": 0
+    }
+  ],
+  "related": [
+    {
+      "runner": "tools/api-v3-notification-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-paragraph-test.mjs",
+      "exitCode": 0,
+      "passLines": 12
+    },
+    {
+      "runner": "tools/api-v3-reaction-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-revision-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    }
+  ],
+  "totalLatestPassLines": 47,
+  "negativeControl": "The complete query test rejects legacy content description generation; isolated old-rendering control fails in group 8",
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "problems": 0
+  },
+  "limits": [
+    "Latest notification Java still requires user IDEA rebuild/restart confirmation before runtime revalidation",
+    "Notification repository and legacy service adapters are isolated; complete query/DTO code and real language templates/HTML encoder execute, Markdown cleaner adapter is not an XSS integration test",
+    "No claim of physical browser deletion, cross-instance ordering, production captcha/blacklist or all-v3 runtime coverage"
+  ]
+}

@@ -32,6 +32,12 @@ import org.b3log.symphony.model.LongArticleRead;
 import org.b3log.symphony.model.LongArticleReadSettlementClaim;
 import org.b3log.symphony.model.LongArticleReadWindowPage;
 import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.model.PointtransferSource;
+import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.repository.PointtransferRedcRepository;
+import org.b3log.symphony.util.ApiV3Transactions;
+import org.b3log.symphony.util.ArticlePublicationCaches;
+import java.math.BigDecimal;
 import org.b3log.symphony.model.ProfessionSourceEvent;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.LongArticleReadHistoryRepository;
@@ -75,11 +81,23 @@ public class LongArticleReadSettlementService {
     @Inject
     private LongArticleReadSettlementMessageService messageService;
 
+    @Inject
+    private UserRepository users;
+
+    @Inject
+    private PointtransferRedcRepository indexes;
+
     public void settleAll() {
         settle(null);
     }
 
     public void settle(final String articleId) {
+        if (windowRepository.hasTransactionBegun()) throw new IllegalStateException("settlement owns its root transaction");
+        try { settleWindows(articleId); }
+        finally { ApiV3Transactions.releaseThreadResources(); }
+    }
+
+    private void settleWindows(final String articleId) {
         final long currentWindowStart = currentWindowStart();
         long cursorWindowStart = 0;
         String cursorId = "";
@@ -116,6 +134,19 @@ public class LongArticleReadSettlementService {
             if (null != result) {
                 messageService.send(result);
             }
+        } catch (final MissingArticleException e) {
+            try {
+                if (repairMissingArticleWindow(window, now)) {
+                    LOGGER.warn("长篇阅读窗口因目标文章不存在已自动收口 [windowId={}, articleId={}, windowStart={}, action=DISCARDED]",
+                            window.optString(Keys.OBJECT_ID), e.articleId(), window.optLong(LongArticleRead.WINDOW_START));
+                } else {
+                    LOGGER.info("长篇阅读窗口无需重复修复 [windowId={}, articleId={}, windowStart={}]",
+                            window.optString(Keys.OBJECT_ID), e.articleId(), window.optLong(LongArticleRead.WINDOW_START));
+                }
+            } catch (final Exception repairError) {
+                LOGGER.error("长篇阅读孤立窗口自动收口失败 [windowId={}, articleId={}, windowStart={}]",
+                        window.optString(Keys.OBJECT_ID), e.articleId(), window.optLong(LongArticleRead.WINDOW_START), repairError);
+            }
         } catch (final Exception e) {
             LOGGER.error("结算长篇阅读窗口失败 [windowId={}]", window.optString(Keys.OBJECT_ID), e);
         }
@@ -123,16 +154,73 @@ public class LongArticleReadSettlementService {
 
     private JSONObject settleWindowInTransaction(final JSONObject window, final long now) throws Exception {
         final String articleId = window.optString(LongArticleRead.ARTICLE_ID);
-        final JSONObject article = articleRepository.get(articleId);
-        if (null == article) {
-            throw new RepositoryException("结算目标文章不存在");
-        }
-        final Transaction transaction = windowRepository.beginTransaction();
+        final String author = articleRepository.getCommentPublicationAuthor(articleId);
+        if (StringUtils.isBlank(author)) throw new MissingArticleException(articleId);
+        // Capture locks users before article/window. Keep the same order and acquire the
+        // shared point pair before any SQL lock, including legacy transfers on this pair.
+        return pointtransferMgmtService.executeWithTransferLocks(Pointtransfer.ID_C_SYS, List.of(author), () -> {
+            try (final var cache = ArticlePublicationCaches.open(windowRepository::hasTransactionBegun)) {
+                ArticlePublicationCaches.afterTransaction("long-read-user:" + author, () -> {
+                    try { users.refreshSettingsCache(author); }
+                    catch (final Exception error) { users.evictSettingsCaches(author); }
+                });
+                final Transaction transaction = ApiV3Transactions.strict(windowRepository.beginTransaction());
+                try {
+                    if (users.getForUpdate(author) == null) throw new RepositoryException("结算作者不存在");
+                    final JSONObject article = articleRepository.getForUpdate(articleId);
+                    if (article == null || !author.equals(article.optString(Article.ARTICLE_AUTHOR_ID)))
+                        throw new RepositoryException("结算目标归属变化");
+                    return settleClaimedWindow(new SettlementAttempt(window, article, now, transaction));
+                } catch (final Exception error) {
+                    rollback(transaction);
+                    throw error;
+                }
+            }
+        });
+    }
+
+    /**
+     * Close only a still-open orphan. The audit row and the window transition share one transaction,
+     * so a failed repair leaves the window OPEN for a later retry instead of hiding the loss.
+     */
+    private boolean repairMissingArticleWindow(final JSONObject source, final long now) throws Exception {
+        final Transaction transaction = ApiV3Transactions.strict(windowRepository.beginTransaction());
         try {
-            return settleClaimedWindow(new SettlementAttempt(window, article, now, transaction));
-        } catch (final Exception e) {
-            rollback(transaction);
-            throw e;
+            final String windowId = source.optString(Keys.OBJECT_ID);
+            final JSONObject window = windowRepository.getForUpdate(windowId);
+            if (window == null || !source.optString(LongArticleRead.ARTICLE_ID)
+                    .equals(window.optString(LongArticleRead.ARTICLE_ID))
+                    || !"OPEN".equals(window.optString(LongArticleRead.STATE))) {
+                transaction.commit();
+                return false;
+            }
+            final String articleId = window.optString(LongArticleRead.ARTICLE_ID);
+            if (StringUtils.isNotBlank(articleRepository.getCommentPublicationAuthor(articleId))) {
+                transaction.commit();
+                return false;
+            }
+            final String settlementId = settlementRepository.discardForMissingArticle(
+                    Ids.genTimeMillisId(), articleId, window.optLong(LongArticleRead.WINDOW_START), now);
+            if (!windowRepository.completeMissingArticle(windowId, settlementId, now)) {
+                throw new RepositoryException("孤立长篇阅读窗口状态未改变");
+            }
+            transaction.commit();
+            return true;
+        } finally {
+            if (transaction.isActive()) transaction.rollback();
+        }
+    }
+
+    private static final class MissingArticleException extends Exception {
+        private final String articleId;
+
+        private MissingArticleException(final String articleId) {
+            super("结算目标文章不存在");
+            this.articleId = articleId;
+        }
+
+        private String articleId() {
+            return articleId;
         }
     }
 
@@ -148,7 +236,12 @@ public class LongArticleReadSettlementService {
             rollback(attempt.transaction());
             return null;
         }
-        final JSONObject lockedWindow = windowRepository.get(window.optString(Keys.OBJECT_ID));
+        final JSONObject lockedWindow = windowRepository.getForUpdate(window.optString(Keys.OBJECT_ID));
+        if (lockedWindow == null || !window.optString(LongArticleRead.ARTICLE_ID).equals(lockedWindow.optString(LongArticleRead.ARTICLE_ID))
+                || window.optLong(LongArticleRead.WINDOW_START) != lockedWindow.optLong(LongArticleRead.WINDOW_START)
+                || !"SETTLING".equals(lockedWindow.optString(LongArticleRead.STATE))
+                || !settlementId.equals(lockedWindow.optString(LongArticleRead.SETTLEMENT_ID)))
+            throw new RepositoryException("结算窗口绑定不一致");
         final SettlementContext context = SettlementContext.from(lockedWindow, attempt.article(), settlementId, attempt.now());
         final JSONObject result = persistSettlement(context);
         attempt.transaction().commit();
@@ -186,9 +279,13 @@ public class LongArticleReadSettlementService {
         }
         final String transferId = pointtransferMgmtService.transferInCurrentTransaction(Pointtransfer.ID_C_SYS,
                 context.article().optString(Article.ARTICLE_AUTHOR_ID), Pointtransfer.TRANSFER_TYPE_C_LONG_ARTICLE_READ_REWARD,
-                context.reward(), context.articleId(), context.now(), "长文阅读奖励");
+                context.reward(), context.articleId(), context.now(), "长文阅读奖励", PointtransferSource.EMPTY, false);
         if (StringUtils.isBlank(transferId)) {
             throw new RepositoryException("长篇阅读积分转账失败");
+        }
+        // A completed gate must never outlive its ledger indexes. No pre-commit worker.
+        for (final String userId : List.of(Pointtransfer.ID_C_SYS, context.article().optString(Article.ARTICLE_AUTHOR_ID))) {
+            indexes.add(new JSONObject().put("userId", userId).put("rawId", transferId));
         }
     }
 
@@ -259,12 +356,20 @@ public class LongArticleReadSettlementService {
 
         private static SettlementContext from(final JSONObject window, final JSONObject article,
                                               final String settlementId, final long now) {
-            final int registeredCount = window.optInt(LongArticleRead.REGISTERED_CNT);
-            final int anonymousCount = window.optInt(LongArticleRead.ANON_CNT);
+            final int registeredCount = count(window, LongArticleRead.REGISTERED_CNT);
+            final int anonymousCount = count(window, LongArticleRead.ANON_CNT);
             final int countedAnonymous = Math.min(anonymousCount, ANONYMOUS_REWARD_CAP);
-            final int reward = registeredCount * REGISTERED_REWARD + countedAnonymous * ANONYMOUS_REWARD;
+            final int reward = Math.addExact(Math.multiplyExact(registeredCount, REGISTERED_REWARD),
+                    Math.multiplyExact(countedAnonymous, ANONYMOUS_REWARD));
             return new SettlementContext(window, article, settlementId, now, registeredCount, anonymousCount,
                     countedAnonymous, reward);
+        }
+
+        private static int count(final JSONObject window, final String key) {
+            if (!(window.opt(key) instanceof Number number)) throw new IllegalStateException("invalid reading counter");
+            final int count = new BigDecimal(number.toString()).intValueExact();
+            if (count < 0) throw new IllegalStateException("negative reading counter");
+            return count;
         }
 
         private String articleId() {

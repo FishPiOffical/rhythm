@@ -518,6 +518,15 @@ public final class Pointtransfer {
      */
     public static final int TRANSFER_SUM_C_BLMZ = 5;
 
+    /** 积分外观购买与续期。 */
+    public static final int TRANSFER_TYPE_C_APPEARANCE_PURCHASE = 57;
+
+    /** 宠物乱斗武器强化 */
+    public static final int TRANSFER_TYPE_C_PET_BRAWL_UPGRADE = 58;
+
+    /** 宠物咖啡即时补充精力。 */
+    public static final int TRANSFER_TYPE_C_PET_COFFEE = 59;
+
 
     /**
      * Private constructor.

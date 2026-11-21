@@ -379,8 +379,8 @@ var ChatRoomChannel = {
                     }
                     let item = {
                         img: barragerUserAvatarURL,
-                        info: barrager,
-                        href: Label.servePath + '/member/' + barragerUserName,
+                        info: $('<span>').text(barrager).html(),
+                        href: Label.servePath + '/member/' + encodeURIComponent(barragerUserName),
                         close: false,
                         speed: Math.round(Math.random()*10+10),
                         color: barragerColor
@@ -388,12 +388,23 @@ var ChatRoomChannel = {
                     $('body').barrager(item);
                     break;
                 case 'discussChanged':
+                    if (data.topicRevision) {
+                        const topicVersion = String(data.topicRevision);
+                        if (!/^[1-9][0-9]{0,18}$/.test(topicVersion)) return;
+                        const previousTopicVersion = window.fishpiChatTopicRevision || '0';
+                        if (topicVersion.length < previousTopicVersion.length ||
+                            (topicVersion.length === previousTopicVersion.length && topicVersion <= previousTopicVersion)) return;
+                        window.fishpiChatTopicRevision = topicVersion;
+                    }
                     let whoChanged = data.whoChanged;
                     let newDiscuss = data.newDiscuss;
+                    const discussAuthorText = $('<span>').text(whoChanged).html();
+                    const discussTopicText = $('<span>').text(newDiscuss).html();
+                    const discussAuthorPath = encodeURIComponent(whoChanged);
                     // 通知：作为最新事件，追加到底部，并在底部时自动跟随滚动
                     let discussHtml = "<div class='newDiscussNotice' style='color: rgb(50 50 50);margin-bottom: 12px;text-align: center;display: none;'>" +
-                        "<svg><use xlink:href='#pound'></use></svg>&nbsp;" + '<a href="' + Label.servePath + '/member/' + whoChanged + '" target="_blank">' + whoChanged + "</a> 编辑了话题：<a href='javascript:void(0)' style='text-decoration: none'>" +
-                        newDiscuss +
+                        "<svg><use xlink:href='#pound'></use></svg>&nbsp;" + '<a href="' + Label.servePath + '/member/' + discussAuthorPath + '" target="_blank">' + discussAuthorText + "</a> 编辑了话题：<a href='javascript:void(0)' style='text-decoration: none'>" +
+                        discussTopicText +
                         "</a></div>";
                     if (typeof ChatRoom !== 'undefined' && typeof ChatRoom.appendAndMaybeScroll === 'function') {
                         ChatRoom.appendAndMaybeScroll(discussHtml, { animate: false });
@@ -405,6 +416,7 @@ var ChatRoomChannel = {
                     $("#discuss-title").text(newDiscuss);
                     break;
                 case 'redPacketStatus':
+                    if (typeof ChatRoom !== 'undefined' && typeof ChatRoom.updateDurablePacketStatus === 'function') ChatRoom.updateDurablePacketStatus(data);
                     let whoGive = data.whoGive;
                     let whoGot = data.whoGot;
                     let got = data.got;

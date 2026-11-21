@@ -19,9 +19,6 @@
 package org.b3log.symphony.processor.channel;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Session;
 import org.b3log.latke.http.WebSocketChannel;
@@ -29,23 +26,22 @@ import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
-import org.b3log.latke.model.User;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.AdminProcessor;
-import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.service.UserMgmtService;
-import org.b3log.symphony.service.UserQueryService;
+import org.b3log.symphony.service.UserOnlineService;
 import org.json.JSONObject;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.WeakHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * User channel.
@@ -58,35 +54,19 @@ import java.util.concurrent.TimeUnit;
 public class UserChannel implements WebSocketChannel {
 
     /**
-     * Logger.
-     */
-    private static final Logger LOGGER = LogManager.getLogger(UserChannel.class);
-
-    private static final String ONLINE_START_MILLIS = "timeStamp";
-
-    private static final String ONLINE_MINUTE_KEY = "onlineMinute";
-
-    /**
      * User management service.
      */
     @Inject
     private UserMgmtService userMgmtService;
 
     /**
-     * User query service.
-     */
-    @Inject
-    private UserQueryService userQueryService;
-
-    /**
      * Session set.
      */
-    public static final Map<String, Set<WebSocketSession>> SESSIONS = new ConcurrentHashMap();
+    public static final Map<String, Set<WebSocketSession>> SESSIONS = new ConcurrentHashMap<>();
+    private static final Map<WebSocketSession, String> CONNECTION_OWNERS = new ConcurrentHashMap<>();
 
-    /**
-     * Online time count.
-     */
-    private static final Map<String, JSONObject> userOnline = new HashMap<>();
+    // 框架异步分派回调，关闭可能早于连接回调；弱引用仅防止同一会话被重新登记。
+    private final Set<WebSocketSession> closed = Collections.newSetFromMap(new WeakHashMap<>());
 
     /**
      * Called when the socket connection with the browser is established.
@@ -95,40 +75,24 @@ public class UserChannel implements WebSocketChannel {
      */
     @Override
     public void onConnect(final WebSocketSession session) {
-        final Session httpSession = session.getHttpSession();
-        JSONObject user = null;
         try {
-            user = new JSONObject(httpSession.getAttribute(User.USER));
-        } catch (NullPointerException ignored) {
+            final JSONObject user = org.b3log.symphony.util.Sessions.currentSocketUser(session);
+            if (user == null) {
+                return;
+            }
+            final String userId = user.getString(Keys.OBJECT_ID);
+            synchronized (this) {
+                if (closed.contains(session) || CONNECTION_OWNERS.containsKey(session)) {
+                    return;
+                }
+                UserOnlineStatus.connected(session, userId, Long.MAX_VALUE);
+                SESSIONS.computeIfAbsent(userId, ignored -> ConcurrentHashMap.newKeySet()).add(session);
+                CONNECTION_OWNERS.put(session, userId);
+            }
+            updateDetails(session, userId);
+        } finally {
+            ApiV3Transactions.releaseThreadResources();
         }
-        try {
-            user = ApiProcessor.getUserByKey(session.getParameter("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        if (null == user) {
-            return;
-        }
-
-        final String userId = user.optString(Keys.OBJECT_ID);
-        // 开始记录在线时间
-        if (!userOnline.containsKey(userId)) {
-            JSONObject onlineUser = new JSONObject();
-            // 当前时间戳
-            onlineUser.put(ONLINE_START_MILLIS, System.currentTimeMillis());
-            // 用户之前的在线时间
-            onlineUser.put(ONLINE_MINUTE_KEY, userQueryService.getOnlineMinute(userId));
-            userOnline.put(userId, onlineUser);
-        }
-
-        final Set<WebSocketSession> userSessions = SESSIONS.getOrDefault(userId, Collections.newSetFromMap(new ConcurrentHashMap()));
-        userSessions.add(session);
-
-        SESSIONS.put(userId, userSessions);
-
-        final BeanManager beanManager = BeanManager.getInstance();
-        final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
-        final String ip = httpSession.getAttribute(Common.IP);
-        userMgmtService.updateOnlineStatus(userId, ip, true, true);
     }
 
     /**
@@ -180,6 +144,7 @@ public class UserChannel implements WebSocketChannel {
             if (userId.equals(recvUserId)) {
                 final Set<WebSocketSession> sessions = SESSIONS.get(userId);
                 for (final WebSocketSession session : sessions) {
+                    if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                     session.sendText(msgStr);
                     AdminProcessor.manager.onMessageSent(8, msgStr.length());
                 }
@@ -203,6 +168,7 @@ public class UserChannel implements WebSocketChannel {
                 try {
                     final Set<WebSocketSession> sessions = SESSIONS.get(userId);
                     for (final WebSocketSession session : sessions) {
+                        if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                         session.sendText(msgStr);
                         AdminProcessor.manager.onMessageSent(8, msgStr.length());
                     }
@@ -217,72 +183,42 @@ public class UserChannel implements WebSocketChannel {
      *
      * @param session the specified session
      */
-    String lastSession = "";
-    private synchronized void removeSession(final WebSocketSession session) {
-        if (lastSession.equals(session.getId())) {
-            return;
-        }
-        lastSession = session.getId();
-        final Session httpSession = session.getHttpSession();
-        JSONObject user = null;
-        try {
-            user = new JSONObject(httpSession.getAttribute(User.USER));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            user = ApiProcessor.getUserByKey(session.getParameter("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        if (null == user) {
-            return;
-        }
-        final String userId = user.optString(Keys.OBJECT_ID);
-        final BeanManager beanManager = BeanManager.getInstance();
-        final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
-        final String ip = httpSession.getAttribute(Common.IP);
-
-        Set<WebSocketSession> userSessions = SESSIONS.get(userId);
-        if (null == userSessions) {
-            userMgmtService.updateOnlineStatus(userId, ip, false, true);
-            return;
-        }
-
-        userSessions.remove(session);
-        if (userSessions.isEmpty()) {
-            // 停止记录在线时间
-            if (userOnline.containsKey(userId)) {
-                JSONObject onlineUser = userOnline.get(userId);
-                userMgmtService.settleOnlineMinute(userId, calculateOnlineMinute(onlineUser), System.currentTimeMillis());
-                userOnline.remove(userId);
+    private void removeSession(final WebSocketSession session) {
+        final String userId;
+        final boolean lastLegacy;
+        synchronized (this) {
+            closed.add(session);
+            UserOnlineStatus.disconnected(session);
+            userId = CONNECTION_OWNERS.remove(session);
+            if (userId == null) {
+                return;
             }
-            userMgmtService.updateOnlineStatus(userId, ip, false, true);
+            final Set<WebSocketSession> userSessions = SESSIONS.get(userId);
+            if (userSessions != null) {
+                userSessions.remove(session);
+                if (userSessions.isEmpty()) {
+                    SESSIONS.remove(userId, userSessions);
+                }
+            }
+            lastLegacy = userSessions == null || userSessions.isEmpty();
+        }
+        if (lastLegacy) {
+            try {
+                updateDetails(session, userId);
+            } finally {
+                ApiV3Transactions.releaseThreadResources();
+            }
         }
     }
 
-    private static int calculateOnlineMinute(final JSONObject onlineUser) {
-        final long timeStamp = onlineUser.optLong(ONLINE_START_MILLIS);
-        final int onlineMinute = onlineUser.optInt(ONLINE_MINUTE_KEY);
-        final long onlineTime = System.currentTimeMillis() - timeStamp;
-        final long calcOnlineMinutes = TimeUnit.MILLISECONDS.toMinutes(onlineTime);
-        return Math.toIntExact(onlineMinute + calcOnlineMinutes);
+    private void updateDetails(final WebSocketSession session, final String userId) {
+        final Session httpSession = session.getHttpSession();
+        final String ip = httpSession == null ? null : httpSession.getAttribute(Common.IP);
+        userMgmtService.updateOnlineDetails(userId, ip);
     }
 
-    /**
-     * 在服务器停止前，结算用户的在线时间
-     */
+    /** 沿用现有停机入口，在数据库关闭前结算新旧连接的共同区间。 */
     public static void settlement() {
-        LOGGER.log(Level.INFO, "Settlement user online time...");
-        for (String key : userOnline.keySet()) {
-            JSONObject onlineUser = userOnline.get(key);
-            final int onlineMinute = calculateOnlineMinute(onlineUser);
-            LOGGER.log(Level.INFO, "UserId [" + key + "], Online time [" + onlineMinute + "]");
-            final BeanManager beanManager = BeanManager.getInstance();
-            final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
-            final long now = System.currentTimeMillis();
-            userMgmtService.settleOnlineMinute(key, onlineMinute, now);
-            onlineUser.put(ONLINE_START_MILLIS, now);
-            onlineUser.put(ONLINE_MINUTE_KEY, onlineMinute);
-        }
-        LOGGER.log(Level.INFO, "Settlement user online time end");
+        BeanManager.getInstance().getReference(UserOnlineService.class).stop();
     }
 }

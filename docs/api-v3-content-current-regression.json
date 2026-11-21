@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-02",
+  "scope": "Approved current-record forum content authorization; new Java not yet runtime-validated",
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/util/ApiV3ContentSnapshots.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3ContentQueryService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3ContentDtoService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3ParagraphQueryService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3NotificationQueryService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3ReactionTargetService.java"
+  ],
+  "testFiles": [
+    "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+    "tools/api-v3-content-current-test.mjs",
+    "tools/api-v3-article-stick-test.mjs",
+    "tools/api-v3-discovery-extras-test.mjs"
+  ],
+  "focused": [
+    {
+      "runner": "tools/api-v3-content-current-test.mjs",
+      "database": "SQLite",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-content-current-test.mjs --mysql",
+      "database": "MySQL",
+      "exitCode": 0,
+      "passLines": 7
+    }
+  ],
+  "related": [
+    {
+      "runner": "tools/api-v3-article-stick-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-discovery-extras-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-paragraph-test.mjs",
+      "exitCode": 0,
+      "passLines": 12
+    },
+    {
+      "runner": "tools/api-v3-notification-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-reaction-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-revision-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-follow-state-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-comment-reward-query-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-comment-removal-test.mjs",
+      "exitCode": 0,
+      "passLines": 66
+    }
+  ],
+  "passLines": 142,
+  "changes": [
+    "Article/author body+authorization snapshot from current bound SQL; viewer role/name/status read from current SQL.",
+    "Comment detail/list author status/privacy/anonymity comes from current rows, with response whitelist.",
+    "Paragraph/notification references do not load cached comments; stale notification target URLs cannot replace current parent links.",
+    "Reaction reads and existing parent-lock validation share the current gate; historical revision already reads current SQL and remains unchanged."
+  ],
+  "limits": [
+    "SQLite/MySQL use actual query/DTO/reaction services with explicit cache/repository adapters; not whole application IoC.",
+    "Normal-comment/notification method bridges are copied verbatim; Markdown rendering, paragraph normalization and legacy URL generation are adapted, not claimed fully revalidated here.",
+    "No new production SQL writes, tables or migrations; disposable MySQL removed.",
+    "No serializable cross-request/instance consistency claim; permissions are evaluated at read time, not guaranteed unchanged until response receipt.",
+    "Requires user IDEA rebuild/restart confirmation before actual HTTP validation.",
+    "Existing classic ArticleChannel and forum reaction fanout reuse the shared gate; their prior approved current-permission protection benefits, but classic HTTP handlers were not modified."
+  ]
+}

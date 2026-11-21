@@ -1,0 +1,111 @@
+{
+  "date": "2026-11-02",
+  "batch": 74,
+  "behavior": {
+    "detail": [
+      "commentable true/false/null",
+      "statement 0..3/null"
+    ],
+    "freshMutation": "create/reply/update only when current locked article allows comments; inside existing receipt callback",
+    "recovery": "successful original-key replay preserved; original unknown commands remain recoverable in ordinary and both long drawer modes",
+    "display": "unknown explicitly indicated; current stick metadata replaces obsolete minute field"
+  },
+  "productionFiles": {
+    "rhythm": [
+      "src/main/java/org/b3log/symphony/util/ApiV3ArticlePolicy.java",
+      "src/main/java/org/b3log/symphony/service/ApiV3ContentQueryService.java",
+      "src/main/java/org/b3log/symphony/service/ApiV3CommentMgmtService.java"
+    ],
+    "website_v3": [
+      "src/api/fishpi.ts",
+      "src/api/v3-content.ts",
+      "src/views/ArticleView.vue",
+      "src/components/CommentItem.vue",
+      "src/components/articles/CommentComposer.vue",
+      "src/components/articles/LongArticleReader.vue"
+    ]
+  },
+  "tests": {
+    "currentContentSQLite": 14,
+    "currentContentMySQL": 14,
+    "mysqlRemoved": true,
+    "policyNormalizerAndGuard": 2,
+    "clientScripts": 93,
+    "clientPassGroups": 1046,
+    "fullSuiteFailures": [],
+    "build": "npm run build exit 0 (typecheck/client/SSR); yarn unavailable",
+    "contractRoutes": 292,
+    "sourceBoundaryFiles": 336,
+    "sourceBoundaryFindings": 0,
+    "dynamicExpressionsNotRuntimeCoverage": 47,
+    "separateServicePaths": 2,
+    "generatedJS": 78,
+    "versionFindings": 0,
+    "maps": 0,
+    "sourceMappingURL": 0
+  },
+  "securityReview": {
+    "anonymousAndBlacklist": "No new route or viewSkips; existing comment route commentsWrite and write middleware retained; live challenge matrix not rerun",
+    "authorization": "current authorized detail; writes guard locked article and owner checks unchanged",
+    "csrf": "existing Bearer write chain retained; no Cookie/apiKey exception introduced",
+    "xss": "declarations fixed labels; metadata no raw HTML",
+    "injection": "no added user SQL; existing parameterized IDs",
+    "ssrf": "no outbound fetch",
+    "batchAbuse": "existing budgets unchanged",
+    "sensitiveData": "only Boolean/enum public metadata, no new identity or raw account payload",
+    "staticAndDownloads": "no new CDN/public directory/upload/download route; generated assets locally scanned only"
+  },
+  "limits": [
+    "New Java not deployed or tested via real HTTP yet",
+    "Browser PC/mobile state and live closed-edit/original-key replay await explicit IDEA rebuild confirmation",
+    "Isolated helper guard tests do not prove full comment service transaction or live idempotency behavior",
+    "Full production captcha/CDN, multi-instance and physical-device validation not performed"
+  ],
+  "pendingJava": [
+    "src/main/java/org/b3log/symphony/util/ApiV3ArticlePolicy.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3ContentQueryService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3CommentMgmtService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3ContentDtoService.java"
+  ],
+  "migrationRequired": false,
+  "committed": false,
+  "pushed": false,
+  "testFiles": {
+    "rhythm": [
+      "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+      "src/test/java/org/b3log/symphony/util/ApiV3ArticlePolicyTest.java",
+      "tools/api-v3-content-current-test.mjs",
+      "tools/api-v3-comment-test.mjs"
+    ],
+    "website_v3": [
+      "tools/v3-content-test.mjs",
+      "tools/v3-comments-test.mjs",
+      "tools/v3-long-reader-test.mjs"
+    ]
+  },
+  "documentationFiles": {
+    "rhythm": [
+      "AGENTS.md",
+      "API.md",
+      "UPDATE_LOG.md",
+      "docs/api-v3-progress.md",
+      "docs/api-v3-current-completion-audit.md",
+      "docs/api-v3-live-integration-work.md",
+      "docs/api-v3-article-policy-regression.json"
+    ],
+    "website_v3": [
+      "docs/V3_MIGRATION.md",
+      "docs/api-v3-progress.md",
+      "docs/api-v3-current-completion-audit.md",
+      "docs/api-v3-live-integration-work.md",
+      "docs/api-v3-article-policy-regression.json"
+    ]
+  },
+  "manualChecksAfterIDEARebuild": [
+    "Open ordinary and long articles at 5173, verify statements 0..3 and explicit unknown state; active/permanent stick labels use current metadata.",
+    "With comments disabled or unknown, existing comments remain readable; new create/reply/update reject 403 without payment or content mutation. Confirm deletion retains existing rules.",
+    "Cancel an unsubmitted fee confirmation after closing; recover a prior unknown command using original key/body on ordinary page and both long drawer modes. Successful replay must not charge again.",
+    "Repeat at desktop and 390px, verify no horizontal overflow. Real HTTP and browser checks remain pending IDEA rebuild."
+  ],
+  "supersededBy": "api-v3-article-policy-current-regression.json"
+}

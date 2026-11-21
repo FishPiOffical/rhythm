@@ -1,0 +1,149 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "scope": "Actual v3 question publication, two answers, owner acceptance, same/new key replay, second-answer conflict and real acceptance notification",
+  "results": [
+    {
+      "step": "publish-question",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "publish-answerB",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "publish-answerC",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "before-acceptance-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "foreign-cannot-accept",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "step": "guest-cannot-accept",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "step": "accept-answerB",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "same-key-replay",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "different-key-same-answer",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "second-answer-conflict",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "second-answer-conflict-retry",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "accepted-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "unaccepted-other-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-visible",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-foreign-owner",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-guest",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-current-title",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-list-current-title",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-invalid-article",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-reader-access-withdrawn",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "acceptance-notification-restored",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "offerPoint": 20,
+  "oneAcceptedAnswer": true,
+  "oneAcceptanceReward": true,
+  "oneTransfer": true,
+  "oneNotification": true,
+  "bothAccountIndexesUnique": true,
+  "replayAndConflictNoExtraCharge": true,
+  "articleFieldsRestored": true,
+  "notificationRowAndUnreadUnchanged": true,
+  "readMatrixBalancesUnchanged": true,
+  "retainedFixture": "Normal dedicated-development question and two answers, publication/comment charges, one 20-point acceptance and associated reward/ledger/indexes/notification/receipts retained; no SQL refunds.",
+  "limits": [
+    "Actual HTTP and database checks; browser acceptance UI not exercised this batch",
+    "Perfect-article and system-article announcement real business events remain unverified",
+    "No multi-instance, external service, production captcha/blacklist or whole-site static/CDN audit"
+  ]
+}

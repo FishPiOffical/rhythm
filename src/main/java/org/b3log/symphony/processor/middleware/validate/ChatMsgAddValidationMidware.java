@@ -18,7 +18,6 @@
  */
 package org.b3log.symphony.processor.middleware.validate;
 
-import org.apache.commons.lang.StringUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
@@ -27,14 +26,11 @@ import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.symphony.model.Common;
-import org.b3log.symphony.model.Role;
-import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiProcessor;
-import org.b3log.symphony.service.OptionQueryService;
-import org.b3log.symphony.service.UserQueryService;
-import org.b3log.symphony.util.ReservedWords;
+import org.b3log.symphony.service.ChatMessageValidationService;
+import org.b3log.symphony.util.ChatMessageValidation;
+import org.b3log.symphony.util.ChatTopicInputs;
 import org.b3log.symphony.util.Sessions;
-import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
 /**
@@ -53,44 +49,26 @@ public class ChatMsgAddValidationMidware {
     @Inject
     private LangPropsService langPropsService;
 
-    /**
-     * Option query service.
-     */
-    @Inject
-    private OptionQueryService optionQueryService;
-
-    /**
-     * User query service.
-     */
-    @Inject
-    private UserQueryService userQueryService;
+    @Inject private ChatMessageValidationService validation;
 
     public void handle(final RequestContext context) {
         final Request request = context.getRequest();
         final JSONObject requestJSONObject = context.requestJSON();
         request.setAttribute(Keys.REQUEST, requestJSONObject);
         JSONObject currentUser = Sessions.getUser();
-        try {
+        if(ChatTopicInputs.isEnvelope(requestJSONObject.optString(Common.CONTENT)))currentUser=(JSONObject)context.attr(User.USER);
+        else try {
             currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
         } catch (NullPointerException ignored) {
         }
-        if (System.currentTimeMillis() - currentUser.optLong(UserExt.USER_LATEST_CMT_TIME) < Symphonys.MIN_STEP_CHAT_TIME
-                && !Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))) {
-            context.renderJSON(new JSONObject().put(Keys.MSG, langPropsService.get("tooFrequentCmtLabel")));
+        try {
+            requestJSONObject.put(Common.CONTENT, validation.prepare(currentUser, requestJSONObject.optString(Common.CONTENT)));
+        } catch (final ChatMessageValidation.Rejected e) {
+            context.renderJSON(new JSONObject().put(Keys.MSG, "too_frequent".equals(e.code)
+                    ? langPropsService.get("tooFrequentCmtLabel") : e.getMessage()));
             context.abort();
             return;
         }
-
-        requestJSONObject.put(Common.CONTENT, ReservedWords.processReservedWord(requestJSONObject.optString(Common.CONTENT)));
-        String content = requestJSONObject.optString(Common.CONTENT);
-        content = StringUtils.trim(content);
-        if (StringUtils.isBlank(content) || content.length() > 4096) {
-            context.renderJSON(new JSONObject().put(Keys.MSG, "聊天消息内容为空或过多（大于4096字符）"));
-            context.abort();
-            return;
-        }
-
-        requestJSONObject.put(Common.CONTENT, content);
         context.handle();
     }
 }

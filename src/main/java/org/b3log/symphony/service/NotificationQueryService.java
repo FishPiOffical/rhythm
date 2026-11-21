@@ -224,6 +224,67 @@ public class NotificationQueryService {
      * }
      * </pre>
      */
+    /** Shared notification description; does not return the underlying record. */
+    public String getSysAnnouncementDescription(final JSONObject notification) throws RepositoryException {
+        final String dataId = notification.optString(Notification.NOTIFICATION_DATA_ID);
+        final int dataType = notification.optInt(Notification.NOTIFICATION_DATA_TYPE);
+        String desTemplate;
+
+        switch (dataType) {
+            case Notification.DATA_TYPE_C_SYS_ANNOUNCE_NEW_USER:
+                desTemplate = langPropsService.get("notificationSysNewUser1Label");
+                break;
+            case Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE:
+                desTemplate = langPropsService.get("notificationSysArticleLabel");
+
+                final JSONObject article15 = articleRepository.get(dataId);
+                if (null == article15) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String articleLink15 = "<a href=\""
+                        + Latkes.getServePath() + article15.optString(Article.ARTICLE_PERMALINK) + "\">"
+                        + article15.optString(Article.ARTICLE_TITLE) + "</a>";
+                desTemplate = desTemplate.replace("{article}", articleLink15);
+                break;
+            case Notification.DATA_TYPE_C_SYS_ANNOUNCE_ROLE_CHANGED:
+                desTemplate = langPropsService.get("notificationSysRoleChangedLabel");
+
+                final String oldRoleId = dataId.split("-")[0];
+                final String newRoleId = dataId.split("-")[1];
+                final JSONObject oldRole = roleQueryService.getRole(oldRoleId);
+                final JSONObject newRole = roleQueryService.getRole(newRoleId);
+
+                desTemplate = desTemplate.replace("{oldRole}", oldRole.optString(Role.ROLE_NAME));
+                desTemplate = desTemplate.replace("{newRole}", newRole.optString(Role.ROLE_NAME));
+                break;
+            case Notification.DATA_TYPE_C_CUSTOM_SYS: {
+                final String customContent = notification.optString(Notification.NOTIFICATION_CONTENT);
+                if (StringUtils.isNotBlank(customContent)) {
+                    desTemplate = NotificationContents.sanitizeCustomSysContent(customContent);
+                    break;
+                }
+                switch (dataId) {
+                    case Notification.DATA_ID_C_SHUI_TIE_NOTICE:
+                        desTemplate = "亲爱的用户，您好！<br> 我们检测到您刚刚发布的内容可能属于“水贴”或无意义发言。虽然本次发帖不会被拦截，但频繁发布此类内容会破坏社区的交流氛围，影响其他用户的体验。请您尽量发表有价值、有内容的观点或讨论，让我们的社区更加温暖和有趣。<br>需要特别提醒的是，无论是否通过特殊方式绕过系统检测，所有水贴内容都会被系统或人工审核查处，账号也可能因此受到相应处理。同时，本次发帖不会计入您的活跃度统计。感谢您的理解与配合，让我们一起维护良好的社区环境！";
+                        break;
+                    default:
+                        if (StringUtils.isBlank(dataId)) {
+                            desTemplate = "无数据";
+                            break;
+                        }
+                        desTemplate = Escapes.escapeHTML(dataId).replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>");
+                }
+                break;
+            }
+            default:
+                throw new AssertionError();
+        }
+
+        return desTemplate;
+    }
+
     public JSONObject getSysAnnounceNotifications(final String userId, final int currentPageNum, final int pageSize) {
         final JSONObject ret = new JSONObject();
         final List<JSONObject> rslts = new ArrayList<>();
@@ -246,62 +307,7 @@ public class NotificationQueryService {
             final List<JSONObject> results = (List<JSONObject>) queryResult.opt(Keys.RESULTS);
             ret.put(Pagination.PAGINATION_RECORD_COUNT, queryResult.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_RECORD_COUNT));
             for (final JSONObject notification : results) {
-                final String dataId = notification.optString(Notification.NOTIFICATION_DATA_ID);
-                final int dataType = notification.optInt(Notification.NOTIFICATION_DATA_TYPE);
-                String desTemplate;
-
-                switch (dataType) {
-                    case Notification.DATA_TYPE_C_SYS_ANNOUNCE_NEW_USER:
-                        desTemplate = langPropsService.get("notificationSysNewUser1Label");
-                        break;
-                    case Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE:
-                        desTemplate = langPropsService.get("notificationSysArticleLabel");
-
-                        final JSONObject article15 = articleRepository.get(dataId);
-                        if (null == article15) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String articleLink15 = "<a href=\""
-                                + Latkes.getServePath() + article15.optString(Article.ARTICLE_PERMALINK) + "\">"
-                                + article15.optString(Article.ARTICLE_TITLE) + "</a>";
-                        desTemplate = desTemplate.replace("{article}", articleLink15);
-                        break;
-                    case Notification.DATA_TYPE_C_SYS_ANNOUNCE_ROLE_CHANGED:
-                        desTemplate = langPropsService.get("notificationSysRoleChangedLabel");
-
-                        final String oldRoleId = dataId.split("-")[0];
-                        final String newRoleId = dataId.split("-")[1];
-                        final JSONObject oldRole = roleQueryService.getRole(oldRoleId);
-                        final JSONObject newRole = roleQueryService.getRole(newRoleId);
-
-                        desTemplate = desTemplate.replace("{oldRole}", oldRole.optString(Role.ROLE_NAME));
-                        desTemplate = desTemplate.replace("{newRole}", newRole.optString(Role.ROLE_NAME));
-                        break;
-                    case Notification.DATA_TYPE_C_CUSTOM_SYS: {
-                        final String customContent = notification.optString(Notification.NOTIFICATION_CONTENT);
-                        if (StringUtils.isNotBlank(customContent)) {
-                            desTemplate = NotificationContents.sanitizeCustomSysContent(customContent);
-                            break;
-                        }
-                        switch (dataId) {
-                            case Notification.DATA_ID_C_SHUI_TIE_NOTICE:
-                                desTemplate = "亲爱的用户，您好！<br> 我们检测到您刚刚发布的内容可能属于“水贴”或无意义发言。虽然本次发帖不会被拦截，但频繁发布此类内容会破坏社区的交流氛围，影响其他用户的体验。请您尽量发表有价值、有内容的观点或讨论，让我们的社区更加温暖和有趣。<br>需要特别提醒的是，无论是否通过特殊方式绕过系统检测，所有水贴内容都会被系统或人工审核查处，账号也可能因此受到相应处理。同时，本次发帖不会计入您的活跃度统计。感谢您的理解与配合，让我们一起维护良好的社区环境！";
-                                break;
-                            default:
-                                if (StringUtils.isBlank(dataId)) {
-                                    desTemplate = "无数据";
-                                    break;
-                                }
-                                desTemplate = Escapes.escapeHTML(dataId).replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>");
-                        }
-                        break;
-                    }
-                    default:
-                        throw new AssertionError();
-                }
-
+                final String desTemplate = getSysAnnouncementDescription(notification);
                 notification.put(Common.DESCRIPTION, desTemplate);
                 notification.put(Common.CREATE_TIME, new Date(notification.optLong(Keys.OBJECT_ID)));
 
@@ -422,6 +428,230 @@ public class NotificationQueryService {
      * }
      * </pre>
      */
+    /** Shared notification description; does not return the underlying record. */
+    public String getPointNotificationDescription(final JSONObject notification, final String userId) throws RepositoryException {
+        final String dataId = notification.optString(Notification.NOTIFICATION_DATA_ID);
+        final int dataType = notification.optInt(Notification.NOTIFICATION_DATA_TYPE);
+        String desTemplate = "";
+
+        switch (dataType) {
+            case Notification.DATA_TYPE_C_POINT_ARTICLE_THANK:
+                desTemplate = langPropsService.get("notificationArticleThankLabel");
+
+                final JSONObject reward12 = rewardRepository.get(dataId);
+                final String senderId12 = reward12.optString(Reward.SENDER_ID);
+                final JSONObject user12 = userRepository.get(senderId12);
+                final String articleId12 = reward12.optString(Reward.DATA_ID);
+                final JSONObject article12 = articleRepository.get(articleId12);
+                if (null == article12) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String userLink12 = UserExt.getUserLink(user12);
+                desTemplate = desTemplate.replace("{user}", userLink12);
+
+                final String articleLink12 = "<a href=\""
+                        + Latkes.getServePath() + article12.optString(Article.ARTICLE_PERMALINK) + "\">"
+                        + article12.optString(Article.ARTICLE_TITLE) + "</a>";
+                desTemplate = desTemplate.replace("{article}", articleLink12);
+                break;
+            case Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD:
+                desTemplate = langPropsService.get("notificationArticleRewardLabel");
+
+                final JSONObject reward7 = rewardRepository.get(dataId);
+                if (null == reward7) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String senderId7 = reward7.optString(Reward.SENDER_ID);
+                final JSONObject user7 = userRepository.get(senderId7);
+                final String articleId7 = reward7.optString(Reward.DATA_ID);
+                final JSONObject article7 = articleRepository.get(articleId7);
+                if (null == article7) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String userLink7 = UserExt.getUserLink(user7);
+                desTemplate = desTemplate.replace("{user}", userLink7);
+
+                final String articleLink7 = "<a href=\""
+                        + Latkes.getServePath() + article7.optString(Article.ARTICLE_PERMALINK) + "\">"
+                        + article7.optString(Article.ARTICLE_TITLE) + "</a>";
+                desTemplate = desTemplate.replace("{article}", articleLink7);
+                break;
+            case Notification.DATA_TYPE_C_POINT_CHARGE:
+                desTemplate = langPropsService.get("notificationPointChargeLabel");
+
+                final JSONObject transfer5 = pointtransferRepository.get(dataId);
+                if (transfer5 == null) {
+                    return null;
+                }
+                final int sum5 = transfer5.optInt(Pointtransfer.SUM);
+                final String memo5 = transfer5.optString(Pointtransfer.DATA_ID);
+                final String yuan = memo5.split("-")[0];
+
+                desTemplate = desTemplate.replace("{yuan}", yuan);
+                desTemplate = desTemplate.replace("{point}", String.valueOf(sum5));
+                break;
+            case Notification.DATA_TYPE_C_POINT_EXCHANGE:
+                desTemplate = langPropsService.get("notificationPointExchangeLabel");
+
+                final JSONObject transfer6 = pointtransferRepository.get(dataId);
+                if (transfer6 == null) {
+                    return null;
+                }
+                final int sum6 = transfer6.optInt(Pointtransfer.SUM);
+                final String yuan6 = transfer6.optString(Pointtransfer.DATA_ID);
+
+                desTemplate = desTemplate.replace("{yuan}", yuan6);
+                desTemplate = desTemplate.replace("{point}", String.valueOf(sum6));
+                break;
+            case Notification.DATA_TYPE_C_ABUSE_POINT_DEDUCT:
+                desTemplate = langPropsService.get("notificationAbusePointDeductLabel");
+
+                int sum7 = 0;
+                String memo7 = "Data broked";
+
+                final JSONObject transfer7 = pointtransferRepository.get(dataId);
+                if (Objects.nonNull(transfer7)) {
+                    sum7 = transfer7.optInt(Pointtransfer.SUM);
+                    memo7 = transfer7.optString(Pointtransfer.DATA_ID);
+                }
+
+                desTemplate = desTemplate.replace("{action}", memo7);
+                desTemplate = desTemplate.replace("{point}", String.valueOf(sum7));
+                break;
+            case Notification.DATA_TYPE_C_POINT_COMMENT_THANK:
+                desTemplate = langPropsService.get("notificationCmtThankLabel");
+
+                final JSONObject reward8 = rewardRepository.get(dataId);
+                final String senderId8 = reward8.optString(Reward.SENDER_ID);
+                final JSONObject user8 = userRepository.get(senderId8);
+                final JSONObject comment8 = commentRepository.get(reward8.optString(Reward.DATA_ID));
+                final String articleId8 = comment8.optString(Comment.COMMENT_ON_ARTICLE_ID);
+                final JSONObject article8 = articleRepository.get(articleId8);
+                if (null == article8) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String userLink8 = UserExt.getUserLink(user8);
+                desTemplate = desTemplate.replace("{user}", userLink8);
+
+                final String articleLink8 = "<a href=\""
+                        + Latkes.getServePath() + article8.optString(Article.ARTICLE_PERMALINK) + "\">"
+                        + article8.optString(Article.ARTICLE_TITLE) + "</a>";
+                desTemplate = desTemplate.replace("{article}", articleLink8);
+                break;
+            case Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT:
+                desTemplate = langPropsService.get("notificationCmtAcceptLabel");
+
+                final JSONObject reward33 = rewardRepository.get(dataId);
+                final String articleId33 = reward33.optString(Reward.DATA_ID);
+                final JSONObject article33 = articleRepository.get(articleId33);
+                if (null == article33) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String articleAuthorId = article33.optString(Article.ARTICLE_AUTHOR_ID);
+                final JSONObject user33 = userRepository.get(articleAuthorId);
+                final String userLink33 = UserExt.getUserLink(user33);
+                desTemplate = desTemplate.replace("{user}", userLink33);
+
+                final String articleLink33 = "<a href=\""
+                        + Latkes.getServePath() + article33.optString(Article.ARTICLE_PERMALINK) + "\">"
+                        + article33.optString(Article.ARTICLE_TITLE) + "</a>";
+                desTemplate = desTemplate.replace("{article}", Emotions.convert(articleLink33));
+                break;
+            case Notification.DATA_TYPE_C_POINT_TRANSFER:
+                desTemplate = langPropsService.get("notificationPointTransferLabel");
+
+                final JSONObject transfer101 = pointtransferRepository.get(dataId);
+                if (transfer101 == null) {
+                    return null;
+                }
+                final String fromId101 = transfer101.optString(Pointtransfer.FROM_ID);
+                if (!fromId101.equals(Pointtransfer.ID_C_SYS)) {
+                    final JSONObject user101 = userRepository.get(fromId101);
+                    final int sum101 = transfer101.optInt(Pointtransfer.SUM);
+
+                    final String userLink101 = UserExt.getUserLink(user101);
+                    desTemplate = desTemplate.replace("{user}", userLink101);
+                    desTemplate = desTemplate.replace("{amount}", String.valueOf(sum101));
+                } else {
+                    final int sum101 = transfer101.optInt(Pointtransfer.SUM);
+                    desTemplate = desTemplate.replace("{user}", "系统");
+                    desTemplate = desTemplate.replace("{amount}", String.valueOf(sum101));
+                }
+                final String memo = transfer101.optString(Pointtransfer.MEMO);
+                if (StringUtils.isNotBlank(memo)) {
+                    desTemplate = desTemplate.replace("{memo}", memo);
+                } else {
+                    desTemplate = desTemplate.replace("{memo}", langPropsService.get("noMemoLabel"));
+                }
+                break;
+            case Notification.DATA_TYPE_C_APP_POINT_ADJUST:
+                final JSONObject appTransfer = pointtransferRepository.get(dataId);
+                if (null == appTransfer) {
+                    return null;
+                }
+                desTemplate = buildAppPointDescription(
+                        appTransfer, userId.equals(appTransfer.optString(Pointtransfer.TO_ID)));
+                break;
+            case Notification.DATA_TYPE_C_INVITECODE_USED:
+                desTemplate = langPropsService.get("notificationInvitecodeUsedLabel");
+
+                final JSONObject invitedUser = userRepository.get(dataId);
+                final String invitedUserLink = UserExt.getUserLink(invitedUser);
+
+                desTemplate = desTemplate.replace("{user}", invitedUserLink);
+                break;
+            case Notification.DATA_TYPE_C_INVITATION_LINK_USED:
+                desTemplate = langPropsService.get("notificationInvitationLinkUsedLabel");
+
+                final JSONObject invitedUser18 = userRepository.get(dataId);
+                final String invitedUserLink18 = UserExt.getUserLink(invitedUser18);
+
+                desTemplate = desTemplate.replace("{user}", invitedUserLink18);
+                break;
+            case Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE:
+                desTemplate = langPropsService.get("notificationPointPerfectArticleLabel");
+
+                final JSONObject article22 = articleRepository.get(dataId);
+                if (null == article22) {
+                    desTemplate = langPropsService.get("removedLabel");
+                    break;
+                }
+
+                final String articleLink22 = "<a href=\""
+                        + Latkes.getServePath() + article22.optString(Article.ARTICLE_PERMALINK) + "\">"
+                        + article22.optString(Article.ARTICLE_TITLE) + "</a>";
+                desTemplate = desTemplate.replace("{article}", articleLink22);
+                break;
+            case Notification.DATA_TYPE_C_POINT_REPORT_HANDLED:
+                desTemplate = langPropsService.get("notification36Label");
+                break;
+            case Notification.DATA_TYPE_C_RED_PACKET_FROM_SKY:
+                desTemplate = langPropsService.get("notification37Label");
+                try {
+                    desTemplate = desTemplate.replace("{user}", dataId.split(":")[0]);
+                    desTemplate = desTemplate.replace("{point}", dataId.split(":")[1]);
+                } catch (Exception e) {
+                    desTemplate = desTemplate.replace("{user}", dataId);
+                    desTemplate = desTemplate.replace("{point}", "?");
+                }
+                break;
+            default:
+                throw new AssertionError();
+        }
+
+        return desTemplate;
+    }
+
     public JSONObject getPointNotifications(final String userId, final int currentPageNum, final int pageSize) {
         final JSONObject ret = new JSONObject();
         final List<JSONObject> rslts = new ArrayList<>();
@@ -454,225 +684,8 @@ public class NotificationQueryService {
             final List<JSONObject> results = (List<JSONObject>) queryResult.opt(Keys.RESULTS);
             ret.put(Pagination.PAGINATION_RECORD_COUNT, queryResult.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_RECORD_COUNT));
             for (final JSONObject notification : results) {
-                final String dataId = notification.optString(Notification.NOTIFICATION_DATA_ID);
-                final int dataType = notification.optInt(Notification.NOTIFICATION_DATA_TYPE);
-                String desTemplate = "";
-
-                switch (dataType) {
-                    case Notification.DATA_TYPE_C_POINT_ARTICLE_THANK:
-                        desTemplate = langPropsService.get("notificationArticleThankLabel");
-
-                        final JSONObject reward12 = rewardRepository.get(dataId);
-                        final String senderId12 = reward12.optString(Reward.SENDER_ID);
-                        final JSONObject user12 = userRepository.get(senderId12);
-                        final String articleId12 = reward12.optString(Reward.DATA_ID);
-                        final JSONObject article12 = articleRepository.get(articleId12);
-                        if (null == article12) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String userLink12 = UserExt.getUserLink(user12);
-                        desTemplate = desTemplate.replace("{user}", userLink12);
-
-                        final String articleLink12 = "<a href=\""
-                                + Latkes.getServePath() + article12.optString(Article.ARTICLE_PERMALINK) + "\">"
-                                + article12.optString(Article.ARTICLE_TITLE) + "</a>";
-                        desTemplate = desTemplate.replace("{article}", articleLink12);
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD:
-                        desTemplate = langPropsService.get("notificationArticleRewardLabel");
-
-                        final JSONObject reward7 = rewardRepository.get(dataId);
-                        if (null == reward7) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String senderId7 = reward7.optString(Reward.SENDER_ID);
-                        final JSONObject user7 = userRepository.get(senderId7);
-                        final String articleId7 = reward7.optString(Reward.DATA_ID);
-                        final JSONObject article7 = articleRepository.get(articleId7);
-                        if (null == article7) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String userLink7 = UserExt.getUserLink(user7);
-                        desTemplate = desTemplate.replace("{user}", userLink7);
-
-                        final String articleLink7 = "<a href=\""
-                                + Latkes.getServePath() + article7.optString(Article.ARTICLE_PERMALINK) + "\">"
-                                + article7.optString(Article.ARTICLE_TITLE) + "</a>";
-                        desTemplate = desTemplate.replace("{article}", articleLink7);
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_CHARGE:
-                        desTemplate = langPropsService.get("notificationPointChargeLabel");
-
-                        final JSONObject transfer5 = pointtransferRepository.get(dataId);
-                        if (transfer5 == null) {
-                            continue;
-                        }
-                        final int sum5 = transfer5.optInt(Pointtransfer.SUM);
-                        final String memo5 = transfer5.optString(Pointtransfer.DATA_ID);
-                        final String yuan = memo5.split("-")[0];
-
-                        desTemplate = desTemplate.replace("{yuan}", yuan);
-                        desTemplate = desTemplate.replace("{point}", String.valueOf(sum5));
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_EXCHANGE:
-                        desTemplate = langPropsService.get("notificationPointExchangeLabel");
-
-                        final JSONObject transfer6 = pointtransferRepository.get(dataId);
-                        if (transfer6 == null) {
-                            continue;
-                        }
-                        final int sum6 = transfer6.optInt(Pointtransfer.SUM);
-                        final String yuan6 = transfer6.optString(Pointtransfer.DATA_ID);
-
-                        desTemplate = desTemplate.replace("{yuan}", yuan6);
-                        desTemplate = desTemplate.replace("{point}", String.valueOf(sum6));
-                        break;
-                    case Notification.DATA_TYPE_C_ABUSE_POINT_DEDUCT:
-                        desTemplate = langPropsService.get("notificationAbusePointDeductLabel");
-
-                        int sum7 = 0;
-                        String memo7 = "Data broked";
-
-                        final JSONObject transfer7 = pointtransferRepository.get(dataId);
-                        if (Objects.nonNull(transfer7)) {
-                            sum7 = transfer7.optInt(Pointtransfer.SUM);
-                            memo7 = transfer7.optString(Pointtransfer.DATA_ID);
-                        }
-
-                        desTemplate = desTemplate.replace("{action}", memo7);
-                        desTemplate = desTemplate.replace("{point}", String.valueOf(sum7));
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_COMMENT_THANK:
-                        desTemplate = langPropsService.get("notificationCmtThankLabel");
-
-                        final JSONObject reward8 = rewardRepository.get(dataId);
-                        final String senderId8 = reward8.optString(Reward.SENDER_ID);
-                        final JSONObject user8 = userRepository.get(senderId8);
-                        final JSONObject comment8 = commentRepository.get(reward8.optString(Reward.DATA_ID));
-                        final String articleId8 = comment8.optString(Comment.COMMENT_ON_ARTICLE_ID);
-                        final JSONObject article8 = articleRepository.get(articleId8);
-                        if (null == article8) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String userLink8 = UserExt.getUserLink(user8);
-                        desTemplate = desTemplate.replace("{user}", userLink8);
-
-                        final String articleLink8 = "<a href=\""
-                                + Latkes.getServePath() + article8.optString(Article.ARTICLE_PERMALINK) + "\">"
-                                + article8.optString(Article.ARTICLE_TITLE) + "</a>";
-                        desTemplate = desTemplate.replace("{article}", articleLink8);
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT:
-                        desTemplate = langPropsService.get("notificationCmtAcceptLabel");
-
-                        final JSONObject reward33 = rewardRepository.get(dataId);
-                        final String articleId33 = reward33.optString(Reward.DATA_ID);
-                        final JSONObject article33 = articleRepository.get(articleId33);
-                        if (null == article33) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String articleAuthorId = article33.optString(Article.ARTICLE_AUTHOR_ID);
-                        final JSONObject user33 = userRepository.get(articleAuthorId);
-                        final String userLink33 = UserExt.getUserLink(user33);
-                        desTemplate = desTemplate.replace("{user}", userLink33);
-
-                        final String articleLink33 = "<a href=\""
-                                + Latkes.getServePath() + article33.optString(Article.ARTICLE_PERMALINK) + "\">"
-                                + article33.optString(Article.ARTICLE_TITLE) + "</a>";
-                        desTemplate = desTemplate.replace("{article}", Emotions.convert(articleLink33));
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_TRANSFER:
-                        desTemplate = langPropsService.get("notificationPointTransferLabel");
-
-                        final JSONObject transfer101 = pointtransferRepository.get(dataId);
-                        if (transfer101 == null) {
-                            continue;
-                        }
-                        final String fromId101 = transfer101.optString(Pointtransfer.FROM_ID);
-                        if (!fromId101.equals(Pointtransfer.ID_C_SYS)) {
-                            final JSONObject user101 = userRepository.get(fromId101);
-                            final int sum101 = transfer101.optInt(Pointtransfer.SUM);
-
-                            final String userLink101 = UserExt.getUserLink(user101);
-                            desTemplate = desTemplate.replace("{user}", userLink101);
-                            desTemplate = desTemplate.replace("{amount}", String.valueOf(sum101));
-                        } else {
-                            final int sum101 = transfer101.optInt(Pointtransfer.SUM);
-                            desTemplate = desTemplate.replace("{user}", "系统");
-                            desTemplate = desTemplate.replace("{amount}", String.valueOf(sum101));
-                        }
-                        final String memo = transfer101.optString(Pointtransfer.MEMO);
-                        if (StringUtils.isNotBlank(memo)) {
-                            desTemplate = desTemplate.replace("{memo}", memo);
-                        } else {
-                            desTemplate = desTemplate.replace("{memo}", langPropsService.get("noMemoLabel"));
-                        }
-                        break;
-                    case Notification.DATA_TYPE_C_APP_POINT_ADJUST:
-                        final JSONObject appTransfer = pointtransferRepository.get(dataId);
-                        if (null == appTransfer) {
-                            continue;
-                        }
-                        desTemplate = buildAppPointDescription(
-                                appTransfer, userId.equals(appTransfer.optString(Pointtransfer.TO_ID)));
-                        break;
-                    case Notification.DATA_TYPE_C_INVITECODE_USED:
-                        desTemplate = langPropsService.get("notificationInvitecodeUsedLabel");
-
-                        final JSONObject invitedUser = userRepository.get(dataId);
-                        final String invitedUserLink = UserExt.getUserLink(invitedUser);
-
-                        desTemplate = desTemplate.replace("{user}", invitedUserLink);
-                        break;
-                    case Notification.DATA_TYPE_C_INVITATION_LINK_USED:
-                        desTemplate = langPropsService.get("notificationInvitationLinkUsedLabel");
-
-                        final JSONObject invitedUser18 = userRepository.get(dataId);
-                        final String invitedUserLink18 = UserExt.getUserLink(invitedUser18);
-
-                        desTemplate = desTemplate.replace("{user}", invitedUserLink18);
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE:
-                        desTemplate = langPropsService.get("notificationPointPerfectArticleLabel");
-
-                        final JSONObject article22 = articleRepository.get(dataId);
-                        if (null == article22) {
-                            desTemplate = langPropsService.get("removedLabel");
-                            break;
-                        }
-
-                        final String articleLink22 = "<a href=\""
-                                + Latkes.getServePath() + article22.optString(Article.ARTICLE_PERMALINK) + "\">"
-                                + article22.optString(Article.ARTICLE_TITLE) + "</a>";
-                        desTemplate = desTemplate.replace("{article}", articleLink22);
-                        break;
-                    case Notification.DATA_TYPE_C_POINT_REPORT_HANDLED:
-                        desTemplate = langPropsService.get("notification36Label");
-                        break;
-                    case Notification.DATA_TYPE_C_RED_PACKET_FROM_SKY:
-                        desTemplate = langPropsService.get("notification37Label");
-                        try {
-                            desTemplate = desTemplate.replace("{user}", dataId.split(":")[0]);
-                            desTemplate = desTemplate.replace("{point}", dataId.split(":")[1]);
-                        } catch (Exception e) {
-                            desTemplate = desTemplate.replace("{user}", dataId);
-                            desTemplate = desTemplate.replace("{point}", "?");
-                        }
-                        break;
-                    default:
-                        throw new AssertionError();
-                }
-
+                final String desTemplate = getPointNotificationDescription(notification, userId);
+                if (null == desTemplate) continue;
                 notification.put(Common.DESCRIPTION, desTemplate);
                 notification.put(Common.CREATE_TIME, new Date(notification.optLong(Keys.OBJECT_ID)));
 

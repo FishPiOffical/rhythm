@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.apache.logging.log4j.LogManager;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
@@ -30,11 +31,11 @@ import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
 import org.b3log.symphony.service.*;
-import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
 import org.json.JSONObject;
 
 import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -56,7 +57,7 @@ public class VoteProcessor {
     /**
      * Holds votes.
      */
-    private static final Set<String> VOTES = new HashSet<>();
+    private static final Set<String> VOTES = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * Vote management service.
@@ -65,34 +66,16 @@ public class VoteProcessor {
     private VoteMgmtService voteMgmtService;
 
     /**
-     * Vote query service.
-     */
-    @Inject
-    private VoteQueryService voteQueryService;
-
-    /**
      * Language service.
      */
     @Inject
     private LangPropsService langPropsService;
 
     /**
-     * Comment query service.
+     * Transactional comment votes.
      */
     @Inject
-    private CommentQueryService commentQueryService;
-
-    /**
-     * Article query service.
-     */
-    @Inject
-    private ArticleQueryService articleQueryService;
-
-    /**
-     * Notification management service.
-     */
-    @Inject
-    private NotificationMgmtService notificationMgmtService;
+    private CommentVoteMgmtService commentVotes;
 
     /**
      * Register request handlers.
@@ -123,45 +106,7 @@ public class VoteProcessor {
      * @param context the specified context
      */
     public void voteUpComment(final RequestContext context) {
-        context.renderJSON(StatusCodes.ERR);
-
-        final JSONObject requestJSONObject = context.requestJSON();
-        final String dataId = requestJSONObject.optString(Common.DATA_ID);
-
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-
-        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
-                && voteQueryService.isOwn(userId, dataId, Vote.DATA_TYPE_C_COMMENT)) {
-            context.renderMsg(langPropsService.get("cantVoteSelfLabel"));
-            return;
-        }
-
-        final int vote = voteQueryService.isVoted(userId, dataId);
-        if (Vote.TYPE_C_UP == vote) {
-            voteMgmtService.voteCancel(userId, dataId, Vote.DATA_TYPE_C_COMMENT);
-        } else {
-            voteMgmtService.voteUp(userId, dataId, Vote.DATA_TYPE_C_COMMENT);
-
-            final JSONObject comment = commentQueryService.getComment(dataId);
-            final String commenterId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-
-            if (!VOTES.contains(userId + dataId) && !userId.equals(commenterId)) {
-                final JSONObject notification = new JSONObject();
-                notification.put(Notification.NOTIFICATION_USER_ID, commenterId);
-                notification.put(Notification.NOTIFICATION_DATA_ID, dataId + "-" + userId);
-
-                notificationMgmtService.addCommentVoteUpNotification(notification);
-            }
-
-            VOTES.add(userId + dataId);
-        }
-
-        context.renderJSON(StatusCodes.SUCC).renderJSONValue(Vote.TYPE, vote);
+        voteComment(context, Vote.TYPE_C_UP);
     }
 
     /**
@@ -178,42 +123,26 @@ public class VoteProcessor {
      * @param context the specified context
      */
     public void voteDownComment(final RequestContext context) {
+        voteComment(context, Vote.TYPE_C_DOWN);
+    }
+
+    private void voteComment(final RequestContext context, final int choice) {
         context.renderJSON(StatusCodes.ERR);
-
-        final JSONObject requestJSONObject = context.requestJSON();
-        final String dataId = requestJSONObject.optString(Common.DATA_ID);
-
-        final JSONObject currentUser = Sessions.getUser();
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) { context.sendError(403); return; }
         final String userId = currentUser.optString(Keys.OBJECT_ID);
-
-        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
-                && voteQueryService.isOwn(userId, dataId, Vote.DATA_TYPE_C_COMMENT)) {
-            context.renderMsg(langPropsService.get("cantVoteSelfLabel"));
-            return;
+        final String dataId = context.requestJSON().optString(Common.DATA_ID);
+        try {
+            final var result = commentVotes.toggle(userId, dataId, choice,
+                    choice == Vote.TYPE_C_UP && !VOTES.contains(userId + dataId));
+            if (result.changed() && result.current() == Vote.TYPE_C_UP) VOTES.add(userId + dataId);
+            context.renderJSON(StatusCodes.SUCC).renderJSONValue(Vote.TYPE, result.previous());
+        } catch (final CommentVoteMgmtService.Rejected e) {
+            context.renderMsg(langPropsService.get("self".equals(e.code) ? "cantVoteSelfLabel" : "systemErrLabel"));
+        } catch (final Exception e) {
+            LogManager.getLogger(VoteProcessor.class).error("Comment vote failed [id={}]", dataId, e);
+            context.renderMsg(langPropsService.get("systemErrLabel"));
         }
-
-        final int vote = voteQueryService.isVoted(userId, dataId);
-        if (Vote.TYPE_C_DOWN == vote) {
-            voteMgmtService.voteCancel(userId, dataId, Vote.DATA_TYPE_C_COMMENT);
-        } else {
-            voteMgmtService.voteDown(userId, dataId, Vote.DATA_TYPE_C_COMMENT);
-
-            // https://github.com/b3log/symphony/issues/611
-//            final JSONObject comment = commentQueryService.getComment(dataId);
-//            final String commenterId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-//
-//            if (!VOTES.contains(userId + dataId) && !userId.equals(commenterId)) {
-//                final JSONObject notification = new JSONObject();
-//                notification.put(Notification.NOTIFICATION_USER_ID, commenterId);
-//                notification.put(Notification.NOTIFICATION_DATA_ID, dataId + "-" + userId);
-//
-//                notificationMgmtService.addCommentVoteDownNotification(notification);
-//            }
-//
-//            VOTES.add(userId + dataId);
-        }
-
-        context.renderJSON(StatusCodes.SUCC).renderJSONValue(Vote.TYPE, vote);
     }
 
     /**
@@ -230,45 +159,7 @@ public class VoteProcessor {
      * @param context the specified context
      */
     public void voteUpArticle(final RequestContext context) {
-        context.renderJSON(StatusCodes.ERR);
-
-        final JSONObject requestJSONObject = context.requestJSON();
-        final String dataId = requestJSONObject.optString(Common.DATA_ID);
-
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-
-        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
-                && voteQueryService.isOwn(userId, dataId, Vote.DATA_TYPE_C_ARTICLE)) {
-            context.renderMsg(langPropsService.get("cantVoteSelfLabel"));
-            return;
-        }
-
-        final int vote = voteQueryService.isVoted(userId, dataId);
-        if (Vote.TYPE_C_UP == vote) {
-            voteMgmtService.voteCancel(userId, dataId, Vote.DATA_TYPE_C_ARTICLE);
-        } else {
-            voteMgmtService.voteUp(userId, dataId, Vote.DATA_TYPE_C_ARTICLE);
-
-            final JSONObject article = articleQueryService.getArticle(dataId);
-            final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-
-            if (!VOTES.contains(userId + dataId) && !userId.equals(articleAuthorId)) {
-                final JSONObject notification = new JSONObject();
-                notification.put(Notification.NOTIFICATION_USER_ID, articleAuthorId);
-                notification.put(Notification.NOTIFICATION_DATA_ID, dataId + "-" + userId);
-
-                notificationMgmtService.addArticleVoteUpNotification(notification);
-            }
-
-            VOTES.add(userId + dataId);
-        }
-
-        context.renderJSON(StatusCodes.SUCC).renderJSONValue(Vote.TYPE, vote);
+        voteArticle(context, Vote.TYPE_C_UP);
     }
 
     /**
@@ -285,41 +176,25 @@ public class VoteProcessor {
      * @param context the specified context
      */
     public void voteDownArticle(final RequestContext context) {
+        voteArticle(context, Vote.TYPE_C_DOWN);
+    }
+
+    private void voteArticle(final RequestContext context, final int choice) {
         context.renderJSON(StatusCodes.ERR);
-
-        final JSONObject requestJSONObject = context.requestJSON();
-        final String dataId = requestJSONObject.optString(Common.DATA_ID);
-
-        final JSONObject currentUser = Sessions.getUser();
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-
-        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
-                && voteQueryService.isOwn(userId, dataId, Vote.DATA_TYPE_C_ARTICLE)) {
-            context.renderMsg(langPropsService.get("cantVoteSelfLabel"));
-            return;
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) { context.sendError(403); return; }
+        final String actor = currentUser.optString(Keys.OBJECT_ID);
+        final String id = context.requestJSON().optString(Common.DATA_ID);
+        try {
+            final var result = voteMgmtService.toggle(actor, id, choice,
+                    choice == Vote.TYPE_C_UP && !VOTES.contains(actor + id));
+            if (result.changed() && result.current() == Vote.TYPE_C_UP) VOTES.add(actor + id);
+            context.renderJSON(StatusCodes.SUCC).renderJSONValue(Vote.TYPE, result.previous());
+        } catch (final VoteMgmtService.Rejected e) {
+            context.renderMsg(langPropsService.get("self".equals(e.code) ? "cantVoteSelfLabel" : "systemErrLabel"));
+        } catch (final Exception e) {
+            LogManager.getLogger(VoteProcessor.class).error("Article vote failed [id={}]", id, e);
+            context.renderMsg(langPropsService.get("systemErrLabel"));
         }
-
-        final int vote = voteQueryService.isVoted(userId, dataId);
-        if (Vote.TYPE_C_DOWN == vote) {
-            voteMgmtService.voteCancel(userId, dataId, Vote.DATA_TYPE_C_ARTICLE);
-        } else {
-            voteMgmtService.voteDown(userId, dataId, Vote.DATA_TYPE_C_ARTICLE);
-
-            // https://github.com/b3log/symphony/issues/611
-//            final JSONObject article = articleQueryService.getArticle(dataId);
-//            final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-//
-//            if (!VOTES.contains(userId + dataId) && !userId.equals(articleAuthorId)) {
-//                final JSONObject notification = new JSONObject();
-//                notification.put(Notification.NOTIFICATION_USER_ID, articleAuthorId);
-//                notification.put(Notification.NOTIFICATION_DATA_ID, dataId + "-" + userId);
-//
-//                notificationMgmtService.addArticleVoteDownNotification(notification);
-//            }
-//
-//            VOTES.add(userId + dataId);
-        }
-
-        context.renderJSON(StatusCodes.SUCC).renderJSONValue(Vote.TYPE, vote);
     }
 }

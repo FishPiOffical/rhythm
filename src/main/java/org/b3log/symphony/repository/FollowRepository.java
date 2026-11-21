@@ -44,6 +44,18 @@ public class FollowRepository extends AbstractRepository {
         super(Follow.FOLLOW);
     }
 
+    /** Caller holds an active transaction; identifiers are repository names, never request values. */
+    public JSONObject lockEntity(final String table, final String id) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("follow transaction required");
+        final List<JSONObject> rows = select("SELECT * FROM " + table + " WHERE oId=? FOR UPDATE", id);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    public List<JSONObject> getRelationsForUpdate(final String follower, final String target, final int type) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("follow transaction required");
+        return select("SELECT * FROM " + getName() + " WHERE followerId=? AND followingId=? AND followingType=? FOR UPDATE", follower, target, type);
+    }
+
     /**
      * Removes a follow relationship by the specified follower id and the specified following entity id.
      *

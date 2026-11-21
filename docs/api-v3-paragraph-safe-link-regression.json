@@ -1,0 +1,90 @@
+{
+  "date": "2026-11-03",
+  "batch": 78,
+  "approvedScope": "Complete current readable comment-location and legacy paragraph-alias compatibility without leaking restricted titles",
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/service/ShortLinkQueryService.java",
+    "src/main/java/org/b3log/symphony/service/LongArticleParagraphService.java"
+  ],
+  "testFiles": [
+    "src/test/java/org/b3log/symphony/service/LongArticleParagraphAnnotationTest.java",
+    "src/test/java/org/b3log/symphony/service/LongArticleParagraphMigrationTest.java",
+    "tools/api-v3-paragraph-test.mjs"
+  ],
+  "documentationFiles": [
+    "AGENTS.md",
+    "API.md",
+    "UPDATE_LOG.md",
+    "Both repos: docs/api-v3-progress.md, docs/api-v3-current-completion-audit.md, docs/api-v3-live-integration-work.md, docs/api-v3-paragraph-safe-link-regression.json",
+    "website_v3: docs/V3_MIGRATION.md"
+  ],
+  "baseline": {
+    "javaPid": 36957,
+    "realHTTPBeforeFix": "GET paragraph list with restricted short link returned409 paragraph_mapping_conflict",
+    "cause": "Canonical expanded link and safe unexpanded raw URL use different href when current request address differs from short-link configured origin; structural comparison correctly rejects it",
+    "isolatedBeforeFix": "Added request-host change case failed with same ApiV3Exception before implementation",
+    "temporaryArticleCount": 2,
+    "temporaryCommentsInserted": 0,
+    "cleaned": true,
+    "originalArticleBalanceReceiptLedgerFingerprintUnchanged": true
+  },
+  "fix": [
+    "Existing Function title callback and null legacy lookup delegate unchanged to original core",
+    "New URL-aware callback allows paired safe renderer to use original URL as visible label; same short-link expansion gives identical destination and attributes",
+    "No missing-title fallback to unrestricted database; null title stays raw URL",
+    "Canonical legacy paragraph hash unchanged; provisional safe hash remains original visible URL text",
+    "No relaxation of structural/link-target correspondence checks; genuine mismatch and overlapping alias identities remain409"
+  ],
+  "tests": {
+    "paragraphAnnotationAndSQLiteMigration": 14,
+    "currentContentAndLocationSQLite": 18,
+    "comment": 43,
+    "article": 66,
+    "totalPASS": 141,
+    "failures": [],
+    "realFlexmarkVersion": "0.50.40 from pom.xml",
+    "mavenRun": false,
+    "frontendCodeChanged": false,
+    "frontendBuildRequired": false,
+    "fullProductionMarkdownRuntimeAfterFix": false
+  },
+  "coverage": [
+    "Original URL with query/fragment reaches safe-label callback intact",
+    "Restricted title not present in paired HTML or public snapshots",
+    "Changed request host reproduces old conflict and new successful two-alias correspondence",
+    "Unknown title has one URL identity and no lookup fallback",
+    "Code link remains unexpanded",
+    "Actual parser keeps deterministic IDs and same canonical publication lookup",
+    "SQLite migration root/reply rollback, second-write failure rollback, provisional/legacy merging, removal orphaning, ambiguous-source rejection"
+  ],
+  "security": {
+    "anonymous": "No new endpoint or middleware/viewSkips change; existing v3 optional/required auth and anonymous gate retained",
+    "blacklistCaptcha": "BeforeRequestHandler, AnonymousViewCheckMidware, validateCaptcha unchanged; production behavior untested",
+    "authorizationSensitiveData": "Current title snapshot/public-read policy unchanged; restricted title used only internal canonical identity, emitted safe label URL only",
+    "csrf": "No new HTTP write/auth exception",
+    "xss": "Existing Markdown sanitizer pipeline retained; safe label is already recognized bounded internal article URL, no new raw HTML",
+    "injectionSSRF": "No SQL or remote fetch added, existing internal article ID lookup unchanged",
+    "batchAbuse": "Same number of paired renders, shared memo one title read per ID; no load test",
+    "staticCDNEnumerationUploadDownload": "No static/CDN/upload/download change or public fixture; no full production scan"
+  },
+  "pendingIDEAJava": [
+    "LongArticleParagraphService.java",
+    "ShortLinkQueryService.java"
+  ],
+  "migrationRequired": false,
+  "manualSteps": [
+    "IDEA recompile/restart Rhythm Local8081 with both changed Java classes; verify listener/no-credential JSON before credentials",
+    "Use a controlled local long article containing a restricted article bare URL: paragraph list includeContent returns safe URL label, no restricted title or409; canonical body and list paragraph IDs agree",
+    "Seed legacy canonical and provisional safe aliases in a disposable fixture; location target beyond first20 returns canonical group/page2, both alias queries same current list/count; browser opens actual target in drawer on desktop and390px",
+    "Existing readable link titles continue, nonexistent target stays raw URL; truly mismatched targets/structure remain409, unreadable article404; edit failure must roll back paragraph association changes",
+    "Clean only temporary fixture records in explicit transaction and compare original content/point/receipt fingerprint"
+  ],
+  "limits": [
+    "Parser uses real local Flexmark but controlled identity sanitizer/emotion/media adapters, not entire production Markdown/Lute/IOC",
+    "Fixed Java not yet manually rebuilt; no post-fix HTTP or browser claim",
+    "No production captcha/blacklist/CDN/directory enumeration, multi-instance or physical-device validation",
+    "Entire v3 completion remains unproven; other business-chain verification stays in current completion audit"
+  ],
+  "committed": false,
+  "pushed": false
+}

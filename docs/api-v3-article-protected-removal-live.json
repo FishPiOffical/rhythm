@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-02",
+  "environment": {
+    "javaPid": 96544,
+    "backend": "Rhythm localhost IPv6:8081",
+    "userConfirmedRebuild": true
+  },
+  "scope": "Actual protected deletion: existing comments and purchased article, owner/other owner/guest, failure replay and four same-key concurrent failures",
+  "results": [
+    {
+      "step": "comments-read-before",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "comments-owner-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "comments-same-key-still-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "comments-other-owner-hidden",
+      "status": 404,
+      "expected": 404,
+      "code": "not_found",
+      "passed": true
+    },
+    {
+      "step": "comments-guest-denied",
+      "status": 401,
+      "expected": 401,
+      "code": "unauthorized",
+      "passed": true
+    },
+    {
+      "step": "comments-read-after",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "purchase-read-before",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "purchase-owner-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "purchase-same-key-still-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "purchase-other-owner-hidden",
+      "status": 404,
+      "expected": 404,
+      "code": "not_found",
+      "passed": true
+    },
+    {
+      "step": "purchase-guest-denied",
+      "status": 401,
+      "expected": 401,
+      "code": "unauthorized",
+      "passed": true
+    },
+    {
+      "step": "purchase-read-after",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "comments-parallel-0",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "comments-parallel-1",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "comments-parallel-2",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    },
+    {
+      "step": "comments-parallel-3",
+      "status": 422,
+      "expected": 422,
+      "code": "removal_rejected",
+      "passed": true
+    }
+  ],
+  "sqlPrerequisites": {
+    "commentedTargetHasActualComments": true,
+    "purchasedTargetHasNoEarlierCounterGuards": true,
+    "purchasedTargetHasActualType0Reward": true
+  },
+  "unchangedFingerprints": {
+    "articles": true,
+    "comments": true,
+    "rewards": true,
+    "reactions": true,
+    "statistic": true,
+    "balances": true,
+    "removalReceipts": true
+  },
+  "newBusinessRecordsOrFees": false,
+  "limits": [
+    "No forced deletion or successful permanent deletion performed",
+    "One application instance; four concurrent same-key failures do not prove all distributed success races",
+    "Production captcha/blacklist, whole CDN/static directories and classic administrative paths not re-tested"
+  ]
+}

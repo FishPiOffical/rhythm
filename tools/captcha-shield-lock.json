@@ -1,0 +1,158 @@
+{
+  "formatVersion": 1,
+  "policyVersion": 12,
+  "latestApproval": "On 2026-11-22 Ada approved removing only the legacy cumulative 300-request anonymous firewall ban, changing the legacy captcha interval from 5 to 10, restoring the lease match label, isolating lease lookup failures, and gating the community security panel and actions by the admin role. Ada then approved V3 authenticated identity labels and request-ID logging for new and pending challenges. V3 captcha interval, CC, first-visit article exception, and existing bans are unchanged; production switches remain read-only.",
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged. On 2026-11-15 Ada explicitly approved V3 captcha flow steps 2/4/5 and continuation: persistent IP challenge, structured 403 captcha_required, shared frontend verification and SSR/realtime recovery. After source review and Java 25 regression (14/14, 60-second process deadlines), only AnonymousCaptchaShield and BeforeRequestHandler.handle fingerprints were updated; ApiV3Cors was added as a protected whole file. Existing counters, exemptions, legacy API/page behavior and Firewall remain unchanged; CORS preflight negotiates transport only and never executes business or clears a challenge. During delivery review on 2026-11-15, four existing V3 admin methods newly synchronized from upstream were reviewed and individually locked: IP policy status, IP mutation, security switch save, and security switch response snapshot. Their permission checks, idempotent mutation path, Firewall/shield ordering, and production read-only guard were preserved; shield policy unchanged. Real provider/browser acceptance remains pending. 2026-11-15 合并已授权的 V3 后台事务修复：保留策略版本 3 及远端核心/CORS 指纹；用户明确授权调整并保留 IP/安全开关入口，HTTP 适配方法改为持久任务受理，执行调用由 AdminOperationTaskService 承接。保留两层保护项，仅同步这两个已审查适配方法指纹并加入已审查的任务执行指纹。 2026-11-15 用户明确授权保留 ApiV3Cors 许可证注释的两处空格调整并更新对应整文件指纹；已核对去除空白后的源码一致，业务逻辑、调用和策略版本 3 不变。 2026-11-15 用户明确授权 V3 验证码独立计数：V3 首访后每100个受检查请求触发验证；旧站每5次及 Firewall 总请求计数保持不变。仅更新 AnonymousCaptchaShield 计数实现、回归和对应核心指纹。 2026-11-20 用户确认将 pic.fishpi.cn 解析地址及 RhyPic/RhyUS 共用的固定内网单 IP 与 new.fishpi.cn 一样，在启动时解封并加入 CC/验证码白名单；三个条目独立处理，策略版本保持 3。 User approved on 2026-11-21 the narrowly scoped V3 website refresh captcha exception; UA, CC, credential validation, refresh counters and all other routes remain protected. Reviewed the shield core and middleware and updated only their fingerprints after Java 25 regression (16/16). User approved on 2026-11-21 changing the V3 anonymous periodic captcha interval from 100 to 30 checked requests. Old-site interval and Firewall limits unchanged; Java 25 captcha regression passed 16/16. User explicitly approved on 2026-11-21 exempting only GET /api/v3/oauth/authorize and POST /api/v3/oauth/{consent,token,revoke} from the global captcha blacklist and anonymous captcha counter. Firewall/CC, OAuth rate limits, identity, credentials, CSRF, PKCE, source checks and CORS remain unchanged. After Java 25 shield regression (18/18), reviewed and updated only the AnonymousCaptchaShield and AnonymousViewCheckMidware whole-file fingerprints; policy version 6. User clarified on 2026-11-21 that legacy OpenID login, confirmation, response verification and token renewal used with openid.return_to must also bypass the captcha shield, while V3 OAuth exemptions remain. Exempt only GET /openid/login and POST /openid/{confirm,verify,token}; preserve return_to/realm validation, login, CSRF, signatures, nonce, token checks, UA, Firewall/CC and endpoint rate limits; /openid/user/* remains protected. After Java 25 regression (19/19), reviewed and updated only the AnonymousCaptchaShield and AnonymousViewCheckMidware whole-file fingerprints; policy version 7. User confirmed on 2026-11-21 to exempt the five registered GET /openid/user/{profile,detail,points,articles,membership} resource routes from captcha blacklisting/counters. Bearer, token-status and per-resource scope checks, UA, Firewall/CC and all resource handler behavior remain unchanged; other methods, paths and subpaths remain protected. After Java 25 captcha/OAuth/CORS regression (19/19), reviewed and updated only the AnonymousCaptchaShield core fingerprint; policy version 8. User explicitly confirmed on 2026-11-21 to exempt only POST /api/v3/auth/session from captcha blacklist and anonymous counter, in addition to existing exemptions. The endpoint retains trusted-Origin, request-body and server-bound website-cookie session checks and does not issue tokens, clear IP challenge state or whitelist the source. UA/Firewall/CC and other routes remain protected. After Java 25 shield/OAuth/CORS regression (20/20), reviewed and updated only the AnonymousCaptchaShield core fingerprint; policy version 9.",
+  "checks": [
+    {
+      "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
+      "sha256": "a45975fbd86a849dd81d3acac5c54845afd6f17df26e6bca011edb554f6e9732"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
+      "sha256": "190df488200e3f07ab0c122da5d8828919e9bac62e064a8643a174458398f377"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
+      "method": "public void handle(final RequestContext context)",
+      "sha256": "62fb563e96cb03b6bfeb0ac9494aeff9807cd05169f908ea83362eadfd4eda28"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
+      "method": "public static void register()",
+      "sha256": "eb8f733cfdfaa9041d8cc80b08d1c58dcd1920e9e56d1ef0912ac2ec5b9acc07"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
+      "method": "public void captcha(final RequestContext context)",
+      "sha256": "dfc074b17406874f0a94f793500cd5607954a1c7731095cb38c3e4f3777aca93"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
+      "method": "public void validateCaptcha(final RequestContext context)",
+      "sha256": "5de3c47bcf59ea0d6587dbb38bc252f251cf15aa7ac03b0c44435e90c4c505b6"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void modifyIp(final RequestContext context)",
+      "sha256": "f9d965afd75b79278816052f7fc222cc50e4fe5a61de10572b4367d9c93c06db"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void showMisc(final RequestContext context)",
+      "sha256": "4a4ac9851de0b020887be19362d4f37dc83f0d69a5699c3abf4c557c370c2f18"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void toggleVerificationShield(final RequestContext context)",
+      "sha256": "a2a86572c7c48459d56b7d9dfa4889ce93f321f5b0738f21a524f815d6b6303c"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void toggleFirstVisitCaptcha(final RequestContext context)",
+      "sha256": "02d9e5fbb6ee639ce529e6e1cc9545c4e146141fd6cd682a41e485a8fd24f3a5"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/Server.java",
+      "method": "public static void main(final String[] args) throws Exception",
+      "sha256": "82447ed703783c2a427cd3f0d25dbf1692d08798b06cf8aab4362fe8d85da003"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3RealtimeService.java",
+      "method": "private synchronized ApiV3RealtimeSessions registry()",
+      "sha256": "fdaa58c274186af3b466fd82f5928c417516d5f7b21efdc34e9fbeba1e9f4c49"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/SettingsProcessor.java",
+      "method": "public void sendPhoneVC(final RequestContext context)",
+      "sha256": "4f7a8ccb7d8a21dc357ebcc6b134a98360f8854989d6bfd93f92bb04a3357b5d"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/SettingsProcessor.java",
+      "method": "public void sendEmailVC(final RequestContext context)",
+      "sha256": "1f7ec190f0348401a84294244b6af1118c60c1d9c0233238aef6c1a4c9ad56ca"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AccountRegistrationRequestService.java",
+      "method": "protected boolean captchaAccepted(String proof)",
+      "sha256": "c36fc13fe76066494337dc965a0c4c568d6b077e77fdc7303c795992faa70750"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AccountPasswordResetRequestService.java",
+      "method": "protected boolean captchaAccepted(String proof)",
+      "sha256": "c36fc13fe76066494337dc965a0c4c568d6b077e77fdc7303c795992faa70750"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3ContactSettingsService.java",
+      "method": "protected boolean captcha(String proof)",
+      "sha256": "422e624bb3ff06022d3ef700f55379f4bc58d209605de54681d38cce6ebfbbad"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/middleware/validate/UserRegisterValidationMidware.java",
+      "method": "public void handle(final RequestContext context)",
+      "sha256": "97917195e43b75b4faa2699346af40f0771649364b59e4264577f33959423818"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/middleware/validate/UserForgetPwdValidationMidware.java",
+      "method": "public void handle(final RequestContext context)",
+      "sha256": "f90d02f58c9b0090d68bb69a0811844b61295c5caa7ab0d3673fadbf0f7eeb79"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/Router.java",
+      "method": "public static void requestMapping()",
+      "sha256": "cea03ef494297521300e79187e2394fc19f634d2b8bcffdd8ab32647253e4771"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/util/SecuritySelfCheck.java",
+      "sha256": "0f0e759de52c7a97d28a89fcb2d6e8944021c0d1c3c4a3b3a31f3bb71f6f375f"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void saveSecuritySwitches(final RequestContext context)",
+      "sha256": "36de659487be2df762c665888db306e8cd16c95f48dcdb0641bbdc01677af308"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "private JSONObject securitySwitchData()",
+      "sha256": "d9336cb64966a372cac7beaeb4b1ecb3f1e82be2f44c74ac9d93c5c3176f763a"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
+      "sha256": "278581628af0008e0783ce3a65514dcc564ec44fd0be8a53996009890b4458f3"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/util/ApiV3Cors.java",
+      "sha256": "d853cc0d2176a8b08b0f6f579c605ad24b4588431d9d1063bc77538517a02697"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject getIpPolicyStatus(final JSONObject identity)",
+      "sha256": "a9aa08d0d9fa33ca6db89f0c8c3b6daab9ea93ab1bdffd11e1ab28bfee35be75"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject mutateIps(final JSONObject identity, final JSONObject body,",
+      "sha256": "fba82f78eb46e703d49322da0a839111875358aa839a78f5ac5acf880e3aad16"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject saveSecuritySwitches(final JSONObject identity, final JSONObject body,",
+      "sha256": "cd00625ba7b2ee0d72d0f1a627184c24548645fb54086226ee966e54c2e75d7c"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "private static JSONObject currentSecuritySwitches()",
+      "sha256": "f534f7d9b6f58e8a8a5077078d344a5c1c23131c2ad83063a1901c7d50f3482e"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AdminOperationTaskService.java",
+      "method": "private void executeIps(final JSONObject task, final JSONObject payload, final JSONObject result) throws Exception",
+      "sha256": "0bbd17927fe34da36250e52b419c5aa479c3a6b4d07da24e279c0f060ca692b7"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AdminOperationTaskService.java",
+      "method": "private void executeSwitches(final JSONObject payload, final JSONObject result)",
+      "sha256": "886e8e412c3fff12c0fc030190550b556da091fd26f9d7fc11f1da837a329d61"
+    }
+  ]
+}

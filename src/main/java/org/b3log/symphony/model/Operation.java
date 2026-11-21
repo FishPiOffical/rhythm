@@ -319,6 +319,22 @@ public final class Operation {
      */
     public static final int OPERATION_CODE_C_DEACTIVATE_USER = 49;
 
+    public static final int OPERATION_CODE_C_REMOVE_REPEATER = 50;
+
+    public static final int OPERATION_CODE_C_SAVE_CHAT_BUBBLE = 51;
+    public static final int OPERATION_CODE_C_PUBLISH_CHAT_BUBBLE = 52;
+    public static final int OPERATION_CODE_C_UNPUBLISH_CHAT_BUBBLE = 53;
+    public static final int OPERATION_CODE_C_ADD_REPEATER = 54;
+    public static final int OPERATION_CODE_C_SAVE_CLIENT_DOWNLOAD = 55;
+    public static final int OPERATION_CODE_C_MODERATE_PET_NAME = 56;
+
+    /** 修改宠物咖啡售价或在售状态。 */
+    public static final int OPERATION_CODE_C_PET_COFFEE_SETTINGS = 57;
+    public static final int OPERATION_CODE_C_PARKING_SETTINGS = 58;
+
+    /** 修改搭子营业费率。 */
+    public static final int OPERATION_CODE_C_PARTNER_RATE = 59;
+
 
     //// Transient ////
 
@@ -346,9 +362,14 @@ public final class Operation {
      * @return an operation
      */
     public static JSONObject newOperation(final Request request, final int code, final String dataId) {
+        return newOperation(request, code, dataId, Sessions.getUser());
+    }
+
+    /** API 操作使用已认证的操作者，不能依赖网页 Session。 */
+    public static JSONObject newOperation(final Request request, final int code, final String dataId,
+                                          final JSONObject user) {
         final String ip = Requests.getRemoteAddr(request);
         final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-        final JSONObject user = Sessions.getUser();
 
         return new JSONObject().
                 put(Operation.OPERATION_USER_ID, user.optString(Keys.OBJECT_ID)).

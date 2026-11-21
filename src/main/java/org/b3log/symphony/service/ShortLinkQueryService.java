@@ -58,7 +58,8 @@ public class ShortLinkQueryService {
     /**
      * Article pattern - full.
      */
-    private static final Pattern ARTICLE_PATTERN_FULL = Pattern.compile(Latkes.getServePath() + "/article/\\d{13,15}[?\\w&-_=#%:]*(\\b|$)");
+    private static final String ARTICLE_SOURCE_BASE = Latkes.getServePath();
+    private static final Pattern ARTICLE_PATTERN_FULL = Pattern.compile(ARTICLE_SOURCE_BASE + "/article/\\d{13,15}[?\\w&-_=#%:]*(\\b|$)");
 
     /**
      * Article repository.
@@ -73,6 +74,22 @@ public class ShortLinkQueryService {
      * @return processed content
      */
     public String linkArticle(final String content) {
+        return linkArticle(content, null);
+    }
+
+    /** A non-null lookup supplies only titles the caller is authorized to expose; null leaves the URL intact. */
+    public String linkArticle(final String content, final java.util.function.Function<String, String> titleLookup) {
+        return linkArticle(content, titleLookup == null ? null : (id, url) -> titleLookup.apply(id), false);
+    }
+
+    /** Paired renderers retain the original destination while choosing a public label. */
+    public String linkArticleWithUrlTitles(final String content,
+            final java.util.function.BiFunction<String, String, String> titleLookup) {
+        return linkArticle(content, titleLookup, true);
+    }
+
+    private String linkArticle(final String content,
+            final java.util.function.BiFunction<String, String, String> titleLookup, final boolean preserveUrl) {
         Stopwatchs.start("Link article");
 
         StringBuffer contentBuilder = new StringBuffer();
@@ -86,6 +103,7 @@ public class ShortLinkQueryService {
             try {
                 while (matcher.find()) {
                     final String url = StringUtils.trim(matcher.group());
+                    if (preserveUrl && !url.startsWith(ARTICLE_SOURCE_BASE + "/article/")) continue;
                     if (0 < matcher.start()) {
                         final char c = content.charAt(matcher.start() - 1); // look back one char
                         if ('(' == c || ']' == c || '\'' == c || '"' == c || '`' == c) {
@@ -110,24 +128,25 @@ public class ShortLinkQueryService {
                         anchor = StringUtils.substringAfter(url, "#");
                     }
 
-                    final Query query = new Query().select(Article.ARTICLE_TITLE).setFilter(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.EQUAL, linkId));
-                    final List<JSONObject> results = articleRepository.getList(query);
-                    if (results.isEmpty()) {
-                        continue;
+                    final String linkTitle;
+                    if (null == titleLookup) {
+                        final Query query = new Query().select(Article.ARTICLE_TITLE).setFilter(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.EQUAL, linkId));
+                        final List<JSONObject> results = articleRepository.getList(query);
+                        if (results.isEmpty()) continue;
+                        linkTitle = results.getFirst().optString(Article.ARTICLE_TITLE);
+                    } else {
+                        linkTitle = titleLookup.apply(linkId, url);
+                        if (null == linkTitle) continue;
                     }
+                    String destination = url;
+                    if (!preserveUrl) {
+                        destination = Latkes.getServePath() + "/article/" + linkId;
+                        if (StringUtils.isNotBlank(queryStr)) destination += "?" + queryStr;
+                        if (StringUtils.isNotBlank(anchor)) destination += "#" + anchor;
+                    }
+                    final String link = " [" + linkTitle + "](" + destination + ") ";
 
-                    final JSONObject linkArticle = results.get(0);
-                    final String linkTitle = linkArticle.optString(Article.ARTICLE_TITLE);
-                    String link = " [" + linkTitle + "](" + Latkes.getServePath() + "/article/" + linkId;
-                    if (StringUtils.isNotBlank(queryStr)) {
-                        link += "?" + queryStr;
-                    }
-                    if (StringUtils.isNotBlank(anchor)) {
-                        link += "#" + anchor;
-                    }
-                    link += ") ";
-
-                    matcher.appendReplacement(contentBuilder, link);
+                    matcher.appendReplacement(contentBuilder, Matcher.quoteReplacement(link));
                 }
 
                 matcher.appendTail(contentBuilder);

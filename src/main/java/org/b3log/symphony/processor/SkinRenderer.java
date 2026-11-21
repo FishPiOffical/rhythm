@@ -31,6 +31,7 @@ import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
 import org.b3log.latke.util.Locales;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.SecurityMonitor;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.Templates;
 import org.json.JSONObject;
@@ -57,6 +58,7 @@ public final class SkinRenderer extends AbstractFreeMarkerRenderer {
      * HTTP request context.
      */
     private final RequestContext context;
+    private boolean securityPageRendered;
 
     /**
      * Constructs a skin renderer with the specified request context and template name.
@@ -159,6 +161,20 @@ public final class SkinRenderer extends AbstractFreeMarkerRenderer {
 
     @Override
     protected void afterRender(final RequestContext context) {
+        securityPageRendered = true;
+    }
+
+    @Override
+    public void render(final RequestContext context) {
+        securityPageRendered = false;
+        try {
+            super.render(context);
+        } finally {
+            SecurityMonitor.pageRendered(context, getTemplateName(),
+                    securityPageRendered && context.getRenderer() == this
+                            && context.attr(RequestContext.ERROR_CODE) == null
+                            && context.getResponse().isCommitted());
+        }
     }
 
     /**

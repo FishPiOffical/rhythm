@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-02",
+  "scope": "Read-only canAccept eligibility aligned with approved v3 question/minimum-20 write rule",
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/service/ApiV3CommentRewardQueryService.java"
+  ],
+  "testFiles": [
+    "src/test/java/org/b3log/symphony/service/ApiV3CommentRewardQueryTest.java"
+  ],
+  "commands": [
+    {
+      "command": "node tools/api-v3-comment-reward-query-test.mjs",
+      "passGroups": 5,
+      "exitCode": 0
+    },
+    {
+      "command": "node tools/api-v3-comment-reward-query-test.mjs --mysql",
+      "passGroups": 5,
+      "exitCode": 0,
+      "temporaryContainerRemoved": true
+    }
+  ],
+  "cases": [
+    "Question offer=0 or 19 cannot be accepted, for public or anonymous answer",
+    "Question offer=20 can be accepted by article owner; anonymous fee remains zero",
+    "Non-question, non-owner, own answer or existing accepted answer remain ineligible",
+    "Accepted flag and read-only response whitelist unchanged",
+    "Guest/scope/current target privacy and database error tests still pass"
+  ],
+  "deployment": {
+    "runtimeVerified": false,
+    "needsUserIDEARebuildRestart": true,
+    "includeEarlierFiles": [
+      "ApiV3CommentMgmtService.java",
+      "CommentAcceptMgmtService.java"
+    ],
+    "migrationRequired": false
+  },
+  "limits": [
+    "Article visibility adapter supplies current article values; not actual article SQL or deployed v3 runtime verification",
+    "No frontend changes or build performed in this increment",
+    "Public question metadata proposal awaits user response; no implementation before decision",
+    "No claim of production anti-scan, CDN/directory or cross-instance/physical-device verification"
+  ]
+}

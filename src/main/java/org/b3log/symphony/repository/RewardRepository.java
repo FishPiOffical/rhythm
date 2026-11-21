@@ -18,10 +18,12 @@
  */
 package org.b3log.symphony.repository;
 
+import org.b3log.latke.Keys;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.Reward;
 import org.json.JSONObject;
+import java.util.List;
 
 /**
  * Reward repository.
@@ -42,15 +44,30 @@ public class RewardRepository extends AbstractRepository {
         return result;
     }
 
+    /** Current locking read; a failed query must never authorize article removal. */
+    public boolean existsForUpdate(final String dataId, final int type) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("reward locking read requires transaction");
+        return !select("SELECT oId FROM `" + getName() + "` WHERE dataId=? AND `type`=? LIMIT 1 FOR UPDATE", dataId, type).isEmpty();
+    }
+
     /**
-     * Removes rewards by the specified data id.
+     * Removes rewards for one typed target inside the caller's transaction.
      *
      * @param dataId the specified data id
+     * @param type the reward kind from Reward.TYPE_C_*
+     * @return removed reward record IDs for associated notification cleanup in the same transaction
      * @throws RepositoryException repository exception
      */
-    public void removeByDataId(final String dataId) throws RepositoryException {
-        remove(new Query().setFilter(new PropertyFilter(Reward.DATA_ID, FilterOperator.EQUAL, dataId)).
-                setPageCount(1));
+    public List<String> removeByDataId(final String dataId, final int type) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("reward removal requires transaction");
+        if (type != Reward.TYPE_C_ARTICLE && type != Reward.TYPE_C_THANK_ARTICLE
+                && type != Reward.TYPE_C_ACCEPT_COMMENT && type != Reward.TYPE_C_COMMENT && type != Reward.TYPE_C_USER) {
+            throw new IllegalArgumentException("unknown reward target type");
+        }
+        final var rows = select("SELECT oId FROM `" + getName()
+                + "` WHERE dataId=? AND `type`=? ORDER BY oId FOR UPDATE", dataId, type);
+        for (final JSONObject row : rows) remove(row.getString(Keys.OBJECT_ID));
+        return rows.stream().map(row -> row.getString(Keys.OBJECT_ID)).toList();
     }
 
     /**

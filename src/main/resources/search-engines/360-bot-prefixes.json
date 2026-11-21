@@ -1,0 +1,12 @@
+{
+    "source": "https://www.so.com/help/spider_ip.html",
+    "checkedAt": "2026-11-11",
+    "prefixes": [
+        { "ipv4Prefix": "42.236.10.0/24" },
+        { "ipv4Prefix": "42.236.12.0/24" },
+        { "ipv4Prefix": "42.236.17.0/24" },
+        { "ipv4Prefix": "42.236.101.0/24" },
+        { "ipv4Prefix": "180.153.236.0/24" },
+        { "ipv4Prefix": "180.163.220.0/24" }
+    ]
+}

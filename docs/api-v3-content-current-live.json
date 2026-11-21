@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-02",
+  "scope": "Current deployed content permissions after warm reads; controlled dedicated development fixtures only",
+  "results": [
+    {
+      "step": "warm-reader-detail",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm-guest-detail",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "persisted-invalid-reader-detail",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "persisted-invalid-reader/comments",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "persisted-invalid-reader/reactions",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "persisted-invalid-guest",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "persisted-no-anonymous-guest",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "persisted-no-anonymous-member",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "persisted-discussion-non-invitee",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "persisted-discussion-owner",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "persisted-current-title-body",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "persisted-current-anonymity",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-current-reader",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "warm-other-author-detail",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "persisted-deactivated-author",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    }
+  ],
+  "fixturesRestored": true,
+  "balancesUnchanged": true,
+  "noBodiesOrCredentialsInReport": true
+}

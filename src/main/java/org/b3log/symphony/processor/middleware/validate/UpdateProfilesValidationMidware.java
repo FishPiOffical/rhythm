@@ -151,7 +151,7 @@ public class UpdateProfilesValidationMidware {
                     return;
                 }
 
-                final JSONObject currentUser = Sessions.getUser();
+                final JSONObject currentUser = (JSONObject) context.attr(User.USER);
                 if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
                         && ArrayUtils.contains(Symphonys.RESERVED_TAGS, tagTitle)) {
                     context.renderJSON(new JSONObject().put(Keys.MSG, langPropsService.get("selfTagLabel") + langPropsService.get("colonLabel") + langPropsService.get("articleTagReservedLabel") + " [" + tagTitle + "]"));

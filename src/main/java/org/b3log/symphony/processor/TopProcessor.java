@@ -40,6 +40,7 @@ import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
 import org.b3log.symphony.repository.SponsorRepository;
 import org.b3log.symphony.service.*;
+import org.b3log.symphony.util.ApiV3RankingDto;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.Vocation;
@@ -118,6 +119,9 @@ public class TopProcessor {
 
     @Inject
     private AvatarQueryService avatarQueryService;
+
+    @Inject
+    private RankingQueryService rankingQueryService;
 
     @Inject
     private ProfessionRankingQueryService professionRankingQueryService;
@@ -810,45 +814,7 @@ public class TopProcessor {
     }
 
     private List<JSONObject> getXiaoiceData(String type) {
-      final JSONObject dataModel = new JSONObject();
-      List<JSONObject> resultList = new ArrayList<>();
-      type = type != null ?
-              type : "0";
-      dataModel.put("type", type);
-      final HttpResponse response = HttpRequest.get("https://pwl.yuis.cc/GetXiaoIceGameRank?key=xiaoIceGame&type=" + type)
-              .connectionTimeout(3000).timeout(7000).header("User-Agent", Vocation.UA)
-              .send();
-      if (200 == response.statusCode()) {
-          response.charset("UTF-8");
-          final JSONObject result = new JSONObject(response.bodyText());
-          JSONArray dataList = result.optJSONArray("data");
-          for (int i = 0; i < dataList.length(); i++) {
-              JSONObject data = dataList.optJSONObject(i);
-              String uname = data.optString("uname");
-              JSONObject family = new JSONObject(data.optString("family"));
-
-              String[] lvFilter = new String[]{"黄阶低级", "黄阶中级", "黄阶高级", "玄阶低级", "玄阶中级", "玄阶高级", "地阶低级", "地阶中级", "地阶高级", "天阶低级", "天阶中级", "天阶高级"};
-              int ancestry = family.optInt("ancestry");
-              int gongfa = family.optInt("gongfa");
-              data.put("ancestry", lvFilter[ancestry]);
-              data.put("gongfa", lvFilter[gongfa]);
-              data.remove("family");
-              try {
-                  JSONObject user = userQueryService.getUserByName(uname);
-                  data.put("userAvatarURL", user.optString(UserExt.USER_AVATAR_URL));
-                  data.put("userIntro", user.optString(UserExt.USER_INTRO));
-                  data.put("userURL", user.optString(User.USER_URL));
-                  data.put("userNo", user.optInt(UserExt.USER_NO));
-                  data.put("userAppRole", user.optInt(UserExt.USER_APP_ROLE));
-                  avatarQueryService.fillUserAvatarURL(data);
-              } catch (Exception e) {
-                  continue;
-              }
-
-              resultList.add(data);
-          }
-        }
-        return resultList;
+        try { return rankingQueryService.xiaoice(null == type ? "0" : type); } catch (Exception ignored) { return new ArrayList<>(); }
     }
 
     /**
@@ -903,29 +869,7 @@ public class TopProcessor {
      *
      */
     private List<JSONObject> getInviteData() {
-      List<JSONObject> result = new ArrayList<>();
-      try{
-        List<JSONObject> list = pointtransferRepository.select("select toId,count(toId) as c " +
-                    "from " + pointtransferRepository.getName() + " " +
-                    "where type = 6 " +
-                    "group by toId " +
-                    "order by c desc " +
-                    "limit 64;");
-            for (JSONObject user : list) {
-                try {
-                    JSONObject userData = userQueryService.getUser(user.optString("toId"));
-                    avatarQueryService.fillUserAvatarURL(userData);
-                    removePrivateData(userData);
-                    user.put("profile", userData);
-                    result.add(user);
-                } catch (Exception e) {
-                    continue;
-                }
-            }
-            return result;
-        } catch (Exception ignored) {
-          return result;
-        }
+        try { return rankingQueryService.invite(); } catch (Exception ignored) { return new ArrayList<>(); }
     }
 
     /**
@@ -1024,44 +968,8 @@ public class TopProcessor {
      *
      */
   private JSONObject getDonateData() {
-    JSONObject dataModel = new JSONObject();
-      try {
-        List<JSONObject> totalList = sponsorRepository.select("select sum(amount) as totalAmount " +
-                  "from " + sponsorRepository.getName() + " " +
-                  "limit 1;");
-        JSONObject totalJSON = totalList.get(0);
-        double totalAmount = totalJSON.optDouble("totalAmount");
-        BigDecimal donateMakeDaysBigDecimal = new BigDecimal(String.valueOf(totalAmount / 5));
-        double donateMakeDays = donateMakeDaysBigDecimal.setScale(0, BigDecimal.ROUND_HALF_UP).doubleValue();
-        totalJSON.put("donateMakeDays", donateMakeDays);
-        dataModel.put("totalData", totalJSON);
-      }
-      catch (Exception ignored) {
-      }
-      try {
-          List<JSONObject> list = sponsorRepository.select("select userId as userId,sum(amount) as total,count(*) as totalCount " +
-                  "from " + sponsorRepository.getName() + " " +
-                  "group by userId " +
-                  "order by total desc " +
-                  "limit 64;");
-          List<JSONObject> result = new ArrayList<>();
-          for (JSONObject user : list) {
-              try {
-                  JSONObject userData = userQueryService.getUser(user.optString("userId"));
-                  removePrivateData(userData);
-                  avatarQueryService.fillUserAvatarURL(userData);
-                  user.put("profile", userData);
-                  result.add(user);
-              } catch (Exception e) {
-                  continue;
-              }
-          }
-          dataModel.put("data", result);
-          dataModel.put("type", "donate");
-      } catch (Exception ignored) {
-      }
-    return dataModel;
-  }
+        try { return rankingQueryService.donate(); } catch (Exception ignored) { return new JSONObject(); }
+    }
 
   /**
      * get Donate ranking list.
@@ -1071,7 +979,7 @@ public class TopProcessor {
     public void getDonate(final RequestContext context) {
       final JSONObject dataModel = getDonateData();
       final Object list = dataModel.opt("data");
-      renderTop(context, list instanceof List ? (List<JSONObject>) list : new ArrayList<>(),
+      renderTop(context, ApiV3RankingDto.rows(list),
               dataModel.optJSONObject("totalData"), "donate");
     }
 
@@ -1118,32 +1026,7 @@ public class TopProcessor {
      *
      */
     private JSONObject getPerfectData() {
-      final JSONObject dataModel = new JSONObject();
-
-      try {
-        List<JSONObject> list = articleRepository.select("select "+ Article.ARTICLE_AUTHOR_ID +" as userId,count(*) as count " +
-                "from " + articleRepository.getName() + " " +
-                "where " + Article.ARTICLE_PERFECT + " = " + Article.ARTICLE_PERFECT_C_PERFECT+ " " +
-                "group by userId " +
-                "order by count desc " +
-                "limit 64;");
-        List<JSONObject> result = new ArrayList<>();
-        for (JSONObject user : list) {
-            try {
-                JSONObject userData = userQueryService.getUser(user.optString("userId"));
-                avatarQueryService.fillUserAvatarURL(userData);
-                user.put("profile", userData);
-                removePrivateData(userData);
-                result.add(user);
-            } catch (Exception e) {
-                continue;
-            }
-        }
-        dataModel.put("data", result);
-        dataModel.put("type", "perfect");
-    } catch (Exception ignored) {
-    }
-    return dataModel;
+        try { return rankingQueryService.perfect(); } catch (Exception ignored) { return new JSONObject(); }
     }
 
     /**
@@ -1154,6 +1037,6 @@ public class TopProcessor {
     public void getPerfect(final RequestContext context) {
       final JSONObject dataModel = getPerfectData();
       final Object list = dataModel.opt("data");
-      renderTop(context, list instanceof List ? (List<JSONObject>) list : new ArrayList<>(), null, "perfect");
+      renderTop(context, ApiV3RankingDto.rows(list), null, "perfect");
     }
 }

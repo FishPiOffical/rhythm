@@ -101,7 +101,7 @@ public class OptionMgmtService {
         final Transaction transaction = optionRepository.beginTransaction();
 
         try {
-            optionRepository.update(optionId, option);
+            updateOptionInCurrentTransaction(optionId, option);
 
             transaction.commit();
         } catch (final RepositoryException e) {
@@ -111,5 +111,10 @@ public class OptionMgmtService {
 
             LOGGER.log(Level.ERROR, "Updates an option[id=" + optionId + "] failed", e);
         }
+    }
+    /** V3 在自身事务中调用，不能提前提交调用方的回执和审计。 */
+    public void updateOptionInCurrentTransaction(final String optionId, final JSONObject option) throws RepositoryException {
+        if (!optionRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        optionRepository.update(optionId, option);
     }
 }

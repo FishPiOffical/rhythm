@@ -29,6 +29,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.model.Sponsor;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.SponsorRepository;
 import org.json.JSONObject;
@@ -56,7 +57,7 @@ public class SponsorService {
     public void add(final JSONObject record) {
         final Transaction transaction = repository.beginTransaction();
         try {
-            repository.add(record);
+            recordInCurrentTransaction(record);
             transaction.commit();
         } catch (RepositoryException e) {
             if (transaction.isActive()) {
@@ -64,6 +65,21 @@ public class SponsorService {
             }
             LOGGER.warn("add sponsor record failed !");
         }
+    }
+
+    public void recordInCurrentTransaction(final JSONObject record) throws RepositoryException {
+        if (!repository.hasTransactionBegun()) throw new IllegalStateException("赞助记录需要活动事务");
+        repository.add(record);
+    }
+
+    public static JSONObject paymentRecord(final String userId, final double amount, final String memo, final long time) {
+        return new JSONObject().put(UserExt.USER_T_ID, userId).put(Common.TIME, time)
+                .put(Sponsor.AMOUNT, amount).put(Sponsor.SPONSOR_MESSAGE, memo);
+    }
+
+    public static int pointsForPayment(final double amount) {
+        final int points = ((int) amount) * 80;
+        return points == 0 ? 1 : points;
     }
 
     public List<JSONObject> list(int page, int limit) {

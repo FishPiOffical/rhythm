@@ -52,7 +52,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
-import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
+import org.b3log.symphony.util.BreezemoonWriteQuota;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -87,6 +87,8 @@ public class BreezemoonProcessor {
      */
     @Inject
     private BreezemoonMgmtService breezemoonMgmtService;
+    @Inject
+    private ApiV3RealtimeService realtime;
 
     /**
      * Data model service.
@@ -258,7 +260,6 @@ public class BreezemoonProcessor {
      *
      * @param context the specified context
      */
-    final private static SimpleCurrentLimiter addBreezemoonLimiter = new SimpleCurrentLimiter(60 * 60, 5);
     public void addBreezemoon(final RequestContext context) {
         context.renderJSON(StatusCodes.ERR);
 
@@ -274,7 +275,7 @@ public class BreezemoonProcessor {
         } catch (NullPointerException ignored) {
         }
         final String authorId = user.optString(Keys.OBJECT_ID);
-        if (!addBreezemoonLimiter.access(authorId)) {
+        if (!BreezemoonWriteQuota.access(authorId)) {
             context.renderJSON(StatusCodes.ERR).renderMsg("每小时只允许发送5个清风明月，稍安勿躁...");
             return;
         }
@@ -328,6 +329,7 @@ public class BreezemoonProcessor {
             data.put("oId", list.get(0).optString("oId"));
 
             if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS)) {
+                realtime.markBreezemoonsChanged();
                 UserChannel.sendCmdToAll(new JSONObject().put("bz", data).put("command", "bz-update"));
             } else {
                 context.renderMsg("您的清风明月发表成功，但由于您的隐私设置为不公开，将不会显示在公开列表。请至设置-隐私中，打开“公开清风明月列表”选项。");
@@ -380,7 +382,7 @@ public class BreezemoonProcessor {
             breezemoon.put(Keys.OBJECT_ID, id);
             final String breezemoonContent = requestJSONObject.optString(Breezemoon.BREEZEMOON_CONTENT);
             final String authorId = user.optString(Keys.OBJECT_ID);
-            if (!addBreezemoonLimiter.access(authorId)) {
+            if (!BreezemoonWriteQuota.access(authorId)) {
                 context.renderJSON(StatusCodes.ERR).renderMsg("操作过于频繁，请稍候重试。");
                 return;
             }
@@ -402,6 +404,8 @@ public class BreezemoonProcessor {
             breezemoon.put(Breezemoon.BREEZEMOON_UA, ua);
 
             breezemoonMgmtService.updateBreezemoon(breezemoon);
+            if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED))
+                realtime.markBreezemoonsChanged();
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
         } catch (final Exception e) {
@@ -431,6 +435,8 @@ public class BreezemoonProcessor {
             }
 
             breezemoonMgmtService.removeBreezemoon(id);
+            if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED))
+                realtime.markBreezemoonsChanged();
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
         } catch (final Exception e) {

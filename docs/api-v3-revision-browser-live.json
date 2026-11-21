@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-02",
+  "scope": "Actual website_v3 browser revision reading against deployed Rhythm; unchanged production source",
+  "results": [
+    {
+      "step": "existing authenticated session restored without a new login",
+      "passed": true
+    },
+    {
+      "step": "article history opens with three real saved versions",
+      "passed": true
+    },
+    {
+      "step": "first and third version selection changes title and aria-pressed correctly",
+      "passed": true
+    },
+    {
+      "step": "private comment history for a non-author without history permission shows explicit permission error and retry",
+      "passed": true
+    },
+    {
+      "step": "real oversized fixture produces error/retry with zero old history-text nodes",
+      "passed": true
+    },
+    {
+      "step": "fixture cleanup then retry restores three-item list while old detail remains absent",
+      "passed": true
+    },
+    {
+      "step": "explicit version selection restores exact body at 390px; document scrollWidth equals viewport",
+      "passed": true
+    },
+    {
+      "step": "viewport reset; browser captured warn/error log list empty",
+      "passed": true
+    }
+  ],
+  "fixtureCleanup": {
+    "originalHistoryFingerprintRestored": true,
+    "automaticDeadlineSeconds": 60
+  },
+  "screenshots": [
+    "browser-revision-budget-error.png",
+    "browser-revision-mobile.png"
+  ],
+  "limits": [
+    "These are observed browser checks, not an automated full regression count",
+    "No new notification Java runtime validation before requested IDEA restart",
+    "No full cross-account history browser matrix, concurrent revocation or physical mobile device evidence"
+  ]
+}

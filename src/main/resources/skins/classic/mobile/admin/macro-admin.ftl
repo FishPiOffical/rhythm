@@ -77,6 +77,10 @@
         <#if type == "reports">
             <@head title="${reportsAdminLabel} - ${symphonyLabel}"></@head>
         </#if>
+        <#if type == "petLogs">
+            <@head title="宠物日志 - ${symphonyLabel}"></@head>
+            <link rel="stylesheet" href="${staticServePath}/css/pet-admin-logs.css?${staticResourceVersion}" />
+        </#if>
         <#if type == "auditlog">
             <@head title="${auditlogLabel} - ${symphonyLabel}"></@head>
         </#if>
@@ -139,6 +143,7 @@
                     <#if type == "misc"  && permissions["menuAdminMisc"].permissionGrant>
                     ${miscAdminLabel}
                     </#if>
+                    <#if type == "petLogs">宠物日志</#if>
                     <#if type == "auditlog"  && permissions["menuAdmin"].permissionGrant>
                         ${auditlogLabel}
                     </#if>
@@ -216,6 +221,7 @@
                     </#if>
                     <#if isLoggedIn && "adminRole" == currentUser.userRole>
                     <li><a href="${servePath}/admin/medal" target="_blank">勋章管理</a></li>
+                    <li<#if type == "petLogs"> class="fn-none"</#if>><a href="${servePath}/admin/pet-logs">宠物日志</a></li>
                     <li><a href="${servePath}/admin/profession" target="_blank">职业管理</a></li>
                     </#if>
                     <li<#if type == "vipManage"> class="fn-none"</#if>><a href="${servePath}/admin/vip">VIP 管理</a></li>
@@ -264,6 +270,22 @@
                     complete: function() {
                         $btn.removeAttr('disabled').css('opacity', '1');
                     },
+                });
+            }
+            AdminRepeaterRemove = function (it, id, token) {
+                if (it.disabled || !window.confirm('确认删除这条复读内容？')) return;
+                it.disabled = true;
+                $.ajax({
+                    url: '/admin/repeater/' + encodeURIComponent(id) + '/remove',
+                    type: 'POST',
+                    headers: {'csrfToken': token},
+                    cache: false,
+                    success: function (result) {
+                        if (result && result.code === 0) window.location.reload();
+                        else Util.alert(result && result.msg ? result.msg : '删除失败');
+                    },
+                    error: function () { Util.alert('删除失败'); },
+                    complete: function () { it.disabled = false; },
                 });
             }
         </script>

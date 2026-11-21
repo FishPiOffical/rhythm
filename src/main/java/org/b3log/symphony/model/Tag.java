@@ -426,12 +426,17 @@ public final class Tag {
         return false;
     }
 
-    /**
-     * Normalizes the specified title. For example, Normalizes "JS" to "JavaScript.
-     *
-     * @param title the specified title
-     * @return normalized title
-     */
+    /** Exact legacy aliases shared with strict callers; null means no alias. */
+    public static String normalizeAlias(final String title) {
+        for (final Map.Entry<String, Set<String>> entry : NORMALIZE_MAPPINGS.entrySet()) {
+            for (final String oddTitle : entry.getValue()) {
+                if (StringUtils.equalsIgnoreCase(title, oddTitle)) return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /** Normalize a title using the legacy icon, alias and catalog rules. */
     private static String normalize(final String title) {
         final TagCache cache = BeanManager.getInstance().getReference(TagCache.class);
         final List<JSONObject> iconTags = cache.getIconTags(Integer.MAX_VALUE);
@@ -461,14 +466,8 @@ public final class Tag {
             return u2Title.length() - u1Title.length();
         });
 
-        for (final Map.Entry<String, Set<String>> entry : NORMALIZE_MAPPINGS.entrySet()) {
-            final Set<String> oddTitles = entry.getValue();
-            for (final String oddTitle : oddTitles) {
-                if (StringUtils.equalsIgnoreCase(title, oddTitle)) {
-                    return entry.getKey();
-                }
-            }
-        }
+        final String alias = normalizeAlias(title);
+        if (alias != null) return alias;
 
         for (final JSONObject tag : allTags) {
             final String tagTitle = tag.optString(Tag.TAG_TITLE);

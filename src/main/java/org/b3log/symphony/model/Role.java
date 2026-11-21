@@ -97,6 +97,9 @@ public final class Role {
      */
     public static final String ROLE_ID_C_MEMBER = "memberRole";
 
+    /** Existing introduction-post promotion target; not installed in every development database. */
+    public static final String ROLE_ID_C_INTRODUCTION_MEMBER = "1630553360689";
+
     /**
      * Role name - visitor.
      */

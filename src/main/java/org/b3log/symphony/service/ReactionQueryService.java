@@ -77,7 +77,14 @@ public class ReactionQueryService {
     }
 
     public JSONObject buildOperationResult(final String targetType, final String targetId, final String currentUserId) {
-        final List<JSONObject> reactions = getTargetReactions(targetType, targetId);
+        return operationResult(getTargetReactions(targetType, targetId), targetType, targetId, currentUserId);
+    }
+
+    public JSONObject buildOperationResultOrThrow(final String targetType, final String targetId, final String currentUserId) throws RepositoryException {
+        return operationResult(reactionRepository.getByTargetsGroup(targetType, java.util.List.of(targetId), Reaction.GROUP_EMOJI), targetType, targetId, currentUserId);
+    }
+
+    private JSONObject operationResult(final List<JSONObject> reactions, final String targetType, final String targetId, final String currentUserId) {
         final Map<String, JSONObject> userProfiles = buildUserProfiles(reactions);
         final JSONObject result = new JSONObject();
         result.put(Reaction.RESPONSE_TARGET_ID, targetId);

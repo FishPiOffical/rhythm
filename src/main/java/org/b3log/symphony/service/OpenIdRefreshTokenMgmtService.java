@@ -32,6 +32,10 @@ import org.b3log.latke.util.Ids;
 import org.b3log.symphony.model.OpenIdRefreshToken;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.OpenIdRefreshTokenRepository;
+import org.b3log.symphony.repository.AccountCredentialStateRepository;
+import org.b3log.symphony.util.AccountCredentialVersions;
+import org.b3log.symphony.util.ApiV3Transactions;
+import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.OpenIdUtil;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
@@ -77,19 +81,22 @@ public class OpenIdRefreshTokenMgmtService {
 
     @Inject
     private UserQueryService userQueryService;
+    @Inject private AccountCredentialStateRepository states;
 
-    public JSONObject issueToken(final String userId, final Collection<String> scopes, final String realm)
-            throws ServiceException {
-        final Transaction transaction = openIdRefreshTokenRepository.beginTransaction();
+    public JSONObject issueToken(final String userId, final Collection<String> scopes, final String realm) throws ServiceException {
+        var proof=AccountCredentialVersions.snapshot(userId);
+        if(proof==null)throw new ServiceException("Unauthorized");
+        return issueToken(userId,scopes,realm,proof.epoch());
+    }
+    public JSONObject issueToken(final String userId,final Collection<String> scopes,final String realm,final long expectedEpoch)throws ServiceException {
+        if(openIdRefreshTokenRepository.hasTransactionBegun())throw new IllegalStateException("OpenID root required");
+        final Transaction transaction=ApiV3Transactions.strict(openIdRefreshTokenRepository.beginTransaction());
         try {
-            final JSONObject data = issueTokenInternal(userId, String.join(" ", scopes), realm, null, null);
-            transaction.commit();
-            return data;
-        } catch (final Exception e) {
-            rollback(transaction);
-            LOGGER.log(Level.ERROR, "Issues OpenID token failed", e);
-            throw new ServiceException(e);
-        }
+            final var owner=states.current(userId);
+            if(owner==null||owner.optInt("userStatus",-1)!=UserExt.USER_STATUS_C_VALID||AccountCredentialStateRepository.epoch(owner.opt("credentialEpoch"))!=expectedEpoch)throw new ServiceException("Unauthorized");
+            final JSONObject data=issueTokenInternal(userId,String.join(" ",scopes),realm,null,null,expectedEpoch);
+            transaction.commit();return data;
+        }catch(Exception e){rollback(transaction);throw new ServiceException("Unauthorized");}
     }
 
     public synchronized JSONObject refresh(final String refreshToken) throws ServiceException {
@@ -97,17 +104,25 @@ public class OpenIdRefreshTokenMgmtService {
             throw new ServiceException("Unauthorized");
         }
 
-        final Transaction transaction = openIdRefreshTokenRepository.beginTransaction();
+        final String tokenHash;
+        final JSONObject hint;
+        try { tokenHash=OpenIdUtil.hashRefreshToken(refreshToken);hint=openIdRefreshTokenRepository.getByTokenHash(tokenHash); }
+        catch(Exception e){throw new ServiceException("Unauthorized");}
+        if(hint==null)throw new ServiceException("Unauthorized");
+        final Transaction transaction=ApiV3Transactions.strict(openIdRefreshTokenRepository.beginTransaction());
         try {
-            final String tokenHash = OpenIdUtil.hashRefreshToken(refreshToken);
-            final JSONObject current = openIdRefreshTokenRepository.getByTokenHash(tokenHash);
-            if (null == current) {
+            final String actor=hint.optString(OpenIdRefreshToken.USER_ID);
+            final var owner=states.current(actor);
+            if(owner==null||owner.optInt("userStatus",-1)!=UserExt.USER_STATUS_C_VALID)throw new ServiceException("Unauthorized");
+            final long epoch=AccountCredentialStateRepository.epoch(owner.opt("credentialEpoch"));
+            final JSONObject current = openIdRefreshTokenRepository.getByTokenHashForUpdate(tokenHash);
+            if (null == current || !actor.equals(current.optString(OpenIdRefreshToken.USER_ID)) || AccountCredentialVersions.payloadEpoch(current)!=epoch) {
                 throw new ServiceException("Unauthorized");
             }
 
             final long now = System.currentTimeMillis();
             if (OpenIdRefreshToken.STATE_ROTATED == current.optInt(OpenIdRefreshToken.STATE)) {
-                revokeActiveFamily(current.optString(OpenIdRefreshToken.FAMILY_ID), now);
+                revokeActiveFamily(actor,current.optString(OpenIdRefreshToken.FAMILY_ID), now);
                 transaction.commit();
                 throw new ServiceException("Unauthorized");
             }
@@ -141,7 +156,7 @@ public class OpenIdRefreshTokenMgmtService {
 
             final JSONObject data = issueTokenInternal(current.optString(OpenIdRefreshToken.USER_ID),
                     current.optString(OpenIdRefreshToken.SCOPE), current.optString(OpenIdRefreshToken.REALM),
-                    current.optString(OpenIdRefreshToken.FAMILY_ID), current);
+                    current.optString(OpenIdRefreshToken.FAMILY_ID), current,epoch);
             transaction.commit();
             return data;
         } catch (final ServiceException e) {
@@ -155,7 +170,7 @@ public class OpenIdRefreshTokenMgmtService {
     }
 
     private JSONObject issueTokenInternal(final String userId, final String scope, final String realm,
-                                          final String familyId, final JSONObject parent)
+                                          final String familyId, final JSONObject parent, final long credentialEpoch)
             throws Exception {
         final long now = System.currentTimeMillis();
         final String normalizedScope = StringUtils.trimToEmpty(scope);
@@ -173,6 +188,7 @@ public class OpenIdRefreshTokenMgmtService {
         final JSONObject refreshToken = new JSONObject()
                 .put(Keys.OBJECT_ID, tokenId)
                 .put(OpenIdRefreshToken.TOKEN_HASH, OpenIdUtil.hashRefreshToken(token))
+                .put(OpenIdRefreshToken.CREDENTIAL_EPOCH, credentialEpoch)
                 .put(OpenIdRefreshToken.USER_ID, userId)
                 .put(OpenIdRefreshToken.REALM, normalizedRealm)
                 .put(OpenIdRefreshToken.SCOPE, normalizedScope)
@@ -194,19 +210,14 @@ public class OpenIdRefreshTokenMgmtService {
                 .put(TOKEN_TYPE_KEY, TOKEN_TYPE)
                 .put(ACCESS_TOKEN, OpenIdUtil.generateAccessToken(userId,
                         StringUtils.isBlank(normalizedScope) ? java.util.Collections.emptyList() : java.util.Arrays.asList(normalizedScope.split("\\s+")),
-                        normalizedRealm, accessExpiresAt))
+                        normalizedRealm, accessExpiresAt,credentialEpoch))
                 .put(EXPIRES_IN, ACCESS_TOKEN_EXPIRES_SECONDS)
                 .put(REFRESH_TOKEN, token)
                 .put(REFRESH_EXPIRES_IN, Math.max(0L, TimeUnit.MILLISECONDS.toSeconds(idleExpiresAt - now)));
     }
 
-    private void revokeActiveFamily(final String familyId, final long now) throws RepositoryException {
-        final List<JSONObject> activeTokens = openIdRefreshTokenRepository.getActiveTokensByFamilyId(familyId);
-        for (final JSONObject activeToken : activeTokens) {
-            activeToken.put(OpenIdRefreshToken.STATE, OpenIdRefreshToken.STATE_REVOKED);
-            activeToken.put(OpenIdRefreshToken.UPDATED_AT, now);
-            openIdRefreshTokenRepository.update(activeToken.optString(Keys.OBJECT_ID), activeToken);
-        }
+    private void revokeActiveFamily(final String actor,final String familyId,final long now)throws RepositoryException {
+        ApiV3TransactionStatements.execute("UPDATE `"+openIdRefreshTokenRepository.getName()+"` SET state=?,updatedAt=? WHERE userId=? AND familyId=? AND state=?",OpenIdRefreshToken.STATE_REVOKED,now,actor,familyId,OpenIdRefreshToken.STATE_ACTIVE);
     }
 
     private void rollback(final Transaction transaction) {

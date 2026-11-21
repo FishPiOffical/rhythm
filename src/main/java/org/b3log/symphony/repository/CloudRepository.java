@@ -21,6 +21,8 @@ package org.b3log.symphony.repository;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.annotation.Repository;
 import org.json.JSONObject;
+import org.b3log.symphony.util.BagMutation;
+import java.util.List;
 
 @Repository
 public class CloudRepository extends AbstractRepository {
@@ -33,5 +35,9 @@ public class CloudRepository extends AbstractRepository {
     @Override
     public String add(JSONObject jsonObject) throws RepositoryException {
         return super.add(jsonObject);
+    }
+    public List<JSONObject> getBagRows(final String actor, final boolean lock) throws RepositoryException {
+        if (lock && !hasTransactionBegun()) throw new IllegalStateException("bag transaction required");
+        return select("SELECT * FROM " + getName() + " WHERE userId=? AND gameId=? ORDER BY oId DESC" + (lock ? " FOR UPDATE" : ""), actor, BagMutation.GAME_ID);
     }
 }

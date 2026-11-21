@@ -1228,13 +1228,16 @@ public class ArticleQueryService {
             final String generatedThumb = ret.optString(Article.ARTICLE_T_THUMBNAIL_URL);
             final String articleImg1 = ret.optString(Article.ARTICLE_IMG1_URL);
             if (StringUtils.isNotBlank(generatedThumb) && !StringUtils.equals(generatedThumb, articleImg1)) {
+                Transaction transaction = null;
                 try {
-                    final Transaction transaction = articleRepository.beginTransaction();
+                    transaction = articleRepository.beginTransaction();
                     articleDO.put(Article.ARTICLE_IMG1_URL, generatedThumb);
                     articleRepository.update(articleId, articleDO, Article.ARTICLE_IMG1_URL);
                     transaction.commit();
                 } catch (final Exception e) {
                     LOGGER.log(Level.ERROR, "Saves article img1 URL failed", e);
+                } finally {
+                    if (null != transaction && transaction.isActive()) transaction.rollback();
                 }
             }
 
@@ -2298,6 +2301,22 @@ public class ArticleQueryService {
      *                "author": {}
      */
     public void processArticleContent(final JSONObject article) {
+        processArticleContent(article, null);
+    }
+
+    /** Optional page-only raw thought value; legacy API fields retain their existing escaping. */
+    public void processArticleContent(final JSONObject article, final java.util.function.Consumer<String> thoughtPlayback) {
+        processArticleContentInternal(article, thoughtPlayback, null, false);
+    }
+
+    /** Legacy HTML rendering with an explicitly authenticated reader; not a v3 DTO renderer. */
+    public void processArticleContentForViewer(final JSONObject article, final JSONObject viewer,
+                                               final java.util.function.Consumer<String> thoughtPlayback) {
+        processArticleContentInternal(article, thoughtPlayback, viewer, true);
+    }
+
+    private void processArticleContentInternal(final JSONObject article, final java.util.function.Consumer<String> thoughtPlayback,
+                                               final JSONObject viewer, final boolean explicitViewer) {
         Stopwatchs.start("Process content");
 
         try {
@@ -2321,14 +2340,17 @@ public class ArticleQueryService {
             String articleContent = article.optString(Article.ARTICLE_CONTENT);
             article.put(Common.DISCUSSION_VIEWABLE, true);
 
-            final JSONObject currentUser = Sessions.getUser();
+            final JSONObject currentUser = explicitViewer ? viewer : Sessions.getUser();
             final String currentUserName = null == currentUser ? "" : currentUser.optString(User.USER_NAME);
             final String currentRole = null == currentUser ? "" : currentUser.optString(User.USER_ROLE);
             final String authorName = article.optString(Article.ARTICLE_T_AUTHOR_NAME);
+            final boolean currentIsAuthor = explicitViewer
+                    ? null != currentUser && currentUser.optString(Keys.OBJECT_ID).equals(article.optString(Article.ARTICLE_AUTHOR_ID))
+                    : authorName.equals(currentUserName);
 
             final int articleType = article.optInt(Article.ARTICLE_TYPE);
             if (Article.ARTICLE_TYPE_C_DISCUSSION == articleType
-                    && !authorName.equals(currentUserName) && !Role.ROLE_ID_C_ADMIN.equals(currentRole)) {
+                    && !currentIsAuthor && !Role.ROLE_ID_C_ADMIN.equals(currentRole)) {
                 boolean invited = false;
 
                 final Set<String> userNames = userQueryService.getUserNames(articleContent);
@@ -2367,7 +2389,7 @@ public class ArticleQueryService {
                 article.put(Article.ARTICLE_REWARD_CONTENT, rewardContent);
             }
 
-            markdown(article);
+            markdown(article, thoughtPlayback);
             articleContent = article.optString(Article.ARTICLE_CONTENT);
 
             if (Article.ARTICLE_TYPE_C_THOUGHT != articleType) {
@@ -2455,7 +2477,7 @@ public class ArticleQueryService {
      *
      * @param article the specified article content
      */
-    private void markdown(final JSONObject article) {
+    private void markdown(final JSONObject article, final java.util.function.Consumer<String> thoughtPlayback) {
         String content = article.optString(Article.ARTICLE_CONTENT);
 
         final int articleType = article.optInt(Article.ARTICLE_TYPE);
@@ -2465,6 +2487,8 @@ public class ArticleQueryService {
         } else {
             final Document.OutputSettings outputSettings = new Document.OutputSettings();
             outputSettings.prettyPrint(false);
+
+            if (null != thoughtPlayback) thoughtPlayback.accept(content);
 
             content = Jsoup.clean(content, Latkes.getServePath() + article.optString(Article.ARTICLE_PERMALINK),
                     Safelist.relaxed().addAttributes(":all", "id", "target", "class").

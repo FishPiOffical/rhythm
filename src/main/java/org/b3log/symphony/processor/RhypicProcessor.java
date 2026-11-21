@@ -30,6 +30,7 @@ import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.util.Results;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
+import org.b3log.symphony.util.RhypicUploadTickets;
 import org.json.JSONObject;
 
 import org.apache.commons.io.IOUtils;
@@ -42,11 +43,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.Signature;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.apache.logging.log4j.Level;
@@ -75,7 +71,7 @@ public class RhypicProcessor {
     /**
      * 票据有效期（秒）。图床侧要求 1 至 5 分钟。
      */
-    private static final long TICKET_TTL_SECONDS = 180;
+    private static final long TICKET_TTL_SECONDS = RhypicUploadTickets.TTL_SECONDS;
 
     /**
      * Register request handlers.
@@ -138,36 +134,8 @@ public class RhypicProcessor {
      * {@code iss=rhythm, aud=rhypic, sub=oId, scope=file:upload, name, nickname, iat, exp, jti}.
      */
     private static String signTicket(final String oId, final String name, final String nickname) throws Exception {
-        final byte[] keyBytes = Base64.getDecoder().decode(Symphonys.RHPIC_TICKET_PRIVATE_KEY);
-        final PrivateKey key = KeyFactory.getInstance("Ed25519")
-                .generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
-
-        final long now = System.currentTimeMillis() / 1000;
-        final JSONObject payload = new JSONObject();
-        payload.put("iss", "rhythm");
-        payload.put("aud", "rhypic");
-        payload.put("sub", oId);
-        payload.put("scope", "file:upload");
-        payload.put("name", name);
-        payload.put("nickname", nickname);
-        payload.put("iat", now);
-        payload.put("exp", now + TICKET_TTL_SECONDS);
-        payload.put("jti", UUID.randomUUID().toString().replace("-", ""));
-
-        final String signingInput = base64Url("{\"alg\":\"EdDSA\",\"typ\":\"JWT\"}")
-                + "." + base64Url(payload.toString());
-        final Signature signature = Signature.getInstance("Ed25519");
-        signature.initSign(key);
-        signature.update(signingInput.getBytes(StandardCharsets.UTF_8));
-        return signingInput + "." + base64Url(signature.sign());
-    }
-
-    private static String base64Url(final String s) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static String base64Url(final byte[] b) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+        return RhypicUploadTickets.sign(Symphonys.RHPIC_TICKET_PRIVATE_KEY, oId, name, nickname,
+                System.currentTimeMillis() / 1000);
     }
 
     // -----------------------------------------------------------------------

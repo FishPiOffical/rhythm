@@ -21,6 +21,9 @@ var HomePersonalize = {
   repeater: {
     type: 'joke',
     item: null,
+    seen: {joke: [], kfc: [], fish: []},
+    exhausted: false,
+    leaderboard: null,
   },
   visiblePresetSizes: {
     compact: 6,
@@ -91,7 +94,11 @@ var HomePersonalize = {
 
   handleError: function (xhr) {
     if (xhr && xhr.status === 401) {
-      Util.needLogin()
+      // Public home widgets can be rejected by anonymous-view policy. Only
+      // redirect an already authenticated user whose session has expired.
+      if (typeof Label !== 'undefined' && Label.isLoggedIn) {
+        Util.needLogin()
+      }
       return
     }
     Util.alert('请求失败')

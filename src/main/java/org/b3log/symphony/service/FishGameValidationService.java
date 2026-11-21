@@ -51,6 +51,10 @@ public class FishGameValidationService {
         return result;
     }
 
+    public String commentContent(final String content) throws ServiceException {
+        return normalize(content, 500, "评论");
+    }
+
     private String normalize(final String value, final int max, final String label) throws ServiceException {
         final String normalized = Jsoup.clean(StringUtils.trimToEmpty(value), Safelist.none()).trim();
         if (normalized.isEmpty() || normalized.length() > max) {

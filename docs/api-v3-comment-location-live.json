@@ -1,0 +1,159 @@
+{
+  "date": "2026-11-03",
+  "batch": 77,
+  "scope": "Manual-rebuilt real local Java and user-site comment navigation; supersedes batch76 pending runtime checks only within evidence below",
+  "deployment": {
+    "manualIDEAConfirmationReceived": true,
+    "http": "http://[::1]:8081",
+    "javaPid": 36957,
+    "listenerAndCredentiallessJSONChecked": true,
+    "newJavaChangesThisBatch": false,
+    "migrationRequired": false
+  },
+  "productionFilesChanged": {
+    "website_v3": [
+      "src/components/articles/LongArticleReader.vue",
+      "src/views/ArticleView.vue",
+      "src/components/articles/ArticleInteraction.vue"
+    ],
+    "rhythm": []
+  },
+  "testFilesChanged": [
+    "website_v3/tools/v3-long-reader-test.mjs"
+  ],
+  "behavior": [
+    "Finish paragraph loading branch before nextTick and actual target scroll; recheck request, identity, article, paragraph state and target after DOM mount",
+    "Missing real DOM reports inability to locate rather than false success",
+    "SSR/initial hydration login redirect excludes unavailable fragment; mounted client restores exact full route including query and comment fragment"
+  ],
+  "realHTTP": {
+    "articlePolicyGroups": 46,
+    "locationGroups": 13,
+    "rawCHARCases": [
+      "0",
+      "1",
+      "x",
+      "2",
+      "t",
+      "f",
+      "empty"
+    ],
+    "commentOperations": [
+      "create",
+      "reply",
+      "edit",
+      "original-success-key replay"
+    ],
+    "locationCases": [
+      "ordinary/active/orphaned current page2",
+      "exact returned page contains target",
+      "invalid422/missing404/invalid-bearer401",
+      "private anonymous six-field whitelist",
+      "current invalid comment404",
+      "current anonymous-view withdrawal404",
+      "current invalid article404"
+    ]
+  },
+  "realBrowser": {
+    "desktop": "1280x720",
+    "mobile": "390x844 emulated browser viewport; not physical device",
+    "ordinaryPage2": true,
+    "activeParagraphPage2": true,
+    "orphanedParagraphPage2": true,
+    "memberRepliesActualLinkClick": true,
+    "malformedFragmentNoURIError": true,
+    "afterFixFreshNormalAndLongWarnErrorLogs": [],
+    "desktopActiveTargetBounds": {
+      "top": 456.21875,
+      "bottom": 584.40625,
+      "scrollTop": 512.5
+    },
+    "mobileActiveTargetBounds": {
+      "left": 39,
+      "right": 372,
+      "top": 602.15625,
+      "bottom": 708.25
+    },
+    "mobileOrphanTargetBounds": {
+      "left": 39,
+      "right": 372,
+      "top": 569.546875,
+      "bottom": 697.734375
+    },
+    "mobileOrdinaryTargetBounds": {
+      "left": 34,
+      "right": 356,
+      "top": 359.578125,
+      "bottom": 484.375
+    },
+    "mobileSettledDocumentWidth": 390,
+    "reLocationButtonCurrentTargetVisible": true,
+    "cleanedTargetUnavailableNotice": true
+  },
+  "negativeEvidence": [
+    "Before fix actual long drawer target top968.71875 at720px viewport and scrollTop0; list was hidden by loading branch when scroll ran",
+    "Strengthened test using actual rendered comment ID failed before timing fix and passed after",
+    "Deep-link SSR had hydration href mismatch because server cannot receive fragment; fresh ordinary/long pages have no warn/error after mounted redirect fix",
+    "Malformed UTF8 fragment retains explicit Vue Router decoding warning, but does not throw URIError or break page"
+  ],
+  "cleanup": {
+    "temporaryComments": 77,
+    "explicitTransactionCleanup": true,
+    "articleCommentCountsRestored": true,
+    "fixtureStaged": false,
+    "articleCommentReceiptPointLedgerAndAllUserBalanceFingerprintUnchanged": true,
+    "rawPolicyFieldsRestored": true,
+    "rawPolicyFingerprintUnchanged": true,
+    "browserLeftGuest": true,
+    "viewportReset": true
+  },
+  "regression": {
+    "clientScripts": 95,
+    "clientPASS": 1067,
+    "failures": [],
+    "typeClientSSRBuildExit": 0,
+    "contractRoutes": 293,
+    "documentedRoutes": 293,
+    "accessInventoryProblems": 0,
+    "sourceFiles": 338,
+    "boundaryFindings": 0,
+    "routeReferences": 216,
+    "routeParityFindings": 0,
+    "dynamicExpressionsNotRuntimeProof": 47,
+    "generatedJS": 79,
+    "versionFindings": 0,
+    "maps": 0,
+    "sourceMappingURL": 0,
+    "mavenRun": false
+  },
+  "security": {
+    "anonymous": "Existing location optionalContent + AnonymousViewCheckMidware unchanged; invalid bearer real401, public/private projection checked; first-visit captcha not exercised",
+    "blacklistAndCaptcha": "BeforeRequestHandler and validateCaptcha unchanged; no viewSkips mutation; real blacklist/unlock deferred",
+    "authorization": "Current article/comment invalidation and anonymous-view withdrawal real404; six-field private/anonymous projection contains no body or identity",
+    "csrf": "No new write endpoint or Cookie credential exception",
+    "xss": "Vue-escaped status and numeric ID lookup; login redirect remains existing router encoding/local login path",
+    "injectionSSRF": "Parameterized current location SQL unchanged, no remote fetch or new SQL input",
+    "bulk": "Bounded page/ID contracts, no client all-page scans; aggregate load not stress-tested",
+    "staticUploadDownload": "No new CDN, upload/download path or public fixture; generated artifact scan only, full production enumeration deferred"
+  },
+  "manualSteps": [
+    "5173 -> a user profile -> replies -> click a readable ordinary comment beyond first20: current location loads correct page and target scrolls into view; reload repeats lookup",
+    "Click a long active paragraph comment or still-readable orphaned paragraph comment: correct page opens in drawer, target visible; removed paragraph shows removed state and cannot create new replies",
+    "Repeat at390px and desktop. Scroll away, click re-location: target returns; changing/deleting target gives explicit unavailable/error rather than a false successful jump",
+    "As guest open a comment URL containing query and hash, then use login link: encoded redirect retains exact article/comment fragment after mount; no hydration mismatch. Malformed fragment does not break page",
+    "With a controlled account switch/slow response, confirm older target response cannot scroll new article. Recheck closed/unknown policy denies new writes and permits existing successful-key recovery"
+  ],
+  "limits": [
+    "Runtime page2 comments were controlled local SQL read fixtures, not validation of publication fees/events",
+    "True legacy formatter alias navigation, multi-account slow-network/history interaction and permission-driven private body UI remain partially isolated-test evidence",
+    "Production CAPTCHA/blacklist/unlock, public CDN/directory enumeration, physical devices and multi-instance not exercised",
+    "Whole v3 business coverage remains open; see current completion audit"
+  ],
+  "committed": false,
+  "pushed": false,
+  "documentationFilesChanged": [
+    "Rhythm: UPDATE_LOG.md",
+    "Both: docs/api-v3-progress.md, docs/api-v3-current-completion-audit.md, docs/api-v3-live-integration-work.md, docs/api-v3-comment-location-live.json",
+    "website_v3: AGENTS.md, docs/V3_MIGRATION.md"
+  ]
+}

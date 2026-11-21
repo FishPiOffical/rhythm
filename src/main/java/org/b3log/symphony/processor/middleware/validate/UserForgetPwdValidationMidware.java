@@ -18,6 +18,8 @@
  */
 package org.b3log.symphony.processor.middleware.validate;
 
+import org.b3log.symphony.util.AnonymousCaptchaShield;
+
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.Inject;
@@ -49,7 +51,8 @@ public class UserForgetPwdValidationMidware {
         final String phone = requestJSONObject.optString("userPhone");
         final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
 
-        if (!CaptchaProcessor.jiyan(captcha)) {
+        // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        if (!AnonymousCaptchaShield.verifyProof(captcha)) {
             context.renderJSON(new JSONObject().put(Keys.MSG, langPropsService.get("submitFailedLabel") + " - " + langPropsService.get("captchaErrorLabel")));
             context.abort();
             return;

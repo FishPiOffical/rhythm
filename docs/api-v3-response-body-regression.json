@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-02",
+  "scope": "Shared client response-body read errors across JSON/text/private SVG/ZIP; no server contract change",
+  "productionFiles": [
+    "src/api/http.ts"
+  ],
+  "testFiles": [
+    "tools/v3-http-body-test.mjs"
+  ],
+  "baseline": "Actual local TCP response headers followed by partial body and socket close reproduced raw TypeError: terminated before change",
+  "change": "Read actual response text/chunks through shared network-body boundary; truncated reads return ApiError status0/offline and existing offline event; explicit cancellation stays aborted. Complete validation errors/JSON failures retain prior semantics; no automatic mutation retry",
+  "focused": {
+    "groups": 5,
+    "actualSocketFixture": true,
+    "piniaAndProductionApiTransport": true,
+    "finalLog": "/tmp/v3-http-body-final.log",
+    "abortObservation": "Abort fires after actual Response.text() has started, not merely after server headers"
+  },
+  "fullSuite": {
+    "scripts": 91,
+    "passLines": 1012,
+    "failures": [],
+    "evidence": "/tmp/v3-response-body-suite-final.json",
+    "note": "Final focused five groups rerun after refining observation of body-read cancellation; not added again to full count"
+  },
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "log": "/tmp/v3-response-body-build.log"
+  },
+  "boundary": {
+    "sourceFiles": 336,
+    "findingCount": 0,
+    "dynamicCalls": 47,
+    "otherServiceChecks": 2
+  },
+  "assets": {
+    "javascriptFiles": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "findings": 0
+  },
+  "liveEvidence": "api-v3-response-body-live.json",
+  "browserNormalRead": {
+    "existingPublicArticleVisible": true,
+    "identityRestored": true,
+    "paidBodyVisibleToCurrentAuthor": true,
+    "capturedWarnErrorCount": 0
+  },
+  "limits": [
+    "Real socket/proxy body failure uses Node native fetch; browser network body interruption not injected",
+    "Existing committed purchase receipt replay, not a fresh first-charge lost ACK; business fingerprints unchanged",
+    "Synthetic credential refresh in Pinia fixture does not replace real OAuth/cookie protocol acceptance",
+    "Cross-instance/OS/production proxy/captcha/blacklist/whole-site static-CDN-directory coverage remain separate"
+  ]
+}

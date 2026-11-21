@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-02",
+  "batch": 75,
+  "productionFiles": {
+    "rhythm": [
+      "src/main/java/org/b3log/symphony/util/ApiV3ArticlePolicy.java",
+      "src/main/java/org/b3log/symphony/util/ApiV3ContentSnapshots.java",
+      "src/main/java/org/b3log/symphony/repository/ArticleRepository.java",
+      "src/main/java/org/b3log/symphony/service/ApiV3CommentMgmtService.java"
+    ],
+    "website_v3": [
+      "src/components/articles/CommentComposer.vue",
+      "src/views/ArticleView.vue"
+    ]
+  },
+  "testFiles": {
+    "rhythm": [
+      "src/test/java/org/b3log/symphony/service/ApiV3ArticlePolicyJdbcTest.java",
+      "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+      "src/test/java/org/b3log/symphony/util/ApiV3ArticlePolicyTest.java",
+      "tools/api-v3-content-current-test.mjs",
+      "tools/api-v3-feed-query-test.mjs",
+      "tools/api-v3-discovery-extras-test.mjs",
+      "tools/api-v3-article-stick-test.mjs"
+    ],
+    "website_v3": [
+      "tools/v3-comments-test.mjs",
+      "tools/v3-long-reader-test.mjs"
+    ]
+  },
+  "behavior": [
+    "Exact raw CHAR 0/1 remains Boolean; corrupted raw value becomes unknown rather than mapper failure or implicit true",
+    "Current authorized article snapshot explicitly selects required fields, excludes IP/UA and raw legacy boolean mapping",
+    "V3 create/update policy uses raw current row lock; legacy getForUpdate untouched",
+    "Loaded edit draft survives temporary close/reopen and is not replaced by server source; close cancels unsubmitted confirmation and stale source reads",
+    "Actual v3 flat paragraph replies bind operations to child ID; legacy nested payload ignored"
+  ],
+  "tests": {
+    "currentContentSQLite": 14,
+    "currentContentMySQL": 14,
+    "actualLatkeMySQL": 2,
+    "mysqlRemoved": true,
+    "commentValidationAndPolicy": 43,
+    "relatedFeedDiscoveryStick": 23,
+    "clientScripts": 93,
+    "clientPassGroups": 1050,
+    "clientFailures": [],
+    "typeClientSSRBuildExit": 0,
+    "contractRoutes": 292,
+    "boundaryFiles": 336,
+    "boundaryFindings": 0,
+    "dynamicExpressionsNotRuntimeProof": 47,
+    "otherPaths": 2,
+    "generatedJS": 78,
+    "versionFindings": 0,
+    "maps": 0,
+    "sourceMappingURL": 0
+  },
+  "negativeEvidence": [
+    "Actual app HTTP 500 for corrupted CHAR x before fix",
+    "Actual SFC before fix overwrote unsaved edit with original Markdown after reopen",
+    "Real Latke mapper old SELECT * raises exact SQLDataException before new alias projection succeeds"
+  ],
+  "securityReview": {
+    "anonymousAndBlacklist": "No new route or viewSkips; existing comment route commentsWrite and write middleware retained; live challenge matrix not rerun",
+    "authorization": "current authorized detail; writes guard locked article and owner checks unchanged",
+    "csrf": "existing Bearer write chain retained; no Cookie/apiKey exception introduced",
+    "xss": "declarations fixed labels; metadata no raw HTML",
+    "injection": "no added user SQL; existing parameterized IDs",
+    "ssrf": "no outbound fetch",
+    "batchAbuse": "existing budgets unchanged",
+    "sensitiveData": "only Boolean/enum public metadata, no new identity or raw account payload",
+    "staticAndDownloads": "no new CDN/public directory/upload/download route; generated assets locally scanned only"
+  },
+  "pendingJava": [
+    "ApiV3ArticlePolicy.java",
+    "ApiV3ContentSnapshots.java",
+    "ArticleRepository.java",
+    "ApiV3CommentMgmtService.java"
+  ],
+  "manualSteps": [
+    "IDEA recompile/restart Rhythm Local 8081, no migration; verify process and public JSON before credentials",
+    "Ordinary/long article current 0/1 switch and statements 0..3, corrupted CHAR yields null and no 500; restored fixtures required",
+    "While closed/unknown, new create/reply/edit returns403 without mutation; original successful key still replays with no charge",
+    "5173 open own comment edit, type unsaved content, close then reopen comments and reread: draft retained; waiting confirmation cancelled, stale original read discarded",
+    "Desktop and 390px: existing comments remain readable and original-command recovery remains reachable in ordinary and both long drawer modes"
+  ],
+  "limits": [
+    "New raw-character Java fix not deployed yet; 24 live groups precede this latest fix",
+    "Browser tools disabled by Work settings; desktop/mobile validation not performed this round",
+    "No full production CAPTCHA/CDN, multi-instance or physical-device audit",
+    "Actual mapper tests use disposable SQL and helper, not complete app transaction/IoC; final real HTTP remains required"
+  ],
+  "migrationRequired": false,
+  "committed": false,
+  "pushed": false,
+  "documentationFiles": {
+    "rhythm": [
+      "AGENTS.md",
+      "UPDATE_LOG.md",
+      "docs/api-v3-progress.md",
+      "docs/api-v3-current-completion-audit.md",
+      "docs/api-v3-live-integration-work.md",
+      "docs/api-v3-article-policy-regression.json",
+      "docs/api-v3-article-policy-current-live.json",
+      "docs/api-v3-article-policy-current-regression.json"
+    ],
+    "website_v3": [
+      "docs/V3_MIGRATION.md",
+      "docs/api-v3-progress.md",
+      "docs/api-v3-current-completion-audit.md",
+      "docs/api-v3-live-integration-work.md",
+      "docs/api-v3-article-policy-regression.json",
+      "docs/api-v3-article-policy-current-live.json",
+      "docs/api-v3-article-policy-current-regression.json"
+    ]
+  },
+  "privateLocalHarness": "Ignored .idea/rhythm-local/article-policy-live.mjs; reads existing development fixtures, verifies original receipt hash before replay, transactionally restores only controlled fields in finally; never prints credentials"
+}

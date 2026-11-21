@@ -83,7 +83,7 @@
                          ${e.content}
                          <#if e.link??>
                             <br/>
-                            <a href="${e.link.url}" target="_blank">${e.link.text}</a>
+                            <a href="${e.link.url?html}" target="_blank">${e.link.text}</a>
                          </#if>
                     </#assign>
                 {
@@ -100,15 +100,15 @@
                     },
                     </#if>
                     "text": {
-                        "headline": "${e.title?js_string}",
+                        "headline": "${e.title?html?js_string}",
                         "text": "${timelineText?js_string}"
                     },
                     <#if e.media??>
                     "media": {
-                        "caption":"${e.media.caption?js_string}",
-                        "thumbnail":"${e.media.url}",
-                        "url": "${e.media.url}",
-                        "type":"${e.media.type}"
+                        "caption":"${e.media.caption?html?js_string}",
+                        "thumbnail":"${e.media.url?js_string}",
+                        "url": "${e.media.url?js_string}",
+                        "type":"${e.media.type?js_string}"
                     }
                     </#if>
                 }<#if e_has_next>,</#if>

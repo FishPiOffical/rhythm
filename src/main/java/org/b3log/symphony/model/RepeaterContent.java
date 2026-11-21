@@ -47,6 +47,7 @@ public final class RepeaterContent {
 
     public static final String SOURCE_USER = "user";
     public static final String SOURCE_SEED = "seed";
+    public static final String SOURCE_ADMIN = "admin";
 
     public static final int STATUS_C_VALID = 0;
     public static final int STATUS_C_REMOVED = 1;

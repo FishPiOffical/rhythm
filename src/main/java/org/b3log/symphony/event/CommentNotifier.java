@@ -33,6 +33,8 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.service.ServiceException;
+import org.b3log.symphony.service.ApiV3ContentQueryService;
+import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.channel.ArticleChannel;
 import org.b3log.symphony.processor.channel.ArticleListChannel;
@@ -77,7 +79,7 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
      * Notification management service.
      */
     @Inject
-    private NotificationMgmtService notificationMgmtService;
+    private CommentNotificationMgmtService commentNotifications;
 
     /**
      * Article query service.
@@ -133,6 +135,19 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
     @Inject
     private RoleQueryService roleQueryService;
 
+    @Inject
+    private ApiV3ContentQueryService contentVisibility;
+
+    private boolean canNotify(final String recipient, final JSONObject article, final JSONObject comment) throws Exception {
+        final JSONObject viewer = userQueryService.getUser(recipient);
+        if (null == viewer || viewer.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID) return false;
+        final JSONObject currentArticle = contentVisibility.viewableArticle(article.optString(Keys.OBJECT_ID), viewer);
+        final JSONObject currentComment = commentRepository.get(comment.optString(Keys.OBJECT_ID));
+        return null != currentArticle && null != currentComment
+                && currentComment.optInt(Comment.COMMENT_STATUS) == Comment.COMMENT_STATUS_C_VALID
+                && ApiV3ContentUtil.canViewCommentContent(currentComment, currentArticle, viewer);
+    }
+
     @Override
     public void action(final Event<JSONObject> event) {
         final JSONObject data = event.getData();
@@ -177,6 +192,11 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             chData.put(Comment.COMMENT_REPLY_CNT, originalComment.optInt(Comment.COMMENT_REPLY_CNT));
             chData.put(Comment.COMMENT_QNA_OFFERED, originalComment.optInt(Comment.COMMENT_QNA_OFFERED));
             chData.put(Comment.COMMENT_STATUS, originalComment.optInt(Comment.COMMENT_STATUS));
+            for (final String field : java.util.List.of(Comment.COMMENT_TYPE, Comment.COMMENT_PARAGRAPH_ID,
+                    Comment.COMMENT_PARAGRAPH_KIND, Comment.COMMENT_PARAGRAPH_INDEX,
+                    Comment.COMMENT_PARAGRAPH_SNAPSHOT, Comment.COMMENT_PARAGRAPH_STATUS)) {
+                if (originalComment.has(field)) chData.put(field, originalComment.opt(field));
+            }
             chData.put(Comment.COMMENT_CREATE_TIME, originalComment.optLong(Comment.COMMENT_CREATE_TIME));
             chData.put(Comment.COMMENT_T_IS_ARTICLE_AUTHOR, commenterIsArticleAuthor);
 
@@ -251,16 +271,11 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
                     count = 0;
                     for (final JSONObject participant : participants) {
                         final String participantId = participant.optString(Keys.OBJECT_ID);
-                        if (participantId.equals(commenterId)) {
+                        if (participantId.equals(commenterId) || !canNotify(participantId, originalArticle, originalComment)) {
                             continue;
                         }
 
-                        count++;
-
-                        final JSONObject requestJSONObject = new JSONObject();
-                        requestJSONObject.put(Notification.NOTIFICATION_USER_ID, participantId);
-                        requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-                        notificationMgmtService.addAtNotification(requestJSONObject);
+                        if (commentNotifications.send(participantId, articleId, commentId, Notification.DATA_TYPE_C_AT)) count++;
                     }
 
                     final int sum = count * Pointtransfer.TRANSFER_SUM_C_AT_PARTICIPANTS;
@@ -293,22 +308,20 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             // 2. 'Reply' Notification
             final Set<String> repliedIds = new HashSet<>();
             if (StringUtils.isNotBlank(originalCmtId)) {
-                notifyReplyRecipient(originalCmtAuthorId, commenterId, commentId, repliedIds);
+                notifyReplyRecipient(originalCmtAuthorId, commenterId, commentId, repliedIds, originalArticle, originalComment);
                 if (StringUtils.isNotBlank(threadRootCommentId) && !StringUtils.equals(threadRootCommentId, originalCmtId)) {
                     final JSONObject rootComment = commentRepository.get(threadRootCommentId);
                     if (null != rootComment) {
                         notifyReplyRecipient(rootComment.optString(Comment.COMMENT_AUTHOR_ID),
-                                commenterId, commentId, repliedIds);
+                                commenterId, commentId, repliedIds, originalArticle, originalComment);
                     }
                 }
             }
 
             // 3. 'Commented' Notification
-            if (!commenterIsArticleAuthor && !repliedIds.contains(articleAuthorId)) {
-                final JSONObject requestJSONObject = new JSONObject();
-                requestJSONObject.put(Notification.NOTIFICATION_USER_ID, articleAuthorId);
-                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-                notificationMgmtService.addCommentedNotification(requestJSONObject);
+            if (!commenterIsArticleAuthor && !repliedIds.contains(articleAuthorId)
+                    && canNotify(articleAuthorId, originalArticle, originalComment)) {
+                commentNotifications.send(articleAuthorId, articleId, commentId, Notification.DATA_TYPE_C_COMMENTED);
             }
 
             final String articleContent = originalArticle.optString(Article.ARTICLE_CONTENT);
@@ -326,7 +339,9 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
                     }
 
                     final JSONObject atUser = userQueryService.getUserByName(atUserName);
+                    if (null == atUser) continue;
                     final String atUserId = atUser.optString(Keys.OBJECT_ID);
+                    if (!canNotify(atUserId, originalArticle, originalComment)) continue;
                     if (StringUtils.equals(atUserId, articleAuthorId)) {
                         continue; // 已通过评论或回复通知提醒文章作者
                     }
@@ -335,10 +350,7 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
                         continue;
                     }
 
-                    final JSONObject requestJSONObject = new JSONObject();
-                    requestJSONObject.put(Notification.NOTIFICATION_USER_ID, atUserId);
-                    requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-                    notificationMgmtService.addAtNotification(requestJSONObject);
+                    commentNotifications.send(atUserId, articleId, commentId, Notification.DATA_TYPE_C_AT);
 
                     atIds.add(atUserId);
                 }
@@ -347,6 +359,7 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             if (64 <= StringUtils.length(commentContent)) {
                 // 5. 'following - article comment' Notification
                 for (final String userId : watcherIds) {
+                    if (!canNotify(userId, originalArticle, originalComment)) continue;
                     final JSONObject watcher = userRepository.get(userId);
                     final String watcherName = watcher.optString(User.USER_NAME);
                     if ((isDiscussion && !articleContentAtUserNames.contains(watcherName)) || commenterName.equals(watcherName)
@@ -359,11 +372,7 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
                         continue;
                     }
 
-                    final JSONObject requestJSONObject = new JSONObject();
-                    requestJSONObject.put(Notification.NOTIFICATION_USER_ID, userId);
-                    requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-
-                    notificationMgmtService.addFollowingArticleCommentNotification(requestJSONObject);
+                    commentNotifications.send(userId, articleId, commentId, Notification.DATA_TYPE_C_FOLLOWING_ARTICLE_COMMENT);
                 }
             }
         } catch (final Exception e) {
@@ -373,16 +382,13 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
 
     private void notifyReplyRecipient(final String recipientId, final String commenterId,
                                       final String commentId,
-                                      final Set<String> repliedIds) throws ServiceException {
+                                      final Set<String> repliedIds, final JSONObject article, final JSONObject comment) throws Exception {
         if (StringUtils.isBlank(recipientId) || StringUtils.equals(recipientId, commenterId)
-                || repliedIds.contains(recipientId)) {
+                || repliedIds.contains(recipientId) || !canNotify(recipientId, article, comment)) {
             return;
         }
 
-        final JSONObject requestJSONObject = new JSONObject();
-        requestJSONObject.put(Notification.NOTIFICATION_USER_ID, recipientId);
-        requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-        notificationMgmtService.addReplyNotification(requestJSONObject);
+        commentNotifications.send(recipientId, article.optString(Keys.OBJECT_ID), commentId, Notification.DATA_TYPE_C_REPLY);
         repliedIds.add(recipientId);
     }
 

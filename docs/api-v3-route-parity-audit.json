@@ -1,0 +1,5511 @@
+{
+  "scope": "Static TS/Vue route references and direct transport methods against registered backend paths; pattern matches are candidates, unresolved builders/transport forwarders require manual review; no auth, runtime or feature-completeness claim",
+  "sourceFileCount": 334,
+  "registeredRouteCount": 292,
+  "findings": [],
+  "references": [
+    {
+      "file": "src/api/fishpi.ts",
+      "line": 450,
+      "value": "/api/v3/auth/login",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/login"
+        }
+      ]
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 76,
+      "value": "/api/v3/auth/refresh",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/refresh"
+        }
+      ]
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 126,
+      "value": "/api/v3/auth/captcha-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/auth/captcha-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 31,
+      "value": "/api/v3/auth/registration-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/auth/registration-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 38,
+      "value": "/api/v3/auth/captcha-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/auth/captcha-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 49,
+      "value": "/api/v3/auth/registration/request",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/registration/request"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 52,
+      "value": "/api/v3/auth/password-reset/request",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/password-reset/request"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 56,
+      "value": "/api/v3/auth/registration/complete",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/registration/complete"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 60,
+      "value": "/api/v3/auth/password-reset/complete",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/password-reset/complete"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 19,
+      "value": "/api/v3/me/checkin",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/checkin"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 23,
+      "value": "/api/v3/me/activity/yesterday-reward",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 30,
+      "value": "/api/v3/me/activity/yesterday-reward",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-anonymous-content.ts",
+      "line": 16,
+      "value": "/api/v3/me/anonymous-{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/anonymous-articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/anonymous-comments"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-app-login.ts",
+      "line": 19,
+      "value": "/api/v3/auth/app-login/{*}",
+      "methods": [
+        "POST"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/app-decision"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/app-status"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/claim"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/decision"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/exchange"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/requests"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/status"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-column.ts",
+      "line": 11,
+      "value": "/api/v3/articles/{*}/column",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/column"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-heat.ts",
+      "line": 4,
+      "value": "/api/v3/articles/{*}/heat",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/heat"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 14,
+      "value": "/api/v3/{*}/{*}/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/admin/oauth/clients"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/admin/oauth/clients"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/column"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/comments"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/comments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/heat"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/paragraph-comments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/paragraphs"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/reads"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/realtime-ticket"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/revisions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/reward"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/reward"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/stick"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/thanks"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/thanks"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}/vote"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/vote"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}/vote"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{targetId}/reactions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{targetId}/reactions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{targetId}/reactions"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/app-decision"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/app-status"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/claim"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/decision"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/exchange"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/requests"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/app-login/status"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/password-reset/complete"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/password-reset/request"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/registration/complete"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/registration/request"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/barrager/price"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/chat/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/red-packets/{id}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/cities/{cityName}/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/cities/{cityName}/users"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns/{columnId}/articles"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/columns/{columnId}/cover"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/columns/{columnId}/title"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}/accept"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/comments/{commentId}/accept"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}/revisions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}/thanks"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/comments/{commentId}/thanks"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/comments/{commentId}/vote"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}/vote"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/comments/{commentId}/vote"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/comments/{targetId}/reactions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{targetId}/reactions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/comments/{targetId}/reactions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/domains/{domainId}/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/domains/{domainId}/tags"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/fish-games/{gameId}/comments"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/fish-games/{gameId}/comments"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/fish-games/{gameId}/vote"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/fish-games/{gameId}/vote"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/collections/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/collections/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/collections/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/columns/order"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations/{peerId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/conversations/read"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/exports/posts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/tags"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/users"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications/{applicationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/identity-applications/enterprise"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals/image"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/membership/config"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/messages/realtime-ticket"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/unread-count"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/milestones/{milestoneId}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/notifications/read"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/unread-count"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions/{professionId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/onboarding"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/primary"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/privacy"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/email"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/phone"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/subscriptions/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/subscriptions/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/subscriptions/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/watching/breezemoons"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/professions/{professionId}/guides"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/professions/{professionId}/ranking"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/tags/{tagId}/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/breezemoons"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/comments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/followers"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/medals"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/professions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/watching"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 33,
+      "value": "/api/v3/articles/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/random"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-owner.ts",
+      "line": 10,
+      "value": "/api/v3/me/articles/{*}/source",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/articles/{articleId}/source"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-owner.ts",
+      "line": 17,
+      "value": "/api/v3/articles/{*}/stick",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/stick"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-owner.ts",
+      "line": 17,
+      "value": "/api/v3/articles/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/random"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-article-reads.ts",
+      "line": 5,
+      "value": "/api/v3/articles/{*}/reads",
+      "methods": [
+        "POST"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/reads"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-author-columns.ts",
+      "line": 9,
+      "value": "/api/v3/me/columns",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/columns"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 16,
+      "value": "/api/v3/breezemoons",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/breezemoons"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/breezemoons"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 20,
+      "value": "/api/v3/breezemoons/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/breezemoons/{breezemoonId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/breezemoons/{breezemoonId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/breezemoons/{breezemoonId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 24,
+      "value": "/api/v3/breezemoons{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": []
+    },
+    {
+      "file": "src/api/v3-chat-barrage.ts",
+      "line": 13,
+      "value": "/api/v3/chat/barrager/price",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/barrager/price"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-barrage.ts",
+      "line": 20,
+      "value": "/api/v3/chat/barrager",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/barrager"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 14,
+      "value": "/api/v3/chat/messages/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/chat/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages/{messageId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 20,
+      "value": "/api/v3/chat/messages",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/messages"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 23,
+      "value": "/api/v3/chat/topic",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/topic"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/chat/topic"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 25,
+      "value": "/api/v3/chat/messages/{*}/context",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages/{messageId}/context"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-music.ts",
+      "line": 20,
+      "value": "/api/v3/chat/music",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/music"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-mutes.ts",
+      "line": 9,
+      "value": "/api/v3/chat/mutes",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/mutes"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-online.ts",
+      "line": 9,
+      "value": "/api/v3/chat/online-users",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/online-users"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-publication.ts",
+      "line": 6,
+      "value": "/api/v3/chat/messages",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/messages"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-red-packets.ts",
+      "line": 43,
+      "value": "/api/v3/chat/red-packets",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/red-packets"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-red-packets.ts",
+      "line": 44,
+      "value": "/api/v3/chat/red-packets/{*}/claims",
+      "methods": [
+        "POST"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/red-packets/{id}/claims"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-red-packets.ts",
+      "line": 45,
+      "value": "/api/v3/chat/red-packets/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/red-packets/{id}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-revoke.ts",
+      "line": 6,
+      "value": "/api/v3/chat/messages/{*}",
+      "methods": [
+        "DELETE"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/chat/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages/{messageId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-topic.ts",
+      "line": 6,
+      "value": "/api/v3/chat/topic",
+      "methods": [
+        "PUT"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/topic"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/chat/topic"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-chat-weather.ts",
+      "line": 27,
+      "value": "/api/v3/chat/weather",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/weather"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-cities.ts",
+      "line": 11,
+      "value": "/api/v3/cities/{*}/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/cities/{cityName}/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/cities/{cityName}/users"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 29,
+      "value": "/api/v3/articles/{*}/comments",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/comments"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/comments"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 29,
+      "value": "/api/v3/comments/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/comments/{commentId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/comments/{commentId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 36,
+      "value": "/api/v3/comments/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/comments/{commentId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/comments/{commentId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 38,
+      "value": "/api/v3/articles/{*}/paragraphs",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/paragraphs"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 43,
+      "value": "/api/v3/articles/{*}/paragraphs",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/paragraphs"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 52,
+      "value": "/api/v3/articles/{*}/paragraph-comments",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/paragraph-comments"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content-relations.ts",
+      "line": 6,
+      "value": "/api/v3/me/{*}/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/activity/yesterday-reward"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/collections/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/collections/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/collections/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/columns/order"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations/{peerId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/conversations/read"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/exports/posts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/tags"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/users"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications/{applicationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/identity-applications/enterprise"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals/image"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/membership/config"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/messages/realtime-ticket"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/unread-count"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/milestones/{milestoneId}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/notifications/read"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/unread-count"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions/{professionId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/onboarding"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/primary"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/privacy"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/email"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/phone"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/subscriptions/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/subscriptions/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/subscriptions/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/watching/breezemoons"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 88,
+      "value": "/api/v3/articles",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 93,
+      "value": "/api/v3/search",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/search"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 100,
+      "value": "/api/v3/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/breezemoons"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/breezemoons"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/domains"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/fish-games"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/fish-games"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/game-save-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/logs"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/milestones"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/milestones"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/professions"
+        },
+        {
+          "method": "WEBSOCKET",
+          "path": "/api/v3/realtime"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/recent-members"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/reports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/search"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/statistics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 122,
+      "value": "/api/v3/domains/{*}/articles",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/domains/{domainId}/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 122,
+      "value": "/api/v3/tags/{*}/articles",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/tags/{tagId}/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 129,
+      "value": "/api/v3/articles",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 148,
+      "value": "/api/v3/tags",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 155,
+      "value": "/api/v3/articles/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/random"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 156,
+      "value": "/api/v3/articles/{*}/comments",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/comments"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/comments"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-directory.ts",
+      "line": 31,
+      "value": "/api/v3/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/breezemoons"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/breezemoons"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/domains"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/fish-games"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/fish-games"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/game-save-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/logs"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/milestones"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/milestones"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/professions"
+        },
+        {
+          "method": "WEBSOCKET",
+          "path": "/api/v3/realtime"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/recent-members"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/reports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/search"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/statistics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 17,
+      "value": "/api/v3/recent-members",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/recent-members"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 20,
+      "value": "/api/v3/articles/random",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/random"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 34,
+      "value": "/api/v3/logs",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/logs"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-donation.ts",
+      "line": 12,
+      "value": "/api/v3/payments/donation-page",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/payments/donation-page"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 4,
+      "value": "/api/v3/me/settings",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 38,
+      "value": "/api/v3/me/settings/emotions",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 41,
+      "value": "/api/v3/me/settings/emotion-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 48,
+      "value": "/api/v3/me/settings/emoji-groups",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 51,
+      "value": "/api/v3/me/settings/emoji-groups/{*}/emojis",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 61,
+      "value": "/api/v3/me/settings/emotions",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 64,
+      "value": "/api/v3/me/settings/emoji-groups",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 67,
+      "value": "/api/v3/me/settings/emoji-groups/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 70,
+      "value": "/api/v3/me/settings/emoji-groups/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 74,
+      "value": "/api/v3/me/settings/emoji-groups/{*}/emojis",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 74,
+      "value": "/api/v3/me/settings/emojis",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 83,
+      "value": "/api/v3/me/settings/emoji-groups/{*}/emojis/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 88,
+      "value": "/api/v3/me/settings/emoji-groups/{*}/emojis/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 94,
+      "value": "/api/v3/me/settings/emoji-groups/{*}/shares",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups/{groupId}/shares"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 102,
+      "value": "/api/v3/me/settings/emoji-group-imports",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 106,
+      "value": "/api/v3/me/settings/emoji-migrations",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 22,
+      "value": "/api/v3/me/point-transfers",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/point-transfers"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 28,
+      "value": "/api/v3/me/invitation-codes",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/invitation-codes"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 34,
+      "value": "/api/v3/invitation-codes/status",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/invitation-codes/status"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 24,
+      "value": "/api/v3/fish-games",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/fish-games"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/fish-games"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 26,
+      "value": "/api/v3/fish-games/{*}/comments",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/fish-games/{gameId}/comments"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/fish-games/{gameId}/comments"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 29,
+      "value": "/api/v3/fish-games",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/fish-games"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/fish-games"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 14,
+      "value": "/api/v3/me/watching/breezemoons",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/watching/breezemoons"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 14,
+      "value": "/api/v3/users/{*}/watching",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/watching"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 15,
+      "value": "/api/v3/me/watching/breezemoons",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/watching/breezemoons"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 15,
+      "value": "/api/v3/users/{*}/watching",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/watching"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 25,
+      "value": "/api/v3/game-save-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/game-save-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 32,
+      "value": "/api/v3/me/game-saves/evolve-save",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 39,
+      "value": "/api/v3/me/game-saves/evolve-save",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/game-saves/{gameId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 47,
+      "value": "/api/v3/me/game-saves/evolve-save/migrations",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/game-saves/{gameId}/migrations"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 35,
+      "value": "/api/v3/me/identity-applications/enterprise",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications/{applicationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/identity-applications/enterprise"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 39,
+      "value": "/api/v3/me/identity-applications",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 45,
+      "value": "/api/v3/me/identity-applications/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications/{applicationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/identity-applications/enterprise"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 29,
+      "value": "/api/v3/me/bag",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/bag"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 33,
+      "value": "/api/v3/me/settings/user-name",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 33,
+      "value": "/api/v3/me/bag/{*}/use",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/bag/checkin1day/use"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/bag/checkin2days/use"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/bag/nameCard/use"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/bag/patchCheckinCard/use"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-markdown.ts",
+      "line": 10,
+      "value": "/api/v3/markdown/preview",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/markdown/preview"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-medal-images.ts",
+      "line": 10,
+      "value": "/api/v3/users/{*}/medals/image",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/medals/image"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-medal-images.ts",
+      "line": 10,
+      "value": "/api/v3/me/medals/image",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals/image"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 16,
+      "value": "/api/v3/me/medals",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 19,
+      "value": "/api/v3/me/medals",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 33,
+      "value": "/api/v3/me/medals/{*}/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/medals/{medalId}/display"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/medals/{medalId}/move"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 52,
+      "value": "/api/v3/users/{*}/medals",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/medals"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-member-content.ts",
+      "line": 15,
+      "value": "/api/v3/users/{*}/articles",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-member-content.ts",
+      "line": 15,
+      "value": "/api/v3/users/{*}/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/breezemoons"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/comments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/followers"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/medals"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/professions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/watching"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-membership-styles.ts",
+      "line": 18,
+      "value": "/api/v3/membership/styles",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/membership/styles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-membership-styles.ts",
+      "line": 26,
+      "value": "/api/v3/users/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 31,
+      "value": "/api/v3/me/membership",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/membership"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 41,
+      "value": "/api/v3/membership/levels",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/membership/levels"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 69,
+      "value": "/api/v3/me/membership/config",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/membership/config"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 80,
+      "value": "/api/v3/me/membership",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/membership"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 18,
+      "value": "/api/v3/me/conversations",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 19,
+      "value": "/api/v3/me/conversations/{*}/messages",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations/{peerId}/messages"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/conversations/{peerId}/messages"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 21,
+      "value": "/api/v3/users/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 22,
+      "value": "/api/v3/me/messages/unread-count",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/unread-count"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 24,
+      "value": "/api/v3/me/conversations/read",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations/{peerId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/conversations/read"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 25,
+      "value": "/api/v3/me/conversations/{*}/messages",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations/{peerId}/messages"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/conversations/{peerId}/messages"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 26,
+      "value": "/api/v3/me/messages/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/messages/realtime-ticket"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/unread-count"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 26,
+      "value": "/api/v3/me/conversations/{*}/read",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/conversations/{peerId}/read"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 20,
+      "value": "/api/v3/me/milestones",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/milestones"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 20,
+      "value": "/api/v3/milestones",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/milestones"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/milestones"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 21,
+      "value": "/api/v3/me/milestones/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/milestones/{milestoneId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 21,
+      "value": "/api/v3/milestones/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/milestones/{milestoneId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 23,
+      "value": "/api/v3/milestones",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/milestones"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/milestones"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 78,
+      "value": "/api/v3/me/notifications",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 85,
+      "value": "/api/v3/me/notifications/unread-count",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/unread-count"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 98,
+      "value": "/api/v3/me/notifications/read",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications/{notificationId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/notifications/read"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-points.ts",
+      "line": 13,
+      "value": "/api/v3/me/points",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/points"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-points.ts",
+      "line": 24,
+      "value": "/api/v3/me",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 23,
+      "value": "/api/v3/me/exports/posts",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/exports/posts"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 26,
+      "value": "/api/v3/me/exports/posts/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/exports/posts/{jobId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 31,
+      "value": "/api/v3/me/exports/posts/{*}/download",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/exports/posts/{jobId}/download"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 20,
+      "value": "/api/v3/me/articles/{*}/source",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/articles/{articleId}/source"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 22,
+      "value": "/api/v3/me/drafts",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/drafts"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 23,
+      "value": "/api/v3/me/drafts/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/drafts/{draftId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 69,
+      "value": "/api/v3/articles/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/random"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 69,
+      "value": "/api/v3/articles",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 69,
+      "value": "/api/v3/me/drafts/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/drafts/{draftId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 69,
+      "value": "/api/v3/me/drafts",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/drafts"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 70,
+      "value": "/api/v3/articles/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{articleId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/random"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 70,
+      "value": "/api/v3/articles",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 70,
+      "value": "/api/v3/me/drafts/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts/{draftId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/drafts/{draftId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 70,
+      "value": "/api/v3/me/drafts",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/drafts"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 44,
+      "value": "/api/v3/me/settings/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/email"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/phone"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 54,
+      "value": "/api/v3/me/settings/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/email"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/phone"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 58,
+      "value": "/api/v3/me/settings/locale-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 65,
+      "value": "/api/v3/me/settings/skins",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profession-public.ts",
+      "line": 47,
+      "value": "/api/v3/users/{*}/professions",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/professions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 104,
+      "value": "/api/v3/professions",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/professions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 105,
+      "value": "/api/v3/me/professions",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 107,
+      "value": "/api/v3/me/professions/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions/{professionId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/onboarding"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/primary"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/privacy"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 120,
+      "value": "/api/v3/me/professions/{*}/records",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions/{professionId}/records"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 149,
+      "value": "/api/v3/me/professions/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions/{professionId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/onboarding"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/primary"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/professions/privacy"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 181,
+      "value": "/api/v3/professions/{*}/guides",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/professions/{professionId}/guides"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 194,
+      "value": "/api/v3/professions/{*}/ranking",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/professions/{professionId}/ranking"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 4,
+      "value": "/api/v3/me/settings",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 23,
+      "value": "/api/v3/me/settings/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/email"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/phone"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 25,
+      "value": "/api/v3/me/settings/profile",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 29,
+      "value": "/api/v3/me/settings/personality",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 31,
+      "value": "/api/v3/me/settings/personality-options",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 36,
+      "value": "/api/v3/me/settings/qq",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 43,
+      "value": "/api/v3/me/settings/tags",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 50,
+      "value": "/api/v3/me/settings/avatar",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 64,
+      "value": "/api/v3/uploads/tickets",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/uploads/tickets"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 31,
+      "value": "/api/v3/columns/hot",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/columns/{columnId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns/{columnId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns/hot"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 31,
+      "value": "/api/v3/columns",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/columns"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 37,
+      "value": "/api/v3/columns/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/columns/{columnId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns/{columnId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/columns/hot"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 42,
+      "value": "/api/v3/columns/{*}/articles",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/columns/{columnId}/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-public-user.ts",
+      "line": 20,
+      "value": "/api/v3/users/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-rankings.ts",
+      "line": 61,
+      "value": "/api/v3/rankings/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/rankings/{type}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 9,
+      "value": "/api/v3/chat/messages/{*}/reactions",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/chat/messages/{targetId}/reactions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/chat/messages/{targetId}/reactions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/chat/messages/{targetId}/reactions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 9,
+      "value": "/api/v3/{*}s/{*}/reactions",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/articles/{targetId}/reactions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{targetId}/reactions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/articles/{targetId}/reactions"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/comments/{targetId}/reactions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{targetId}/reactions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/comments/{targetId}/reactions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 11,
+      "value": "/api/v3/reactions/emojis",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/reactions/emojis"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 5,
+      "value": "/api/v3/realtime/tickets",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/realtime/tickets"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 9,
+      "value": "/api/v3/articles/{*}/realtime-ticket",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/articles/{articleId}/realtime-ticket"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 11,
+      "value": "/api/v3/me/messages/realtime-ticket",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/messages/{messageId}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/messages/realtime-ticket"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 24,
+      "value": "/api/v3/chat/realtime-ticket",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/chat/realtime-ticket"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 59,
+      "value": "/api/v3/realtime",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "WEBSOCKET",
+          "path": "/api/v3/realtime"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 15,
+      "value": "/api/v3/repeater/items",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/repeater/items"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/repeater/items"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 16,
+      "value": "/api/v3/repeater/next",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/repeater/next"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 18,
+      "value": "/api/v3/repeater/items",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/repeater/items"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/repeater/items"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-reports.ts",
+      "line": 18,
+      "value": "/api/v3/report/options",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/report/options"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-reports.ts",
+      "line": 27,
+      "value": "/api/v3/reports",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/reports"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-revisions.ts",
+      "line": 11,
+      "value": "/api/v3/{*}s/{*}/revisions",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/articles/{articleId}/revisions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/comments/{commentId}/revisions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "value": "/api/v3/me/follows/tags",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "value": "/api/v3/me/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/anonymous-articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/anonymous-comments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/bag"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/checkin"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/collections"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/columns"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/invitation-codes"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/milestones"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/point-transfers"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/points"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/subscriptions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "value": "/api/v3/users/{*}/following/tags",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/following/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "value": "/api/v3/users/{*}/following/articles",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/following/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "value": "/api/v3/users/{*}/watching/articles",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/watching/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 18,
+      "value": "/api/v3/me/follows/tags",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 18,
+      "value": "/api/v3/me/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/anonymous-articles"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/anonymous-comments"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/bag"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/checkin"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/collections"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/columns"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/conversations"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/drafts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/identity-applications"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/invitation-codes"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/medals"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/milestones"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/notifications"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/notifications"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/point-transfers"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/points"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/professions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/subscriptions"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 18,
+      "value": "/api/v3/users/{*}/following/tags",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/following/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 18,
+      "value": "/api/v3/users/{*}/following/articles",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/following/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 18,
+      "value": "/api/v3/users/{*}/watching/articles",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/watching/articles"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 22,
+      "value": "/api/v3/me/security/mfa",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/security/mfa"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 25,
+      "value": "/api/v3/me/settings/password",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 28,
+      "value": "/api/v3/me/security/mfa/preparations",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/security/mfa/preparations"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 38,
+      "value": "/api/v3/me/security/mfa",
+      "methods": null,
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/security/mfa"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/security/mfa"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 52,
+      "value": "/api/v3/me/settings/{*}/verification",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/email/verification"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/phone/verification"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 53,
+      "value": "/api/v3/me/settings/{*}",
+      "methods": null,
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/avatar"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/display"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/email"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-group-imports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-groups"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emoji-migrations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/settings/emojis"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotion-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/emotions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/functions"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/locale"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/locale-options"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/location"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/password"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/personality"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/personality-options"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/phone"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/privacy"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/qq"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/skins"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/tags"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/settings/user-name"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-statistics.ts",
+      "line": 24,
+      "value": "/api/v3/statistics",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/statistics"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-tag-suggestions.ts",
+      "line": 7,
+      "value": "/api/v3/suggestions/tags",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/suggestions/tags"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-uploads.ts",
+      "line": 21,
+      "value": "/api/v3/uploads/tickets",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/uploads/tickets"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-user-follow.ts",
+      "line": 7,
+      "value": "/api/v3/me/follows/users/{*}",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/follows/users/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/users/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/follows/users/{targetId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-user-follow.ts",
+      "line": 13,
+      "value": "/api/v3/me/follows/users/{*}",
+      "methods": [
+        "PUT",
+        "DELETE"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "DELETE",
+          "path": "/api/v3/me/follows/users/{targetId}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v3/me/follows/users/{targetId}"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v3/me/follows/users/{targetId}"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-user-relations.ts",
+      "line": 22,
+      "value": "/api/v3/users/{*}/following/users",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/following/users"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-user-relations.ts",
+      "line": 22,
+      "value": "/api/v3/users/{*}/followers",
+      "methods": [
+        "GET"
+      ],
+      "status": "pattern-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/users/{userName}/followers"
+        }
+      ]
+    },
+    {
+      "file": "src/api/v3-user-suggestions.ts",
+      "line": 7,
+      "value": "/api/v3/suggestions/users",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/suggestions/users"
+        }
+      ]
+    },
+    {
+      "file": "src/stores/auth.ts",
+      "line": 40,
+      "value": "/api/v3/me",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me"
+        }
+      ]
+    },
+    {
+      "file": "src/stores/auth.ts",
+      "line": 85,
+      "value": "/api/v3/me/membership",
+      "methods": [
+        "GET"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "GET",
+          "path": "/api/v3/me/membership"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v3/me/membership"
+        }
+      ]
+    },
+    {
+      "file": "src/stores/auth.ts",
+      "line": 131,
+      "value": "/api/v3/auth/logout",
+      "methods": [
+        "POST"
+      ],
+      "status": "exact-reference",
+      "matches": [
+        {
+          "method": "POST",
+          "path": "/api/v3/auth/logout"
+        }
+      ]
+    }
+  ],
+  "dynamicCalls": [
+    {
+      "file": "src/api/http.ts",
+      "line": 126,
+      "expression": "resolveUrl('/api/v3/auth/captcha-options')",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 191,
+      "expression": "resolveUrl(path)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 251,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 252,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 271,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 279,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 308,
+      "expression": "resolveUrl(path)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 10,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 17,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 18,
+      "expression": "path(kind,id,resource)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 26,
+      "expression": "path(kind,id,resource)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-article-owner.ts",
+      "line": 17,
+      "expression": "`/api/v3/articles/${target}${command.kind==='stick'?'/stick':''}`",
+      "reason": "unresolved-method"
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 6,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 24,
+      "expression": "`/api/v3/breezemoons${target?'/'+target:''}`",
+      "reason": "unresolved-route-pattern"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 10,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-content-relations.ts",
+      "line": 9,
+      "expression": "path(kind,id)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-content-relations.ts",
+      "line": 12,
+      "expression": "path(kind,id)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 29,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 10,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 13,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 13,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 22,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 23,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 18,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 18,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 12,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 26,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 15,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 19,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 26,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-points.ts",
+      "line": 10,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 20,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 70,
+      "expression": "path",
+      "reason": "unresolved-method"
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 30,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 92,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 9,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 78,
+      "expression": "endpoint",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 27,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 26,
+      "expression": "path(kind,id)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 29,
+      "expression": "path(kind,id)",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 56,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 18,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-revisions.ts",
+      "line": 19,
+      "expression": "`${path(kind,target)}?p=${page}&size=20`",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-revisions.ts",
+      "line": 27,
+      "expression": "`${path(kind,target)}/${expected.id}`",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 18,
+      "expression": "path",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/api/v3-uploads.ts",
+      "line": 33,
+      "expression": "endpoint",
+      "reason": "unresolved-transport-or-builder"
+    },
+    {
+      "file": "src/composables/useCityFeed.ts",
+      "line": 10,
+      "expression": "next",
+      "reason": "unresolved-transport-or-builder"
+    }
+  ],
+  "otherCalls": [
+    {
+      "file": "src/api/fishpi.ts",
+      "line": 466,
+      "expression": "'/validateCaptcha'",
+      "values": [
+        "/validateCaptcha"
+      ]
+    },
+    {
+      "file": "src/components/LogoMark.vue",
+      "line": 17,
+      "expression": "'/logo-data.json'",
+      "values": [
+        "/logo-data.json"
+      ]
+    }
+  ]
+}

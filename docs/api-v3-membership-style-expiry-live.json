@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "frontend": "Actual 5173 development browser; natural wall clock, no synthetic browser timers",
+  "scope": "A reads E current blue nickname style, E membership made inactive then active by guarded fixture, mounted page left untouched through both expiry cycles",
+  "steps": {
+    "initialCurrentStyle": "#123456 / bold / underline",
+    "earlyCachedStyleRetained": true,
+    "inactiveTargetEventuallyPlainWithoutReload": true,
+    "identityRemainedOriginalA": true,
+    "reactivatedTargetRegainedStyleWithoutReload": true,
+    "originalMembershipRowRestored": true,
+    "allFiveBalancesUnchanged": true,
+    "finalPageOriginalRainbowRestored": true,
+    "profileAvatarFallbackSource": "/images/user-thumbnail.png",
+    "profileAvatarFallbackNaturalWidth": 260,
+    "mobileWidth": 390,
+    "mobileScrollWidth": 390,
+    "capturedWarnErrorCount": 0,
+    "viewportRestored": true
+  },
+  "privateScreenshots": [
+    ".idea/rhythm-local/browser-membership-style-expired.png",
+    ".idea/rhythm-local/browser-membership-style-recovered-mobile.png",
+    ".idea/rhythm-local/browser-membership-style-restored-mobile.png"
+  ],
+  "limits": [
+    "Intermediate observations were later than the expiry deadline; no claim of exactly 60-second browser delivery",
+    "Membership state fixture is not natural subscription expiry or admin workflow proof",
+    "Natural browser expiry/recovery completed before the later HMR-disposal-only refinement; subsequent actual dev hot reload rendered original style normally",
+    "No purchase, fee or notification action; authentication reads can update normal token-use metadata",
+    "Backend public-style 17-case matrix is separate from browser timing/renderer evidence; cross-instance/real devices/provider availability/production anti-scan remain separate"
+  ]
+}

@@ -141,6 +141,9 @@ public class ArticleProcessor {
     private ArticleMgmtService articleMgmtService;
 
     @Inject
+    private ArticleSubmissionMgmtService articleSubmissionMgmtService;
+
+    @Inject
     private ArticleDraftMgmtService articleDraftMgmtService;
 
     @Inject
@@ -456,11 +459,10 @@ public class ArticleProcessor {
             return;
         }
 
-        final JSONObject viewer = Sessions.getUser();
+        final JSONObject authenticated = (JSONObject) context.attr(User.USER);
+        final JSONObject viewer = authenticated == null ? Sessions.getUser() : authenticated;
         final String viewerId = null == viewer ? null : viewer.optString(Keys.OBJECT_ID);
-        final String ip = Requests.getRemoteAddr(context.getRequest());
-        final String ua = Headers.getHeader(context.getRequest(), Common.USER_AGENT, "");
-        longArticleReadService.record(new LongArticleReadCaptureRequest(articleId, viewerId, ip, ua));
+        longArticleReadService.record(new LongArticleReadCaptureRequest(articleId, viewerId, null, null));
 
         String md = article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT);
 
@@ -1031,7 +1033,7 @@ public class ArticleProcessor {
             return;
         }
 
-        final JSONObject currentUser = Sessions.getUser();
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
         final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
         final JSONObject article = articleQueryService.getArticle(id);
         if (null == article) {
@@ -1557,7 +1559,7 @@ public class ArticleProcessor {
         article.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
         dataModel.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
 
-        articleQueryService.processArticleContent(article);
+        articleQueryService.processArticleContent(article, thought -> dataModel.put("thoughtPlaybackContent", thought));
 
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
             final JSONObject paragraphContent = longArticleParagraphService.annotateRenderedContent(
@@ -1938,93 +1940,11 @@ public class ArticleProcessor {
         article.put(LongArticleColumn.CHAPTER_NO, longArticleChapterNo);
         article.put(LongArticleColumn.COLUMN_COVER_URL, longArticleColumnCoverURL);
         try {
-            JSONObject currentUser = Sessions.getUser();
-            try {
-                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-            } catch (NullPointerException ignored) {
-            }
-            final String userPhone = currentUser.optString("userPhone");
-            if (userPhone.isEmpty()) {
-                context.renderJSON(StatusCodes.ERR).renderMsg("未绑定手机号码，无法使用此功能。请至设置-账户中绑定手机号码。");
-                return;
-            }
-
+            final JSONObject currentUser = (JSONObject) context.attr(User.USER);
             article.put(Article.ARTICLE_AUTHOR_ID, currentUser.optString(Keys.OBJECT_ID));
-
-            if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))) {
-                articleTags = articleMgmtService.filterReservedTags(articleTags);
-            }
-
-            if (Article.ARTICLE_TYPE_C_DISCUSSION == articleType && StringUtils.isBlank(articleTags)) {
-                articleTags = "机要";
-            }
-
-            if (Article.ARTICLE_TYPE_C_THOUGHT == articleType && StringUtils.isBlank(articleTags)) {
-                articleTags = "思绪";
-            }
-
             article.put(Article.ARTICLE_TAGS, articleTags);
-            // 用户帖子列表
-            final List<JSONObject> userArticles = articleQueryService.getUserArticles(currentUser.optString(Keys.OBJECT_ID),Article.ARTICLE_ANONYMOUS_C_PUBLIC, 1, 1);
-            // 没发过帖子
-            if (userArticles.isEmpty() && !articleTags.contains("新人报道") && !articleTags.contains("新人报到")) {
-                context.renderMsg("迈入社区第一步, 介绍下自己~ 请先发送一个新人报道(标签需要包含'新人报道')帖吧!");
-                return;
-            }
-            // 宵禁状态  TODO 多个地方用了, 阿达你要处理么?
-            int start = 1930;
-            int end = 800;
-            int now = Integer.parseInt(new SimpleDateFormat("HHmm").format(new Date()));
-            //是宵禁状态, 设置发帖间隔 一小时一贴?
-            if (now < end || now > start) {
-                // 帖子列表 不为空
-                if (!userArticles.isEmpty()){
-                    // 当前时间
-                    long nowTime = System.currentTimeMillis();
-                    // 最后一篇文章
-                    JSONObject lastArticle = userArticles.get(0);
-                    // 更新时间 毫秒
-                    long articleCreateTime = lastArticle.getLong(Keys.OBJECT_ID);
-                    // 小于一小时间隔
-                    if (nowTime - articleCreateTime < 60 * 60 * 1000){
-                        if (Latkes.RuntimeMode.DEVELOPMENT != Latkes.getRuntimeMode()){
-                            context.renderMsg("摸鱼派已进入宵禁模式, 充足的睡眠是摸鱼的关键, 良性的思考一定不会促使你高频的发帖, 为了你的身心健康，我们将调整发帖间隔为 1h (一小时)...感谢你的陪伴，我们明天再见，早点休息，(¦3[▓▓] 晚安");
-                            return;
-                        }
-                    }
-                }
-            }
-            // TGIF  判断开头和长度
-            if(articleTitle.startsWith("摸鱼周报")&&articleTitle.length()==13){
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTime(new Date());
-                String date = DateFormatUtils.format(new Date(), "yyyyMMdd");
-                String articleTitleShouldBe = "摸鱼周报 " + date;
-                if(!articleTitle.equals(articleTitleShouldBe)){
-                    context.renderMsg("您的摸鱼周报日期不是今天哟~检查一下吧");
-                    return;
-                }
-                if (calendar.get(Calendar.DAY_OF_WEEK) == 6 && calendar.get(Calendar.HOUR_OF_DAY) > 8) {
-                    JSONObject checkArticle = articleQueryService.getArticleByTitle(articleTitleShouldBe);
-                    if (checkArticle == null) {
-                        // 检查 TGIF 帖子质量
-                        if (articleContent.length() < 128) {
-                            context.renderMsg("您的摸鱼周报字数不合格，请认真对待！<br>请注意：根据摸鱼守则，摸鱼周报应该是抒发一周所想的灵感篇章，而不是为了水积分而随意撰写的一两句话，请保证摸鱼周报有个人情感、话题性，发送摸鱼周报带有明显水帖行为的，将取消摸鱼周报的帖子标识（恢复本周摸鱼周报的开放权限），并扣除奖励的积分，并处罚金 1000 积分。");
-                            return;
-                        }
-                        // 发放奖励
-                        pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, currentUser.optString(Keys.OBJECT_ID),
-                                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_SEND_TGIF,
-                                1000, "", System.currentTimeMillis(), "");
-                    }
-                }else {
-                    context.renderMsg("还没到摸鱼周报的时间哟~周报时间是每周五9点以后哟~");
-                    return;
-                }
-            }
-
             article.put(Article.ARTICLE_GOOD_POST, isGoodArticle);
-            final String articleId = articleMgmtService.addArticle(article);
+            final String articleId = articleSubmissionMgmtService.submit(article);
             final String draftRemoveMsg = removePublishedDraft(currentUser.optString(Keys.OBJECT_ID), requestJSONObject);
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
@@ -2201,11 +2121,7 @@ public class ArticleProcessor {
         article.put(LongArticleColumn.COLUMN_TITLE, longArticleColumnTitle);
         article.put(LongArticleColumn.CHAPTER_NO, longArticleChapterNo);
         article.put(LongArticleColumn.COLUMN_COVER_URL, longArticleColumnCoverURL);
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
         if (null == currentUser
                 || !currentUser.optString(Keys.OBJECT_ID).equals(oldArticle.optString(Article.ARTICLE_AUTHOR_ID))) {
             context.sendError(403);
@@ -2306,32 +2222,53 @@ public class ArticleProcessor {
      * @param context the specified http request context
      */
     public void rewardArticle(final RequestContext context) {
-        final JSONObject currentUser = Sessions.getUser();
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
         if (null == currentUser) {
             context.sendError(403);
             return;
         }
 
-        final String articleId = context.param(Article.ARTICLE_T_ID);
-        if (StringUtils.isBlank(articleId)) {
+        final String articleId = StringUtils.trimToEmpty(context.param(Article.ARTICLE_T_ID));
+        if (!articleId.matches("[0-9]{1,32}")) {
             context.sendError(400);
             return;
         }
 
         context.renderJSON(StatusCodes.ERR);
-
         try {
-            articleMgmtService.reward(articleId, currentUser.optString(Keys.OBJECT_ID));
+            final var result = articleMgmtService.rewardForViewer(articleId, currentUser.optString(Keys.OBJECT_ID),
+                    this::checkRewardArticleReadable);
+            if (!result.mayExposeRewardContent()) {
+                context.renderMsg(langPropsService.get("transferFailLabel"));
+                return;
+            }
+            // Reauthorize the actual response snapshot after commit, using the authenticated reader.
+            final JSONObject viewer = userQueryService.getUser(currentUser.optString(Keys.OBJECT_ID));
+            final JSONObject article = articleQueryService.getArticle(articleId);
+            checkRewardArticleReadable(viewer, article);
+            if (!result.recipient().equals(article.optString(Article.ARTICLE_AUTHOR_ID))
+                    || article.optInt(Article.ARTICLE_REWARD_POINT) < 1) {
+                context.renderMsg(langPropsService.get("transferFailLabel"));
+                return;
+            }
+            articleQueryService.processArticleContentForViewer(article, viewer, null);
+            context.renderJSON(StatusCodes.SUCC).renderJSONValue(Article.ARTICLE_REWARD_CONTENT,
+                    article.optString(Article.ARTICLE_REWARD_CONTENT));
         } catch (final ServiceException e) {
             context.renderMsg(langPropsService.get("transferFailLabel"));
-            return;
         }
+    }
 
-        final JSONObject article = articleQueryService.getArticle(articleId);
-        articleQueryService.processArticleContent(article);
-
-        final String rewardContent = article.optString(Article.ARTICLE_REWARD_CONTENT);
-        context.renderJSON(StatusCodes.SUCC).renderJSONValue(Article.ARTICLE_REWARD_CONTENT, rewardContent);
+    private void checkRewardArticleReadable(final JSONObject viewer, final JSONObject article) throws ServiceException {
+        if (null == viewer || viewer.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID
+                || null == article) throw new ServiceException("Article unavailable");
+        final int status = article.optInt(Article.ARTICLE_STATUS);
+        final JSONObject author = userQueryService.getUser(article.optString(Article.ARTICLE_AUTHOR_ID));
+        final Set<String> invited = Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)
+                ? userQueryService.getUserNames(article.optString(Article.ARTICLE_CONTENT)) : Collections.emptySet();
+        if ((status != Article.ARTICLE_STATUS_C_VALID && status != Article.ARTICLE_STATUS_C_LOCKED)
+                || null == author || author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID
+                || !ApiV3ContentUtil.canViewArticle(article, viewer, invited)) throw new ServiceException("Article unavailable");
     }
 
     /**
@@ -2340,12 +2277,7 @@ public class ArticleProcessor {
      * @param context the specified http request context
      */
     public void thankArticle(final RequestContext context) {
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            final JSONObject requestJSONObject = context.requestJSON();
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
 
         if (null == currentUser) {
             context.sendError(403);

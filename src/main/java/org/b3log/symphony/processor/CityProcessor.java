@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.b3log.latke.Keys;
@@ -157,7 +158,7 @@ public class CityProcessor {
                 item.put(UserExt.USER_AVATAR_URL, user.optString(UserExt.USER_AVATAR_URL));
                 item.put(UserExt.USER_NO, user.optString(UserExt.USER_NO));
                 item.put(UserExt.USER_INTRO, user.optString(UserExt.USER_INTRO));
-                item.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+                item.put(UserExt.USER_ONLINE_FLAG, Boolean.TRUE.equals(UserOnlineStatus.publicFlag(user)));
                 safeUsers.add(item);
             }
         }

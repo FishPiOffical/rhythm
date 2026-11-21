@@ -131,6 +131,9 @@ public class CronMgmtService {
     @Inject
     private ProfessionLevelMigrationService professionLevelMigrationService;
 
+    @Inject
+    private ApiV3PetSeasons petSeasons;
+
 
     /**
      * Start all cron tasks.
@@ -139,6 +142,16 @@ public class CronMgmtService {
         long delay = 10000;
 
         livenessMgmtService.initCheckLiveness();
+
+        Symphonys.SCHEDULED_EXECUTOR_SERVICE.scheduleWithFixedDelay(() -> {
+            try {
+                petSeasons.settle();
+            } catch (final Exception e) {
+                LOGGER.log(Level.ERROR, "宠物乱斗赛季结算失败", e);
+            } finally {
+                Stopwatchs.release();
+            }
+        }, delay, 60 * 1000, TimeUnit.MILLISECONDS);
 
         Symphonys.SCHEDULED_EXECUTOR_SERVICE.scheduleAtFixedRate(() -> {
             try {

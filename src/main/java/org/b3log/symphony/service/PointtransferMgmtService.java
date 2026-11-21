@@ -27,6 +27,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.util.AccountPairLocks;
 import org.b3log.symphony.model.PointtransferSource;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.PointtransferRedcRepository;
@@ -38,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -56,55 +56,19 @@ public class PointtransferMgmtService {
      */
     private static final Logger LOGGER = LogManager.getLogger(PointtransferMgmtService.class);
 
-    /**
-     * Per-pair locks keyed by sorted fromId+toId to serialize transfers between the same pair of users.
-     */
-    private static final ConcurrentHashMap<String, ReentrantLock> TRANSFER_LOCKS = new ConcurrentHashMap<>();
-
-    /**
-     * Builds a lock key for a pair of user ids, ensuring A->B and B->A share the same lock.
-     *
-     * @param fromId from user id
-     * @param toId   to user id
-     * @return lock key
-     */
-    private static String buildLockKey(final String fromId, final String toId) {
-        if (fromId == null || toId == null) {
-            // Fall back to a simple key if null, though normal flow should avoid null ids
-            return String.valueOf(fromId) + "->" + String.valueOf(toId);
-        }
-        if (fromId.compareTo(toId) <= 0) {
-            return fromId + "->" + toId;
-        } else {
-            return toId + "->" + fromId;
-        }
-    }
-
-    /**
-     * Gets (or creates) a lock for the given pair of user ids.
-     *
-     * @param fromId from user id
-     * @param toId   to user id
-     * @return the lock associated with this user pair
-     */
     private static ReentrantLock getTransferLock(final String fromId, final String toId) {
-        final String key = buildLockKey(fromId, toId);
-        return TRANSFER_LOCKS.computeIfAbsent(key, k -> new ReentrantLock());
+        return AccountPairLocks.lock(fromId, toId);
     }
 
-    /**
-     * Executes an operation while holding the same account-pair lock used by point transfers.
-     * This lets an outer transaction retain the lock until it commits.
-     */
-    public <T> T executeWithTransferLock(final String fromId, final String toId,
-                                         final Callable<T> operation) throws Exception {
-        final ReentrantLock lock = getTransferLock(fromId, toId);
-        lock.lock();
-        try {
-            return operation.call();
-        } finally {
-            lock.unlock();
-        }
+    /** Retain the same pair lock as direct legacy transfers until the outer operation completes. */
+    public <T> T executeWithTransferLock(final String fromId, final String toId, final Callable<T> operation) throws Exception {
+        return AccountPairLocks.execute(List.of(new AccountPairLocks.Pair(fromId, toId)), operation);
+    }
+
+    /** All pairs must be known before the caller opens its business transaction. */
+    public <T> T executeWithTransferLocks(final String actor, final List<String> destinations, final Callable<T> operation) throws Exception {
+        if (pointtransferRepository.hasTransactionBegun()) throw new IllegalStateException("account-pair locks before transaction required");
+        return AccountPairLocks.execute(destinations.stream().map(destination -> new AccountPairLocks.Pair(actor, destination)).toList(), operation);
     }
 
     /**
@@ -166,7 +130,7 @@ public class PointtransferMgmtService {
                 }
 
                 List<Integer> canIncludeArray = new ArrayList<>();
-                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55);
+                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55, 57, Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE, Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE);
                 if (canIncludeArray.contains(type)) {
                     fromUser.put(UserExt.USER_USED_POINT,
                             Math.addExact(fromUser.optInt(UserExt.USER_USED_POINT), sum));
@@ -240,6 +204,42 @@ public class PointtransferMgmtService {
     public String transferInCurrentTransaction(final String fromId, final String toId, final int type, final int sum,
                                                final String dataId, final long time, final String memo,
                                                final PointtransferSource source, final boolean indexAsync) {
+        try {
+            return writeTransferInCurrentTransaction(fromId, toId, type, sum, dataId, time, memo, source, indexAsync, false, false);
+        } catch (final Exception e) {
+            LOGGER.error("积分事务失败，type={} dataId={}", type, dataId, e);
+            return null;
+        }
+    }
+
+    /** 后台结算由调用者持有账户对锁和事务，失败交给根事务处理。 */
+    public String transferAdminInCurrentTransaction(final String fromId, final String toId, final int type,
+                                                      final int sum, final String dataId, final long time,
+                                                      final String memo) throws RepositoryException {
+        return transferAdmin(fromId, toId, type, sum, dataId, time, memo, false);
+    }
+
+    public String transferAdminPenaltyInCurrentTransaction(final String actor, final int points,
+                                                             final String dataId, final long time) throws RepositoryException {
+        return transferAdmin(actor, Pointtransfer.ID_C_SYS, Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT,
+                points, dataId, time, "", true);
+    }
+
+    private String transferAdmin(final String fromId, final String toId, final int type,
+                                  final int sum, final String dataId, final long time, final String memo,
+                                  final boolean allowOverdraw) throws RepositoryException {
+        if (!pointtransferRepository.hasTransactionBegun() || !getTransferLock(fromId, toId).isHeldByCurrentThread()) {
+            throw new IllegalStateException("后台积分写入需要活动事务和账户对锁");
+        }
+        return writeTransferInCurrentTransaction(fromId, toId, type, sum, dataId, time, memo,
+                PointtransferSource.EMPTY, false, true, allowOverdraw);
+    }
+
+    private String writeTransferInCurrentTransaction(final String fromId, final String toId, final int type,
+                                                       final int sum, final String dataId, final long time,
+                                                       final String memo, final PointtransferSource source,
+                                                       final boolean indexAsync, final boolean adminSettlement,
+                                                       final boolean allowOverdraw) throws RepositoryException {
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
             return null;
@@ -253,18 +253,24 @@ public class PointtransferMgmtService {
             if (!Pointtransfer.ID_C_SYS.equals(fromId)) {
                 final JSONObject fromUser = transferUsers.fromUser();
                 fromBalance = Math.subtractExact(fromUser.optInt(UserExt.USER_POINT), sum);
-                if (fromBalance < 0) {
-                    throw new Exception("Insufficient balance");
+                if (fromBalance < 0 && !allowOverdraw) {
+                    if (adminSettlement) throw new org.b3log.symphony.util.ApiV3Exception(422, "point_transfer_failed", "用户积分余额不足");
+                    throw new IllegalStateException("Insufficient balance");
                 }
 
                 List<Integer> canIncludeArray = new ArrayList<>();
-                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55);
+                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55, 57, Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE, Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE);
                 if (canIncludeArray.contains(type)) {
                     fromUser.put(UserExt.USER_USED_POINT,
                             Math.addExact(fromUser.optInt(UserExt.USER_USED_POINT), sum));
                 }
                 fromUser.put(UserExt.USER_POINT, fromBalance);
-                userRepository.update(fromId, fromUser, UserExt.USER_POINT, UserExt.USER_USED_POINT);
+                if (adminSettlement) {
+                    userRepository.updateColumnsInCurrentTransaction(fromId, new JSONObject()
+                            .put(UserExt.USER_POINT, fromBalance).put(UserExt.USER_USED_POINT, fromUser.optInt(UserExt.USER_USED_POINT)));
+                } else {
+                    userRepository.update(fromId, fromUser, UserExt.USER_POINT, UserExt.USER_USED_POINT);
+                }
             }
 
             int toBalance = 0;
@@ -272,7 +278,11 @@ public class PointtransferMgmtService {
                 final JSONObject toUser = transferUsers.toUser();
                 toBalance = Math.addExact(toUser.optInt(UserExt.USER_POINT), sum);
                 toUser.put(UserExt.USER_POINT, toBalance);
-                userRepository.update(toId, toUser, UserExt.USER_POINT);
+                if (adminSettlement) {
+                    userRepository.updateColumnsInCurrentTransaction(toId, new JSONObject().put(UserExt.USER_POINT, toBalance));
+                } else {
+                    userRepository.update(toId, toUser, UserExt.USER_POINT);
+                }
             }
 
             final JSONObject pointtransfer = new JSONObject();
@@ -294,10 +304,6 @@ public class PointtransferMgmtService {
             }
 
             return ret;
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Transfer (in current tx) [fromId=" + fromId + ", toId=" + toId + ", sum=" + sum +
-                    ", type=" + type + ", dataId=" + dataId + ", memo=" + memo + "] failed", e);
-            return null;
         } finally {
             lock.unlock();
         }

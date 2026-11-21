@@ -28,6 +28,7 @@
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
     <link rel="canonical" href="${servePath}">
+    <link rel="stylesheet" href="${staticServePath}/css/home-v3-promo.css?${staticResourceVersion}"/>
 </head>
 <body class="index">
 
@@ -161,18 +162,17 @@
                         </div>
                     </div>
                 <#elseif TGIF == '-1'>
-                    <div class="TGIF__item" style="margin-bottom: 29px; margin-top: 7px">
-                        <div style="float: left">
-                            <img src="https://file.fishpi.cn/logo_app.png" style="width: 35px; height: 35px;" />
-                        </div>
-                        <button class="green fn-right" style="margin-left: 5px" onclick="window.location.href=Label.servePath+'/download'">下载</button>
-
-                        <div style="padding-left:40px">
-                            <b>随时随地摸鱼？</b>
-                            <br>
-                            下载摸鱼派客户端，想摸就摸！
-                        </div>
-                    </div>
+                    <a class="v3-home-promo v3-home-promo--pc" href="https://new.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="去看看摸鱼派新版，新标签页打开">
+                        <img class="v3-home-promo__logo" src="https://file.fishpi.cn/logo_app.png" width="34" height="34" alt=""/>
+                        <span class="v3-home-promo__copy">
+                            <span class="v3-home-promo__heading"><strong>摸鱼派V3</strong><span class="v3-home-promo__edition">NEW</span></span>
+                            <span class="v3-home-promo__description">全新界面，宠物、装扮功能上线</span>
+                            <span class="v3-home-promo__domain">请访问 new.fishpi.cn</span>
+                        </span>
+                        <span class="v3-home-promo__action" aria-hidden="true">
+                            <svg viewBox="0 0 16 16"><path d="M3 8h9M8 4l4 4-4 4"/></svg>
+                        </span>
+                    </a>
                 <#else>
                     <div class="TGIF__item" style="margin-bottom: 32px; margin-top: 5px">
                         <div style="float: left">
@@ -673,46 +673,77 @@
                 </div>
             </div>
             <div class="index-recent fn-flex-1 home-module" data-home-module="community" data-home-title="社区">
-                <section class="repeater-station repeater-station--sidebar">
+                <section class="repeater-station repeater-station--sidebar" data-csrf="${csrfToken}" data-current-user-id="<#if isLoggedIn>${currentUser.oId}</#if>">
                     <div class="repeater-station__head">
-                        <div class="repeater-station__title">
-                            <svg><use xlink:href="#refresh"></use></svg>
-                            <span>复读机转录站</span>
-                        </div>
-                        <div class="repeater-station__tabs" role="tablist">
-                            <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke">段子</button>
-                            <button type="button" class="repeater-station__tab" data-repeater-type="kfc">星期四</button>
-                            <button type="button" class="repeater-station__tab" data-repeater-type="fish">鱼科普</button>
-                        </div>
+                        <strong class="repeater-station__title">复读机转录站</strong>
+                        <button type="button" class="repeater-station__btn-sm" data-repeater-action="leaderboard">排行榜</button>
+                    </div>
+                    <div class="repeater-station__tabs" role="group" aria-label="内容分类">
+                        <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke" aria-pressed="true">段子</button>
+                        <button type="button" class="repeater-station__tab" data-repeater-type="kfc" aria-pressed="false">星期四</button>
+                        <button type="button" class="repeater-station__tab" data-repeater-type="fish" aria-pressed="false">鱼科普</button>
                     </div>
                     <div class="repeater-station__body">
-                        <div class="repeater-station__quote" id="repeaterContent">加载中...</div>
+                        <div class="repeater-station__quote" id="repeaterContent" tabindex="0" aria-label="复读内容">加载中…</div>
                         <div class="repeater-station__meta">
-                            <span id="repeaterTypeLabel">段子</span>
                             <span id="repeaterAuthor"></span>
                         </div>
                     </div>
                     <div class="repeater-station__actions">
+                        <button type="button" class="repeater-station__btn repeater-station__btn--primary" data-repeater-action="next">换一个</button>
                         <button type="button" class="repeater-station__btn" data-repeater-action="copy">复制</button>
-                        <button type="button" class="repeater-station__btn" data-repeater-action="next">换一个</button>
-                        <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like">
-                            <svg><use xlink:href="#heart"></use></svg>
+                        <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like" aria-label="点赞" aria-pressed="false">
+                            <svg aria-hidden="true"><use xlink:href="#heart"></use></svg>
                             <span id="repeaterLikeCount">0</span>
                         </button>
                         <#if isLoggedIn>
                             <button type="button" class="repeater-station__btn" data-repeater-action="openCreate">上传</button>
+                            <button type="button" class="repeater-station__btn repeater-station__btn--muted" data-repeater-action="report">举报</button>
+                            <#if permissions["menuAdminReports"].permissionGrant!false>
+                                <button type="button" class="repeater-station__btn repeater-station__btn--muted" data-repeater-action="remove">删除</button>
+                            </#if>
                         <#else>
                             <a class="repeater-station__btn" href="${servePath}/login">登录</a>
                         </#if>
                     </div>
                     <#if isLoggedIn>
                         <div class="repeater-station__create" id="repeaterCreatePanel" hidden>
-                            <textarea id="repeaterCreateContent" maxlength="500" placeholder="输入转录内容"></textarea>
+                            <label class="repeater-station__input-label" for="repeaterCreateContent">转录内容</label>
+                            <textarea id="repeaterCreateContent" maxlength="500" placeholder="写点有趣的，支持换行"></textarea>
                             <div class="repeater-station__create-actions">
                                 <button type="button" class="green" data-repeater-action="submit">提交</button>
                                 <button type="button" data-repeater-action="closeCreate">取消</button>
                             </div>
                         </div>
+                    </#if>
+                    <dialog class="repeater-station__dialog" id="repeaterLeaderboardDialog" aria-label="复读排行榜">
+                        <div class="repeater-station__dialog-head">
+                            <strong>复读排行榜</strong>
+                            <button type="button" class="repeater-station__text-btn" data-repeater-action="closeDialog">关闭</button>
+                        </div>
+                        <div class="repeater-station__tabs" role="group" aria-label="排行类型">
+                            <button type="button" class="repeater-station__tab repeater-station__tab--active" data-rank-tab="authors" aria-pressed="true">作者榜</button>
+                            <button type="button" class="repeater-station__tab" data-rank-tab="items" aria-pressed="false">单条榜</button>
+                        </div>
+                        <ol class="repeater-station__rank-list" id="repeaterRankList"></ol>
+                        <div class="repeater-station__status" id="repeaterRankStatus" role="status" aria-live="polite"></div>
+                    </dialog>
+                    <#if isLoggedIn>
+                        <dialog class="repeater-station__dialog" id="repeaterReportDialog" aria-label="举报复读内容">
+                            <div class="repeater-station__dialog-head">
+                                <strong>举报复读内容</strong>
+                                <button type="button" class="repeater-station__text-btn" data-repeater-action="closeDialog">关闭</button>
+                            </div>
+                            <label>原因
+                                <select id="repeaterReportReason">
+                                    <option value="0">垃圾广告</option><option value="1">低俗色情</option>
+                                    <option value="2">违法违规</option><option value="3">涉嫌侵权</option>
+                                    <option value="4">人身攻击</option><option value="49">其他</option>
+                                </select>
+                            </label>
+                            <label>补充说明<textarea id="repeaterReportMemo" maxlength="2000"></textarea></label>
+                            <button type="button" class="green" data-repeater-action="submitReport">提交举报</button>
+                        </dialog>
                     </#if>
                 </section>
                 <div class="index-head-title">
@@ -919,7 +950,9 @@
         </#if>
     }
 
-    // Init [ChatRoom] channel
+    <#if isLoggedIn>
+    // The node channel requires login; anonymous home pages must not trigger
+    // a deliberate 401 that can be mistaken for an expired session.
     $.ajax({
         url: Label.servePath + '/chat-room/node/get',
         type: 'GET',
@@ -928,6 +961,7 @@
             ChatRoomChannel.init(result.data);
         }
     });
+    </#if>
 
     var chatRoomPictureStatus = "<#if 0 == chatRoomPictureStatus> blur</#if>";
 </script>

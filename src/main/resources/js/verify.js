@@ -20,13 +20,38 @@
  * @fileoverview register.
  *
  * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @author <a href="http://88250.b3log.org">Liang Ding</a> */
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ */
 
 /**
  * @description Verify
  * @static
  */
 var Verify = {
+    accountMessage: function (tip, message, success) {
+        $(tip).toggleClass('error', !success).toggleClass('succ', !!success).empty()
+            .append($('<ul>').append($('<li>').text(typeof message === 'string' ? message : '请求未完成，请稍后重试')));
+    },
+    accountResponse: function (result, tip) {
+        if (result && typeof result === 'object' && !Array.isArray(result)
+            && ((typeof result.code === 'number' && Number.isFinite(result.code))
+                || (typeof result.code === 'undefined' && typeof result.msg === 'string'))) {
+            return true;
+        }
+        Verify.accountMessage(tip, '未收到有效响应。如需访问验证，请完成验证后返回本页重新提交。', false);
+        try {
+            var base = new URL(Label.servePath || '/', window.location.href);
+            if (base.origin === window.location.origin) {
+                base.pathname = base.pathname.replace(/\/$/, '') + '/test';
+                base.search = '';
+                base.hash = '';
+                $(tip).find('li').append(' ').append($('<a>').attr({
+                    href: base.href, target: '_blank', rel: 'noopener noreferrer'
+                }).text('打开访问验证'));
+            }
+        } catch (ignored) { }
+        return false;
+    },
     /**
      * @description 登录
      */
@@ -100,7 +125,7 @@ var Verify = {
 
             let args = "";
             if (Util.getParameterByName("r") !== '') {
-                args = "?r=" + Util.getParameterByName("r");
+                args = "?r=" + encodeURIComponent(Util.getParameterByName("r"));
             }
 
             $.ajax({
@@ -109,8 +134,9 @@ var Verify = {
                 cache: false,
                 data: JSON.stringify(requestJSONObject),
                 success: function (result, textStatus) {
+                    if (!Verify.accountResponse(result, "#registerTip")) return;
                     if (0 === result.code) {
-                        $("#registerTip").addClass('succ').removeClass('error').html('<ul><li>' + result.msg + '</li></ul>');
+                        Verify.accountMessage("#registerTip", result.msg, true);
                         $("#regForm, #gotoLoginBtn").hide();
                         $("#registerTip").before('' +
                             '<div class="input-wrap">\n' +
@@ -126,11 +152,12 @@ var Verify = {
                             $("#registerBtn").attr('onclick', 'location.href = Label.servePath + "/register?code=" + $("#registerVerifyCode").val()');
                         }
                     } else {
-                        $("#registerTip").addClass('error').removeClass('succ').html('<ul><li>' + result.msg + '</li></ul>');
+                        Verify.accountMessage("#registerTip", result.msg, false);
                         $("#registerCaptchaImg").attr("src", Label.servePath + "/captcha?code=" + Math.random());
                         $("#registerCaptcha").val("");
                     }
-                }
+                },
+                error: function () { Verify.accountResponse(null, "#registerTip"); }
             });
         }
     },
@@ -157,12 +184,13 @@ var Verify = {
                 userPassword: calcMD5($("#registerUserPassword2").val()),
                 referral: $("#referral2").val(),
                 userId: $("#userId2").val(),
+                code: $("#registerCode2").val(),
                 mbti: $("#mbtiReg").val()
             };
 
             let args = "";
             if (Util.getParameterByName("r") !== '') {
-                args = "?r=" + Util.getParameterByName("r");
+                args = "?r=" + encodeURIComponent(Util.getParameterByName("r"));
             }
 
             $.ajax({
@@ -171,12 +199,14 @@ var Verify = {
                 cache: false,
                 data: JSON.stringify(requestJSONObject),
                 success: function (result, textStatus) {
+                    if (!Verify.accountResponse(result, "#registerTip2")) return;
                     if (0 === result.code) {
                         window.location.href = Label.servePath;
                     } else {
-                        $("#registerTip2").addClass('error').removeClass('succ').html('<ul><li>' + result.msg + '</li></ul>');
+                        Verify.accountMessage("#registerTip2", result.msg, false);
                     }
-                }
+                },
+                error: function () { Verify.accountResponse(null, "#registerTip2"); }
             });
         }
     },
@@ -256,12 +286,14 @@ var Verify = {
                 cache: false,
                 data: JSON.stringify(requestJSONObject),
                 success: function (result, textStatus) {
+                    if (!Verify.accountResponse(result, "#rpwdTip")) return;
                     if (0 === result.code) {
                         window.location.href = Label.servePath;
                     } else {
-                        $("#rpwdTip").addClass('error').removeClass('succ').html('<ul><li>' + result.msg + '</li></ul>');
+                        Verify.accountMessage("#rpwdTip", result.msg, false);
                     }
-                }
+                },
+                error: function () { Verify.accountResponse(null, "#rpwdTip"); }
             });
         }
     },

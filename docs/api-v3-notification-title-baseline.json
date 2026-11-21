@@ -1,0 +1,9 @@
+{
+  "date": "2026-11-02",
+  "scope": "Actual article thank notification after current-title change; no body or credentials",
+  "warmStatus": 200,
+  "notificationStatus": 200,
+  "detailHasCurrentTitle": true,
+  "notificationDescriptionHasCurrentTitle": false,
+  "restored": true
+}

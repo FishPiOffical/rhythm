@@ -1,0 +1,438 @@
+{
+  "scripts": 86,
+  "seconds": 24.74,
+  "results": [
+    {
+      "file": "tools/v3-account-access-test.mjs",
+      "exitCode": 0,
+      "passes": 20
+    },
+    {
+      "file": "tools/v3-activity-test.mjs",
+      "exitCode": 0,
+      "passes": 14
+    },
+    {
+      "file": "tools/v3-anonymous-content-test.mjs",
+      "exitCode": 0,
+      "passes": 5
+    },
+    {
+      "file": "tools/v3-app-login-test.mjs",
+      "exitCode": 0,
+      "passes": 16
+    },
+    {
+      "file": "tools/v3-article-column-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-article-interactions-test.mjs",
+      "exitCode": 0,
+      "passes": 15
+    },
+    {
+      "file": "tools/v3-article-list-test.mjs",
+      "exitCode": 0,
+      "passes": 16
+    },
+    {
+      "file": "tools/v3-article-owner-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-article-read-registration-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-article-reads-test.mjs",
+      "exitCode": 0,
+      "passes": 10
+    },
+    {
+      "file": "tools/v3-article-realtime-test.mjs",
+      "exitCode": 0,
+      "passes": 10
+    },
+    {
+      "file": "tools/v3-author-columns-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-breezemoons-test.mjs",
+      "exitCode": 0,
+      "passes": 8
+    },
+    {
+      "file": "tools/v3-chat-barrage-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-chat-context-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-chat-music-test.mjs",
+      "exitCode": 0,
+      "passes": 16
+    },
+    {
+      "file": "tools/v3-chat-mutes-test.mjs",
+      "exitCode": 0,
+      "passes": 11
+    },
+    {
+      "file": "tools/v3-chat-online-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-chat-paint-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-chat-publication-test.mjs",
+      "exitCode": 0,
+      "passes": 15
+    },
+    {
+      "file": "tools/v3-chat-red-packets-test.mjs",
+      "exitCode": 0,
+      "passes": 23
+    },
+    {
+      "file": "tools/v3-chat-revoke-test.mjs",
+      "exitCode": 0,
+      "passes": 11
+    },
+    {
+      "file": "tools/v3-chat-source-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-chat-timeline-test.mjs",
+      "exitCode": 0,
+      "passes": 17
+    },
+    {
+      "file": "tools/v3-chat-topic-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-chat-weather-test.mjs",
+      "exitCode": 0,
+      "passes": 16
+    },
+    {
+      "file": "tools/v3-cities-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-client-startup-test.mjs",
+      "exitCode": 0,
+      "passes": 9
+    },
+    {
+      "file": "tools/v3-comment-rewards-test.mjs",
+      "exitCode": 0,
+      "passes": 11
+    },
+    {
+      "file": "tools/v3-comment-votes-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-comments-test.mjs",
+      "exitCode": 0,
+      "passes": 24
+    },
+    {
+      "file": "tools/v3-content-relations-test.mjs",
+      "exitCode": 0,
+      "passes": 9
+    },
+    {
+      "file": "tools/v3-content-test.mjs",
+      "exitCode": 0,
+      "passes": 9
+    },
+    {
+      "file": "tools/v3-credential-proxy-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-directory-test.mjs",
+      "exitCode": 0,
+      "passes": 11
+    },
+    {
+      "file": "tools/v3-discovery-extras-test.mjs",
+      "exitCode": 0,
+      "passes": 19
+    },
+    {
+      "file": "tools/v3-donation-test.mjs",
+      "exitCode": 0,
+      "passes": 4
+    },
+    {
+      "file": "tools/v3-editor-emojis-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-editor-upload-test.mjs",
+      "exitCode": 0,
+      "passes": 9
+    },
+    {
+      "file": "tools/v3-emojis-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-finance-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-fish-games-test.mjs",
+      "exitCode": 0,
+      "passes": 18
+    },
+    {
+      "file": "tools/v3-following-feed-test.mjs",
+      "exitCode": 0,
+      "passes": 6
+    },
+    {
+      "file": "tools/v3-game-saves-test.mjs",
+      "exitCode": 0,
+      "passes": 18
+    },
+    {
+      "file": "tools/v3-home-reads-test.mjs",
+      "exitCode": 0,
+      "passes": 18
+    },
+    {
+      "file": "tools/v3-identity-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-inventory-test.mjs",
+      "exitCode": 0,
+      "passes": 6
+    },
+    {
+      "file": "tools/v3-long-reader-test.mjs",
+      "exitCode": 0,
+      "passes": 4
+    },
+    {
+      "file": "tools/v3-markdown-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-medal-images-test.mjs",
+      "exitCode": 0,
+      "passes": 10
+    },
+    {
+      "file": "tools/v3-medals-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-member-page-test.mjs",
+      "exitCode": 0,
+      "passes": 13
+    },
+    {
+      "file": "tools/v3-membership-styles-test.mjs",
+      "exitCode": 0,
+      "passes": 8
+    },
+    {
+      "file": "tools/v3-membership-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-messages-test.mjs",
+      "exitCode": 0,
+      "passes": 21
+    },
+    {
+      "file": "tools/v3-milestones-test.mjs",
+      "exitCode": 0,
+      "passes": 18
+    },
+    {
+      "file": "tools/v3-notification-page-test.mjs",
+      "exitCode": 0,
+      "passes": 3
+    },
+    {
+      "file": "tools/v3-notifications-test.mjs",
+      "exitCode": 0,
+      "passes": 6
+    },
+    {
+      "file": "tools/v3-points-test.mjs",
+      "exitCode": 0,
+      "passes": 5
+    },
+    {
+      "file": "tools/v3-post-export-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-posts-test.mjs",
+      "exitCode": 0,
+      "passes": 32
+    },
+    {
+      "file": "tools/v3-preferences-test.mjs",
+      "exitCode": 0,
+      "passes": 8
+    },
+    {
+      "file": "tools/v3-private-zip-transport-test.mjs",
+      "exitCode": 0,
+      "passes": 4
+    },
+    {
+      "file": "tools/v3-profession-ranking-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-professions-test.mjs",
+      "exitCode": 0,
+      "passes": 8
+    },
+    {
+      "file": "tools/v3-profile-test.mjs",
+      "exitCode": 0,
+      "passes": 9
+    },
+    {
+      "file": "tools/v3-public-column-test.mjs",
+      "exitCode": 0,
+      "passes": 14
+    },
+    {
+      "file": "tools/v3-public-medals-test.mjs",
+      "exitCode": 0,
+      "passes": 10
+    },
+    {
+      "file": "tools/v3-public-professions-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-rankings-test.mjs",
+      "exitCode": 0,
+      "passes": 16
+    },
+    {
+      "file": "tools/v3-reactions-test.mjs",
+      "exitCode": 0,
+      "passes": 16
+    },
+    {
+      "file": "tools/v3-repeater-test.mjs",
+      "exitCode": 0,
+      "passes": 19
+    },
+    {
+      "file": "tools/v3-reports-test.mjs",
+      "exitCode": 0,
+      "passes": 19
+    },
+    {
+      "file": "tools/v3-retired-bridge-test.mjs",
+      "exitCode": 0,
+      "passes": 6
+    },
+    {
+      "file": "tools/v3-revisions-test.mjs",
+      "exitCode": 0,
+      "passes": 14
+    },
+    {
+      "file": "tools/v3-route-parity-audit-test.mjs",
+      "exitCode": 0,
+      "passes": 8
+    },
+    {
+      "file": "tools/v3-saved-content-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-security-lifecycle-test.mjs",
+      "exitCode": 0,
+      "passes": 3
+    },
+    {
+      "file": "tools/v3-security-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    },
+    {
+      "file": "tools/v3-ssr-payload-test.mjs",
+      "exitCode": 0,
+      "passes": 11
+    },
+    {
+      "file": "tools/v3-statistics-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-tag-suggestions-test.mjs",
+      "exitCode": 0,
+      "passes": 9
+    },
+    {
+      "file": "tools/v3-user-card-test.mjs",
+      "exitCode": 0,
+      "passes": 12
+    },
+    {
+      "file": "tools/v3-user-follow-test.mjs",
+      "exitCode": 0,
+      "passes": 8
+    },
+    {
+      "file": "tools/v3-user-relations-test.mjs",
+      "exitCode": 0,
+      "passes": 5
+    },
+    {
+      "file": "tools/v3-user-suggestions-test.mjs",
+      "exitCode": 0,
+      "passes": 7
+    }
+  ],
+  "finalNotificationPageFocusedGroups": 4,
+  "note": "Full run contained three notification-page groups; unmount group was added afterwards and final four-group focused run passed. Backend strict-body regression is separately known failing pending compatibility decision."
+}

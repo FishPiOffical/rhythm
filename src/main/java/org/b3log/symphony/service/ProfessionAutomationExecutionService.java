@@ -186,7 +186,7 @@ public class ProfessionAutomationExecutionService {
 
     private void createReversalEffects(final ExecutionContext context) throws Exception {
         int sequence = 0;
-        for (final JSONObject original : effectRepository.getByEventKey(context.reversalOfEventKey())) {
+        for (final JSONObject original : effectRepository.getNonReversalByEventKey(context.reversalOfEventKey())) {
             final String reversalEffectId = Ids.genTimeMillisId();
             if (!effectRepository.markReversed(original.getString(Keys.OBJECT_ID), reversalEffectId, context.now())) {
                 continue;

@@ -1,0 +1,364 @@
+{
+  "date": "2026-11-02",
+  "environment": "isolated Rhythm dev DB; user-confirmed Java80758 localhost IPv6:8081",
+  "refusals": [
+    "new-article-time-refusal",
+    "locked-refusal",
+    "invalid-status-refusal",
+    "weekly-report-refusal",
+    "subscriptions-blocks-delete",
+    "collections-blocks-delete",
+    "up-vote-blocks-delete",
+    "down-vote-blocks-delete",
+    "thanks-record-blocks-delete"
+  ],
+  "allRefusalsNoPointChangeOrRemovalReceipt": true,
+  "realInteractions": [
+    "subscribe/unsubscribe",
+    "collect/uncollect",
+    "vote up/clear",
+    "vote down/clear",
+    "thank/replay"
+  ],
+  "temporaryFixtures": [
+    "Create time temporarily moved two days back for post-24h branches, restored.",
+    "Status and weekly title temporary SQL fixture, restored by guarded transaction."
+  ],
+  "retainedFixture": "One new dedicated test article retains the actual thank record; subscription/collection/vote states cleared. This normal thanked state cannot self-delete by confirmed policy.",
+  "balanceDelta": [
+    0,
+    -20
+  ],
+  "thankTransfer": {
+    "senderDebit": 20,
+    "authorCredit": 20,
+    "sameKeyNoExtraCharge": true
+  },
+  "requestResults": [
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "create-disposable-matrix",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "new-article-time-refusal",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "locked-refusal",
+      "status": 403,
+      "code": "article_locked"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "invalid-status-refusal",
+      "status": 403,
+      "code": "article_locked"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "weekly-report-refusal",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "add-subscriptions",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "subscriptions-blocks-delete",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "remove-subscriptions",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "add-collections",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "collections-blocks-delete",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "remove-collections",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "vote-up",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "up-vote-blocks-delete",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "clear-up-vote",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "vote-down",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "down-vote-blocks-delete",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "clear-down-vote",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "thank-once",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "thanks-record-blocks-delete",
+      "status": 422,
+      "code": "removal_rejected"
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "thank-same-key",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_a",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "read-balance-v3_local_b",
+      "status": 200,
+      "code": 0
+    }
+  ],
+  "limits": [
+    "No real 24h wait; timing fixture is not elapsed-time proof.",
+    "Forced admin cleanup, realtime deletion broadcast and browser confirmation not exercised.",
+    "Production captcha/blacklist and cross-instance concurrency not verified."
+  ]
+}

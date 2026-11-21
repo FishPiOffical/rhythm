@@ -22,8 +22,14 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.Keys;
+import org.b3log.symphony.repository.UserRepository;
+import java.util.List;
 import org.b3log.latke.repository.RepositoryException;
-import org.b3log.latke.repository.annotation.Transactional;
+import org.b3log.latke.repository.Transaction;
+import org.b3log.symphony.cache.TagCache;
+import org.b3log.symphony.cache.ArticleCache;
+import org.b3log.symphony.util.FollowMutation;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Follow;
@@ -66,13 +72,17 @@ public class FollowMgmtService {
     @Inject
     private ArticleRepository articleRepository;
 
+    @Inject
+    private UserRepository userRepository;
+    @Inject private TagCache tagCache;
+    @Inject private ArticleCache articleCache;
+
     /**
      * The specified follower follows the specified following tag.
      *
      * @param followerId     the specified follower id
      * @param followingTagId the specified following tag id
      */
-    @Transactional
     public void followTag(final String followerId, final String followingTagId) {
         try {
             follow(followerId, followingTagId, Follow.FOLLOWING_TYPE_C_TAG);
@@ -88,7 +98,6 @@ public class FollowMgmtService {
      * @param followerId      the specified follower id
      * @param followingUserId the specified following user id
      */
-    @Transactional
     public void followUser(final String followerId, final String followingUserId) {
         try {
             follow(followerId, followingUserId, Follow.FOLLOWING_TYPE_C_USER);
@@ -104,7 +113,6 @@ public class FollowMgmtService {
      * @param followerId         the specified follower id
      * @param followingArticleId the specified following article id
      */
-    @Transactional
     public void followArticle(final String followerId, final String followingArticleId) {
         try {
             follow(followerId, followingArticleId, Follow.FOLLOWING_TYPE_C_ARTICLE);
@@ -120,7 +128,6 @@ public class FollowMgmtService {
      * @param followerId         the specified follower id
      * @param followingArticleId the specified following article id
      */
-    @Transactional
     public void watchArticle(final String followerId, final String followingArticleId) {
         try {
             follow(followerId, followingArticleId, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH);
@@ -136,7 +143,6 @@ public class FollowMgmtService {
      * @param followerId     the specified follower id
      * @param followingTagId the specified following tag id
      */
-    @Transactional
     public void unfollowTag(final String followerId, final String followingTagId) {
         try {
             unfollow(followerId, followingTagId, Follow.FOLLOWING_TYPE_C_TAG);
@@ -152,7 +158,6 @@ public class FollowMgmtService {
      * @param followerId      the specified follower id
      * @param followingUserId the specified following user id
      */
-    @Transactional
     public void unfollowUser(final String followerId, final String followingUserId) {
         try {
             unfollow(followerId, followingUserId, Follow.FOLLOWING_TYPE_C_USER);
@@ -168,7 +173,6 @@ public class FollowMgmtService {
      * @param followerId         the specified follower id
      * @param followingArticleId the specified following article id
      */
-    @Transactional
     public void unfollowArticle(final String followerId, final String followingArticleId) {
         try {
             unfollow(followerId, followingArticleId, Follow.FOLLOWING_TYPE_C_ARTICLE);
@@ -185,7 +189,6 @@ public class FollowMgmtService {
      * @param followerId         the specified follower id
      * @param followingArticleId the specified following article id
      */
-    @Transactional
     public void unwatchArticle(final String followerId, final String followingArticleId) {
         try {
             unfollow(followerId, followingArticleId, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH);
@@ -203,104 +206,60 @@ public class FollowMgmtService {
      * @param followingType the specified following type
      * @throws RepositoryException repository exception
      */
-    private synchronized void follow(final String followerId, final String followingId, final int followingType) throws RepositoryException {
-        if (followRepository.exists(followerId, followingId, followingType)) {
-            return;
-        }
-
-        if (Follow.FOLLOWING_TYPE_C_TAG == followingType) {
-            final JSONObject tag = tagRepository.get(followingId);
-            if (null == tag) {
-                LOGGER.log(Level.ERROR, "Not found tag [id={}] to follow", followingId);
-                return;
-            }
-
-            tag.put(Tag.TAG_FOLLOWER_CNT, tag.optInt(Tag.TAG_FOLLOWER_CNT) + 1);
-            tag.put(Tag.TAG_RANDOM_DOUBLE, Math.random());
-
-            tagRepository.update(followingId, tag);
-        } else if (Follow.FOLLOWING_TYPE_C_ARTICLE == followingType) {
-            final JSONObject article = articleRepository.get(followingId);
-            if (null == article) {
-                LOGGER.log(Level.ERROR, "Not found article [id={}] to follow", followingId);
-                return;
-            }
-
-            article.put(Article.ARTICLE_COLLECT_CNT, article.optInt(Article.ARTICLE_COLLECT_CNT) + 1);
-
-            articleRepository.update(followingId, article, Article.ARTICLE_COLLECT_CNT);
-        } else if (Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH == followingType) {
-            final JSONObject article = articleRepository.get(followingId);
-            if (null == article) {
-                LOGGER.log(Level.ERROR, "Not found article [id={}] to watch", followingId);
-                return;
-            }
-
-            article.put(Article.ARTICLE_WATCH_CNT, article.optInt(Article.ARTICLE_WATCH_CNT) + 1);
-
-            articleRepository.update(followingId, article, Article.ARTICLE_WATCH_CNT);
-        }
-
-        final JSONObject follow = new JSONObject();
-        follow.put(Follow.FOLLOWER_ID, followerId);
-        follow.put(Follow.FOLLOWING_ID, followingId);
-        follow.put(Follow.FOLLOWING_TYPE, followingType);
-
-        followRepository.add(follow);
+    private void follow(final String followerId, final String followingId, final int followingType) throws RepositoryException {
+        legacySet(followerId, followingId, followingType, true);
     }
 
-    /**
-     * Removes a follow relationship.
-     *
-     * @param followerId    the specified follower id
-     * @param followingId   the specified following entity id
-     * @param followingType the specified following type
-     * @throws RepositoryException repository exception
-     */
-    public synchronized void unfollow(final String followerId, final String followingId, final int followingType) throws RepositoryException {
-        followRepository.removeByFollowerIdAndFollowingId(followerId, followingId, followingType);
+    public void unfollow(final String followerId, final String followingId, final int followingType) throws RepositoryException {
+        legacySet(followerId, followingId, followingType, false);
+    }
 
-        if (Follow.FOLLOWING_TYPE_C_TAG == followingType) {
-            final JSONObject tag = tagRepository.get(followingId);
-            if (null == tag) {
-                LOGGER.log(Level.ERROR, "Not found tag [id={}] to unfollow", followingId);
-                return;
+    private void legacySet(final String actor, final String target, final int type, final boolean enabled) throws RepositoryException {
+        if (followRepository.hasTransactionBegun()) throw new IllegalStateException("legacy follow cannot nest transactions");
+        final Transaction transaction = followRepository.beginTransaction();
+        try {
+            setInCurrentTransaction(actor, target, type, enabled, null);
+            transaction.commit();
+        } catch (final RepositoryException | RuntimeException e) {
+            if (transaction.isActive()) transaction.rollback();
+            throw e;
+        } finally { invalidateCaches(target, type); }
+    }
+
+    @FunctionalInterface
+    public interface TargetCheck { void check(JSONObject target) throws RepositoryException; }
+
+    /** Locks the actor across legacy and v3 writes; never begins or commits a transaction. */
+    public boolean setInCurrentTransaction(final String followerId, final String followingId, final int type,
+                                           final boolean enabled, final TargetCheck check) throws RepositoryException {
+        return FollowMutation.set(new FollowMutation.Store() {
+            public boolean hasTransaction() { return followRepository.hasTransactionBegun(); }
+            public boolean lockActor(final String actor) throws RepositoryException {
+                return null != followRepository.lockEntity(userRepository.getName(), actor);
             }
-
-            tag.put(Tag.TAG_FOLLOWER_CNT, tag.optInt(Tag.TAG_FOLLOWER_CNT) - 1);
-            if (tag.optInt(Tag.TAG_FOLLOWER_CNT) < 0) {
-                tag.put(Tag.TAG_FOLLOWER_CNT, 0);
+            public JSONObject lockTarget(final String target, final int kind) throws RepositoryException {
+                final String table = kind == Follow.FOLLOWING_TYPE_C_USER ? userRepository.getName()
+                        : kind == Follow.FOLLOWING_TYPE_C_TAG ? tagRepository.getName() : articleRepository.getName();
+                return followRepository.lockEntity(table, target);
             }
-
-            tag.put(Tag.TAG_RANDOM_DOUBLE, Math.random());
-
-            tagRepository.update(followingId, tag);
-        } else if (Follow.FOLLOWING_TYPE_C_ARTICLE == followingType) {
-            final JSONObject article = articleRepository.get(followingId);
-            if (null == article) {
-                LOGGER.log(Level.ERROR, "Not found article [id={}] to unfollow", followingId);
-                return;
+            public List<JSONObject> relations(final String actor, final String target, final int kind) throws RepositoryException {
+                return followRepository.getRelationsForUpdate(actor, target, kind);
             }
-
-            article.put(Article.ARTICLE_COLLECT_CNT, article.optInt(Article.ARTICLE_COLLECT_CNT) - 1);
-            if (article.optInt(Article.ARTICLE_COLLECT_CNT) < 0) {
-                article.put(Article.ARTICLE_COLLECT_CNT, 0);
+            public void add(final JSONObject relation) throws RepositoryException { followRepository.add(relation); }
+            public void remove(final String id) throws RepositoryException { followRepository.remove(id); }
+            public void adjust(final JSONObject target, final String id, final int kind, final int delta) throws RepositoryException {
+                final String field = kind == Follow.FOLLOWING_TYPE_C_TAG ? Tag.TAG_FOLLOWER_CNT
+                        : kind == Follow.FOLLOWING_TYPE_C_ARTICLE ? Article.ARTICLE_COLLECT_CNT : Article.ARTICLE_WATCH_CNT;
+                target.put(field, Math.max(0, target.optLong(field) + delta));
+                if (kind == Follow.FOLLOWING_TYPE_C_TAG) {
+                    target.put(Tag.TAG_RANDOM_DOUBLE, Math.random());
+                    tagRepository.update(id, target, field, Tag.TAG_RANDOM_DOUBLE);
+                } else articleRepository.update(id, target, field);
             }
-
-            articleRepository.update(followingId, article, Article.ARTICLE_COLLECT_CNT);
-        } else if (Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH == followingType) {
-            final JSONObject article = articleRepository.get(followingId);
-            if (null == article) {
-                LOGGER.log(Level.ERROR, "Not found article [id={}] to unwatch", followingId);
-                return;
-            }
-
-            article.put(Article.ARTICLE_WATCH_CNT, article.optInt(Article.ARTICLE_WATCH_CNT) - 1);
-            if (article.optInt(Article.ARTICLE_WATCH_CNT) < 0) {
-                article.put(Article.ARTICLE_WATCH_CNT, 0);
-            }
-
-            articleRepository.update(followingId, article, Article.ARTICLE_WATCH_CNT);
-        }
+        }, followerId, followingId, type, enabled, null == check ? null : check::check);
+    }
+    public void invalidateCaches(final String target, final int type) {
+        if (type == Follow.FOLLOWING_TYPE_C_TAG) tagCache.removeTag(target);
+        else if (type == Follow.FOLLOWING_TYPE_C_ARTICLE || type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH) articleCache.removeArticle(target);
     }
 }

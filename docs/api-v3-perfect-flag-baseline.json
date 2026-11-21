@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 2590,
+  "scope": "Unauthenticated local v3 probe verifies Rhythm before fixture requests; dedicated ordinary article temporarily marked perfect with transaction/finally restoration",
+  "perfectFilterIncludesArticle": true,
+  "summaryFlagMissing": true,
+  "detailFlagMissing": true,
+  "articleFlagRestored": true,
+  "noBusinessMutationEndpointCalled": true
+}

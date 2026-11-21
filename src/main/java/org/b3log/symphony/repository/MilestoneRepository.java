@@ -22,6 +22,8 @@ package org.b3log.symphony.repository;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.Milestone;
+import org.json.JSONObject;
+import java.util.List;
 
 /**
  * Milestone repository.
@@ -40,4 +42,19 @@ public class MilestoneRepository extends AbstractRepository {
         super(Milestone.MILESTONE);
     }
 
+    private static final String OWNED = " WHERE milestoneAuthorId=? AND milestoneStatus IN (1,2,3)";
+
+    public JSONObject getOwned(final String actor, final String id) throws RepositoryException {
+        final var rows = select("SELECT * FROM " + getName() + OWNED + " AND oId=?", actor, id);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    public List<JSONObject> pageOwned(final String actor, final int status, final int page, final int size) throws RepositoryException {
+        return select("SELECT * FROM " + getName() + OWNED + " AND (?=0 OR milestoneStatus=?)"
+                + " ORDER BY milestoneCreateTime DESC,oId DESC LIMIT ? OFFSET ?", actor, status, status, size, ((long) page - 1) * size);
+    }
+
+    public long countOwned(final String actor, final int status) throws RepositoryException {
+        return select("SELECT COUNT(1) AS total FROM " + getName() + OWNED + " AND (?=0 OR milestoneStatus=?)", actor, status, status).getFirst().optLong("total");
+    }
 }

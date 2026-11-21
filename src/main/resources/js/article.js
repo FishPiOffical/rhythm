@@ -2891,6 +2891,16 @@ var Article = {
    * @param {string} articleContent 记录过程
    */
   playThought: function (articleContent) {
+    if (!window.Lute || typeof window.Lute.Sanitize !== 'function') {
+      Util.loadScriptOnce('thought-lute', 'https://file.fishpi.cn/vditor/latest/dist/js/lute/lute.min.js', function () {
+        if (window.Lute && typeof window.Lute.Sanitize === 'function') {
+          Article.playThought(articleContent)
+        } else {
+          $('#articleThought').text('思绪加载失败，请刷新重试')
+        }
+      })
+      return
+    }
     // + 0x1F: Unit Separator (单元分隔符) 31
     var UNIT_SEPARATOR = String.fromCharCode(31)
     // - 0x1E: Record Separator (记录分隔符) 30
@@ -2963,13 +2973,18 @@ var Article = {
     }
 
     var records = articleContent.split(RECORD_SEPARATOR)
-    var STEP = 20 // 间隔速度
-    var SPEED = Math.max(records[records.length - 2].split(UNIT_SEPARATOR)[1] / 30000, 2)
-
-    // 分隔符后的''删除
     if (records[records.length - 1] === '') {
       records.pop()
     }
+    if (records.length === 0) {
+      return
+    }
+    var recordTime = function (record) {
+      var units = record.split(UNIT_SEPARATOR)
+      return parseInt(units.length === 3 ? units[0] : units[1]) || 0
+    }
+    var STEP = 20 // 间隔速度
+    var SPEED = Math.max(recordTime(records[records.length - 1]) / 30000, 2)
 
     for (var i = 0, j = 0; i < records.length; i++) {
       setTimeout(function () {
@@ -2981,18 +2996,18 @@ var Article = {
           $(thoughtContent).data('text').split(NEWLINE))
 
         var articleText = articleLinesList.join(NEWLINE)
-        var articleHTML = articleText.replace(/\n/g, '<br>').
+        var articleHTML = Lute.Sanitize(articleText.replace(/\n/g, '<br>').
           replace(/ /g, '&nbsp;').
-          replace(/	/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+          replace(/	/g, '&nbsp;&nbsp;&nbsp;&nbsp;'))
 
         $(thoughtContent).data('text', articleText).html(articleHTML)
 
-      }, parseInt(records[i].split(UNIT_SEPARATOR)[1]) / SPEED)
+      }, recordTime(records[i]) / SPEED)
     }
 
     // progress
     var currentTime = 0
-    var amountTime = parseInt(records[i - 1].split(UNIT_SEPARATOR)[1]) / SPEED
+    var amountTime = recordTime(records[i - 1]) / SPEED
     var interval = setInterval(function () {
       if (currentTime >= amountTime) {
         $thoughtLine.width('100%')
@@ -3014,9 +3029,9 @@ var Article = {
         previewText.split(NEWLINE))
 
       var articleText = articleLinesList.join(NEWLINE)
-      articleHTML = articleText.replace(/\n/g, '<br>').
+      articleHTML = Lute.Sanitize(articleText.replace(/\n/g, '<br>').
         replace(/ /g, '&nbsp;').
-        replace(/	/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+        replace(/	/g, '&nbsp;&nbsp;&nbsp;&nbsp;'))
 
       previewText = articleText
       $(thoughtContent).html(articleHTML)

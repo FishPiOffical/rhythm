@@ -30,6 +30,9 @@ import org.b3log.symphony.repository.ProfessionEventEffectRepository;
 import org.b3log.symphony.repository.ProfessionContributionIncrement;
 import org.b3log.symphony.repository.UserProfessionRepository;
 import org.b3log.symphony.repository.UserProfessionContributionRepository;
+import org.b3log.symphony.util.ApiV3Transactions;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import java.util.List;
@@ -38,6 +41,7 @@ import java.util.List;
 @Service
 public class ProfessionEffectApplyService {
 
+    private static final Logger LOGGER = LogManager.getLogger(ProfessionEffectApplyService.class);
     private static final int BATCH_SIZE = 100;
     @Inject private ProfessionEventEffectRepository effectRepository;
     @Inject private ProfessionEffectExecutionService effectExecutionService;
@@ -81,33 +85,55 @@ public class ProfessionEffectApplyService {
         if (null == claim) {
             return;
         }
-        final Transaction transaction = effectRepository.beginTransaction();
+        final Transaction transaction = ApiV3Transactions.strict(effectRepository.beginTransaction());
+        JSONObject effect;
+        NotificationKind kind;
         try {
             final long now = System.currentTimeMillis();
-            final JSONObject effect = effectExecutionService.lockClaimed(claim);
+            effect = effectExecutionService.lockClaimed(claim);
             if (null == effect) {
                 transaction.commit();
                 return;
             }
-            final boolean notificationEffect = notificationService.isNotificationEffect(effect);
+            kind = notificationKind(effect);
             final JSONObject summary = summaryForUpdate(effect, now);
             final ApplyContext context = applyContext(effect, summary, now);
             rewardGrantService.grantCrossed(effect, context.crossedLevels(), now);
             updateSummary(context);
-            if (notificationEffect) {
-                updateEffect(context);
-                notificationService.send(effect);
-            } else {
+            if (kind == NotificationKind.OTHER) {
                 updateContribution(context);
-                updateEffect(context);
             }
+            updateEffect(context);
             privacyMgmtService.touchProgressInCurrentTransaction(
                     effect.getString(ProfessionEventEffect.USER_ID), now);
             transaction.commit();
         } catch (final Exception e) {
             retry(claim, transaction, e);
+            return;
+        }
+        if (kind == NotificationKind.NOTIFICATION) {
+            sendNotification(effectId, effect);
         }
     }
+
+    private NotificationKind notificationKind(final JSONObject effect) throws RepositoryException {
+        return notificationService.isNotificationEffect(effect) ? NotificationKind.NOTIFICATION : NotificationKind.OTHER;
+    }
+
+    private void sendNotification(final String effectId, final JSONObject effect) {
+        try {
+            notificationService.send(effect);
+        } catch (final Exception failure) {
+            logNotificationFailure(effectId, effect, failure);
+        }
+    }
+
+    private void logNotificationFailure(final String effectId, final JSONObject effect, final Exception failure) {
+        LOGGER.warn("职业通知处理失败 [effectId={}, eventKey={}, error={}]", effectId,
+                null == effect ? "" : effect.optString(ProfessionEventEffect.EVENT_KEY), failure.toString());
+    }
+
+    private enum NotificationKind { NOTIFICATION, OTHER }
 
     private ApplyContext applyContext(final JSONObject effect, final JSONObject summary, final long now)
             throws RepositoryException {

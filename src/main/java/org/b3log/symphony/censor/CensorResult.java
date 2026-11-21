@@ -23,6 +23,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 统一内容审核结果类
@@ -54,6 +55,9 @@ public class CensorResult {
      */
     private String analysis;
 
+    /** 区分明确的审核决定与旧入口为服务异常提供的兼容结果。 */
+    private boolean verified;
+
     public CensorResult() {
         this.bannedWords = new ArrayList<>();
     }
@@ -66,7 +70,18 @@ public class CensorResult {
         result.setAction("pass");
         result.setType("正常");
         result.setDoAction("pass");
+        result.verified = true;
         return result;
+    }
+
+    public static CensorResult unavailable() {
+        final CensorResult result = pass();
+        result.verified = false;
+        return result;
+    }
+
+    public boolean isVerified() {
+        return verified;
     }
 
     /**
@@ -78,6 +93,7 @@ public class CensorResult {
         result.setType(type);
         result.setDoAction("block");
         result.setBannedWords(bannedWords);
+        result.verified = true;
         return result;
     }
 
@@ -89,6 +105,9 @@ public class CensorResult {
         result.setAction(qiniuResult.optString("action", "pass"));
         result.setType(qiniuResult.optString("type", "未知"));
         result.setDoAction(qiniuResult.optString("do", "pass"));
+        result.verified = !result.type.isBlank() && !"未知".equals(result.type)
+                && Set.of("pass", "review", "block").contains(qiniuResult.optString("action"))
+                && Set.of("pass", "block").contains(qiniuResult.optString("do"));
 
         JSONArray bannedWordsArr = qiniuResult.optJSONArray("bannedWords");
         if (bannedWordsArr != null) {
@@ -122,6 +141,7 @@ public class CensorResult {
 
                 CensorResult result = new CensorResult();
                 result.setAction(action);
+                result.verified = true;
                 result.setType(json.optString("type", "未知"));
 
                 // 根据 action 设置 doAction

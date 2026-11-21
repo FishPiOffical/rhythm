@@ -38,14 +38,21 @@ import java.util.List;
 public class VoteRepository extends AbstractRepository {
 
     /**
-     * Removes votes by the specified data id.
+     * Removes votes for one typed target inside the caller's transaction.
      *
      * @param dataId the specified data id
+     * @param dataType the target kind from Vote.DATA_TYPE_C_*
      * @throws RepositoryException repository exception
      */
-    public void removeByDataId(final String dataId) throws RepositoryException {
-        remove(new Query().setFilter(new PropertyFilter(Vote.DATA_ID, FilterOperator.EQUAL, dataId)).
-                setPageCount(1));
+    public void removeByDataId(final String dataId, final int dataType) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("vote removal requires transaction");
+        if (dataType != Vote.DATA_TYPE_C_ARTICLE && dataType != Vote.DATA_TYPE_C_COMMENT
+                && dataType != Vote.DATA_TYPE_C_USER && dataType != Vote.DATA_TYPE_C_TAG) {
+            throw new IllegalArgumentException("unknown vote target type");
+        }
+        final var rows = select("SELECT oId FROM `" + getName()
+                + "` WHERE dataId=? AND dataType=? ORDER BY oId FOR UPDATE", dataId, dataType);
+        for (final JSONObject row : rows) remove(row.getString(Keys.OBJECT_ID));
     }
 
     /**

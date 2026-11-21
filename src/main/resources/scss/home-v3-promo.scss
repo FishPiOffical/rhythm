@@ -1,0 +1,163 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/* 仅由旧版首页加载，替换原客户端下载卡片。 */
+a.v3-home-promo {
+  --entry-ink: #27352c;
+  --entry-orange: #b8651b;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 60px;
+  padding: 11px 12px;
+  border: 1px solid #e9dfb9;
+  border-left: 3px solid #e8b947;
+  border-radius: 5px;
+  background: #fffdf5;
+  color: var(--entry-ink);
+  font: 13px/1.4 "Microsoft YaHei", sans-serif;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  .v3-home-promo__logo {
+    display: block;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+  }
+  .v3-home-promo__copy {
+    flex: 1;
+    min-width: 0;
+  }
+  .v3-home-promo__heading {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    strong {
+      display: inline;
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+  .v3-home-promo__domain {
+    display: block;
+    color: #647067;
+    font: 11px/17px "Microsoft YaHei", sans-serif;
+    letter-spacing: .15px;
+  }
+  .v3-home-promo__edition {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: #f7d76b;
+    color: #674600;
+    font: 700 9px/15px Verdana, sans-serif;
+    vertical-align: 1px;
+  }
+  .v3-home-promo__description {
+    display: block;
+    font-size: 12px;
+    line-height: 19px;
+  }
+  .v3-home-promo__action {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 4px;
+    background: #fff0df;
+    color: var(--entry-orange);
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 160ms ease;
+    svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 160ms ease;
+    }
+  }
+  &:hover {
+    transform: translateY(-2px);
+    border-color: #e3b47e;
+    box-shadow: 0 3px 9px #27352c0a;
+    .v3-home-promo__action {
+      background: #f9e2c8;
+    }
+    .v3-home-promo__action svg {
+      transform: translateX(2px);
+    }
+  }
+  &:active {
+    transform: translateY(0);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--entry-orange);
+    outline-offset: 3px;
+  }
+}
+
+.v3-home-promo--pc {
+  margin-bottom: 22px;
+}
+
+.v3-home-promo--mobile {
+  margin-top: 20px;
+}
+
+@media (max-width: 350px) {
+  a.v3-home-promo {
+    gap: 8px;
+    padding-inline: 10px;
+    .v3-home-promo__logo {
+      flex-basis: 30px;
+      width: 30px;
+      height: 30px;
+    }
+    .v3-home-promo__description {
+      font-size: 11px;
+    }
+    .v3-home-promo__action {
+      padding-inline: 6px;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  a.v3-home-promo,
+  a.v3-home-promo * {
+    transition: none;
+  }
+  a.v3-home-promo:hover {
+    transform: none;
+  }
+  a.v3-home-promo:hover .v3-home-promo__action svg {
+    transform: none;
+  }
+}

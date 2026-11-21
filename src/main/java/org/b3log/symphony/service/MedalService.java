@@ -35,10 +35,12 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.processor.WeChatPayProcessor;
 import org.b3log.symphony.repository.MedalRepository;
 import org.b3log.symphony.repository.UserMedalRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.repository.SponsorRepository;
 import org.b3log.symphony.processor.TopProcessor;
 import org.b3log.symphony.util.Dates;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -46,9 +48,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 勋章业务服务.
@@ -81,6 +87,9 @@ public class MedalService {
     private UserMedalRepository userMedalRepository;
 
     @Inject
+    private UserRepository medalUsers;
+
+    @Inject
     private CloudRepository cloudRepository;
 
     @Inject
@@ -109,11 +118,15 @@ public class MedalService {
         if (oId == null || oId.isEmpty()) {
             return;
         }
+        Transaction tx = null;
         try {
-            Transaction tx = userMedalRepository.beginTransaction();
+            tx = userMedalRepository.beginTransaction();
             userMedalRepository.remove(oId);
             tx.commit();
         } catch (RepositoryException e) {
+            if (tx != null && tx.isActive()) {
+                tx.rollback();
+            }
             LOGGER.log(Level.ERROR, "Failed to remove expired user medal [" + oId + "]", e);
         }
     }
@@ -341,64 +354,71 @@ public class MedalService {
      * @return 未过期且展示中的勋章列表
      */
     public List<JSONObject> getUserDisplayedValidMedals(final String userId) {
-        long now = System.currentTimeMillis();
         try {
-            Query userMedalQuery = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
-                            new PropertyFilter("display", FilterOperator.EQUAL, true)
-                    ));
-            List<JSONObject> userMedals = userMedalRepository.getList(userMedalQuery);
-            if (userMedals.isEmpty()) {
-                return new ArrayList<>();
-            }
-            List<String> medalIds = new ArrayList<>();
-            List<JSONObject> filteredUserMedals = new ArrayList<>();
-            for (JSONObject userMedal : userMedals) {
-                long expireTime = userMedal.optLong("expire_time", 0L);
-                if (expireTime != 0L && expireTime <= now) {
-                    // 已过期的直接删除
-                    removeExpiredUserMedalIfNeeded(userMedal);
-                    continue;
-                }
-                String medalId = userMedal.optString("medal_id");
-                if (medalId != null && !medalId.isEmpty()) {
-                    medalIds.add(medalId);
-                    filteredUserMedals.add(userMedal);
-                }
-            }
-            if (medalIds.isEmpty()) {
-                return new ArrayList<>();
-            }
-            List<JSONObject> result = new ArrayList<>();
-            for (JSONObject userMedal : filteredUserMedals) {
-                String medalId = userMedal.optString("medal_id");
-                Query medalQuery = new Query()
-                        .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
-                List<JSONObject> medals = medalRepository.getList(medalQuery);
-                for (JSONObject medal : medals) {
-                    JSONObject medalCopy = new JSONObject(medal.toString());
-                    medalCopy.put("user_medal_oId", userMedal.optString("oId"));
-                    medalCopy.put("user_id", userMedal.optString("user_id"));
-                    medalCopy.put("expire_time", userMedal.optLong("expire_time"));
-                    medalCopy.put("display", userMedal.optBoolean("display", true));
-                    medalCopy.put("display_order", userMedal.optInt("display_order", 0));
-                    medalCopy.put("data", userMedal.optString("data", ""));
-                    // 渲染勋章
-                    renderMetal(medalCopy);
-                    result.add(medalCopy);
-                }
-            }
-            result.sort((o1, o2) -> {
-                int order1 = o1.optInt("display_order", 0);
-                int order2 = o2.optInt("display_order", 0);
-                return Integer.compare(order1, order2);
-            });
-            return result;
+            return getUsersDisplayedValidMedals(Collections.singleton(userId)).get(userId);
         } catch (Exception e) {
             LOGGER.log(Level.ERROR, "Failed to get displayed valid medals for user [" + userId + "]", e);
             return new ArrayList<>();
         }
+    }
+
+    /**
+     * 按用户批量读取展示勋章，查询结果只在本次调用内复用。
+     */
+    public Map<String, List<JSONObject>> getUsersDisplayedValidMedals(final Collection<String> userIds)
+            throws RepositoryException {
+        final Map<String, List<JSONObject>> result = new HashMap<>();
+        for (String userId : userIds) {
+            result.put(userId, new ArrayList<>());
+        }
+        if (result.isEmpty()) {
+            return result;
+        }
+        final long now = System.currentTimeMillis();
+        final Query userMedalQuery = new Query().setFilter(CompositeFilterOperator.and(
+                new PropertyFilter("user_id", FilterOperator.IN, new ArrayList<>(result.keySet())),
+                new PropertyFilter("display", FilterOperator.EQUAL, true)));
+        final List<JSONObject> userMedals = userMedalRepository.getList(userMedalQuery);
+        final Set<String> medalIds = new LinkedHashSet<>();
+        final List<JSONObject> validUserMedals = new ArrayList<>();
+        for (JSONObject userMedal : userMedals) {
+            final long expireTime = userMedal.optLong("expire_time", 0L);
+            if (expireTime != 0L && expireTime <= now) {
+                removeExpiredUserMedalIfNeeded(userMedal);
+                continue;
+            }
+            final String medalId = userMedal.optString("medal_id");
+            if (!medalId.isEmpty()) {
+                medalIds.add(medalId);
+                validUserMedals.add(userMedal);
+            }
+        }
+        if (medalIds.isEmpty()) {
+            return result;
+        }
+        final Map<String, List<JSONObject>> definitions = new HashMap<>();
+        final Query medalQuery = new Query().setFilter(
+                new PropertyFilter("medal_id", FilterOperator.IN, new ArrayList<>(medalIds)));
+        for (JSONObject medal : medalRepository.getList(medalQuery)) {
+            definitions.computeIfAbsent(medal.optString("medal_id"), key -> new ArrayList<>()).add(medal);
+        }
+        for (JSONObject userMedal : validUserMedals) {
+            for (JSONObject medal : definitions.getOrDefault(userMedal.optString("medal_id"), Collections.emptyList())) {
+                final JSONObject medalCopy = new JSONObject(medal.toString());
+                medalCopy.put("user_medal_oId", userMedal.optString("oId"));
+                medalCopy.put("user_id", userMedal.optString("user_id"));
+                medalCopy.put("expire_time", userMedal.optLong("expire_time"));
+                medalCopy.put("display", userMedal.optBoolean("display", true));
+                medalCopy.put("display_order", userMedal.optInt("display_order", 0));
+                medalCopy.put("data", userMedal.optString("data", ""));
+                renderMetal(medalCopy);
+                result.get(userMedal.optString("user_id")).add(medalCopy);
+            }
+        }
+        for (List<JSONObject> medals : result.values()) {
+            medals.sort((left, right) -> Integer.compare(left.optInt("display_order", 0), right.optInt("display_order", 0)));
+        }
+        return result;
     }
     
     public void renderMetal(JSONObject metal) {
@@ -500,57 +520,63 @@ public class MedalService {
                            final String medalType,
                            final String medalDescription,
                            final String medalAttr) throws ServiceException {
-        Transaction transaction = medalRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(medalRepository.beginTransaction());
         try {
-            Query nameQuery = new Query()
-                    .setFilter(new PropertyFilter("medal_name", FilterOperator.EQUAL, medalName));
-            List<JSONObject> existByName = medalRepository.getList(nameQuery);
-            if (!existByName.isEmpty()) {
-                transaction.commit();
-                throw new ServiceException("勋章名称已存在：" + medalName);
-            }
-
-            Query allQuery = new Query();
-            List<JSONObject> allMedals = medalRepository.getList(allQuery);
-            int maxMedalId = -1;
-            for (JSONObject medal : allMedals) {
-                String idStr = medal.optString("medal_id", "-1");
-                try {
-                    int id = Integer.parseInt(idStr);
-                    if (id > maxMedalId) {
-                        maxMedalId = id;
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            String nextMedalId = String.valueOf(maxMedalId + 1);
-
-            // 对 medalAttr 进行 URL 解码
-            String decodedMedalAttr = medalAttr;
-            if (medalAttr != null && !medalAttr.isEmpty()) {
-                try {
-                    decodedMedalAttr = URLDecoder.decode(medalAttr, StandardCharsets.UTF_8.name());
-                } catch (UnsupportedEncodingException e) {
-                    LOGGER.log(Level.WARN, "Failed to decode medalAttr [" + medalAttr + "], using original value", e);
-                }
-            }
-
-            JSONObject medal = new JSONObject();
-            medal.put("medal_id", nextMedalId);
-            medal.put("medal_name", medalName);
-            medal.put("medal_type", medalType);
-            medal.put("medal_description", medalDescription);
-            medal.put("medal_attr", decodedMedalAttr);
-            String oId = medalRepository.add(medal);
-            transaction.commit();
-            return oId;
+            String result = addMedalInCurrentTransaction(medalName, medalType, medalDescription, medalAttr);
+            tx.commit();
+            return result;
         } catch (RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.log(Level.ERROR, "Failed to add medal [" + medalName + "]", e);
-            throw new ServiceException("Failed to add medal");
+            throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
+    }
+
+    public String addMedalInCurrentTransaction(final String medalName,
+                           final String medalType,
+                           final String medalDescription,
+                           final String medalAttr) throws ServiceException, RepositoryException {
+        if (!medalRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        Query nameQuery = new Query()
+                .setFilter(new PropertyFilter("medal_name", FilterOperator.EQUAL, medalName));
+        List<JSONObject> existByName = medalRepository.getList(nameQuery);
+        if (!existByName.isEmpty()) {
+            throw new ServiceException("勋章名称已存在：" + medalName);
+        }
+
+        Query allQuery = new Query();
+        List<JSONObject> allMedals = medalRepository.getList(allQuery);
+        int maxMedalId = -1;
+        for (JSONObject medal : allMedals) {
+            String idStr = medal.optString("medal_id", "-1");
+            try {
+                int id = Integer.parseInt(idStr);
+                if (id > maxMedalId) {
+                    maxMedalId = id;
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        String nextMedalId = String.valueOf(maxMedalId + 1);
+
+        // 对 medalAttr 进行 URL 解码
+        String decodedMedalAttr = medalAttr;
+        if (medalAttr != null && !medalAttr.isEmpty()) {
+            try {
+                decodedMedalAttr = URLDecoder.decode(medalAttr, StandardCharsets.UTF_8.name());
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.log(Level.WARN, "Failed to decode medalAttr [" + medalAttr + "], using original value", e);
+            }
+        }
+
+        JSONObject medal = new JSONObject();
+        medal.put("medal_id", nextMedalId);
+        medal.put("medal_name", medalName);
+        medal.put("medal_type", medalType);
+        medal.put("medal_description", medalDescription);
+        medal.put("medal_attr", decodedMedalAttr);
+        String oId = medalRepository.add(medal);
+        return oId;
     }
 
     /**
@@ -561,33 +587,36 @@ public class MedalService {
      * @throws ServiceException 删除失败时抛出
      */
     public void deleteMedal(final String medalId) throws ServiceException {
-        Transaction transaction = medalRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(medalRepository.beginTransaction());
         try {
-            Query medalQuery = new Query()
-                    .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
-            List<JSONObject> medals = medalRepository.getList(medalQuery);
-            for (JSONObject medal : medals) {
-                String oId = medal.optString("oId");
-                if (oId != null && !oId.isEmpty()) {
-                    medalRepository.remove(oId);
-                }
-            }
-            Query userMedalQuery = new Query()
-                    .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
-            List<JSONObject> userMedals = userMedalRepository.getList(userMedalQuery);
-            for (JSONObject userMedal : userMedals) {
-                String oId = userMedal.optString("oId");
-                if (oId != null && !oId.isEmpty()) {
-                    userMedalRepository.remove(oId);
-                }
-            }
-            transaction.commit();
+            deleteMedalInCurrentTransaction(medalId);
+            tx.commit();
         } catch (RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
+            throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
+        }
+    }
+
+    public void deleteMedalInCurrentTransaction(final String medalId) throws ServiceException, RepositoryException {
+        if (!medalRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        Query medalQuery = new Query()
+                .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
+        List<JSONObject> medals = medalRepository.getList(medalQuery);
+        for (JSONObject medal : medals) {
+            String oId = medal.optString("oId");
+            if (oId != null && !oId.isEmpty()) {
+                medalRepository.remove(oId);
             }
-            LOGGER.log(Level.ERROR, "Failed to delete medal [" + medalId + "]", e);
-            throw new ServiceException("Failed to delete medal");
+        }
+        Query userMedalQuery = new Query()
+                .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
+        List<JSONObject> userMedals = userMedalRepository.getList(userMedalQuery);
+        for (JSONObject userMedal : userMedals) {
+            String oId = userMedal.optString("oId");
+            if (oId != null && !oId.isEmpty()) {
+                userMedalRepository.remove(oId);
+            }
         }
     }
 
@@ -607,46 +636,56 @@ public class MedalService {
                             final String medalType,
                             final String medalDescription,
                             final String medalAttr) throws ServiceException {
+        final Transaction tx = ApiV3Transactions.strict(medalRepository.beginTransaction());
         try {
-            Query nameQuery = new Query()
-                    .setFilter(new PropertyFilter("medal_name", FilterOperator.EQUAL, medalName));
-            List<JSONObject> existByName = medalRepository.getList(nameQuery);
-            for (JSONObject medal : existByName) {
-                String existMedalId = medal.optString("medal_id");
-                if (!medalId.equals(existMedalId)) {
-                    throw new ServiceException("勋章名称已存在：" + medalName);
-                }
-            }
-            Query medalQuery = new Query()
-                    .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
-            List<JSONObject> medals = medalRepository.getList(medalQuery);
-            
-            // 对 medalAttr 进行 URL 解码
-            String decodedMedalAttr = medalAttr;
-            if (medalAttr != null && !medalAttr.isEmpty()) {
-                try {
-                    decodedMedalAttr = URLDecoder.decode(medalAttr, StandardCharsets.UTF_8.name());
-                } catch (UnsupportedEncodingException e) {
-                    LOGGER.log(Level.WARN, "Failed to decode medalAttr [" + medalAttr + "], using original value", e);
-                }
-            }
-            
-            for (JSONObject medal : medals) {
-                String oId = medal.optString("oId");
-                if (oId == null || oId.isEmpty()) {
-                    continue;
-                }
-                medal.put("medal_name", medalName);
-                medal.put("medal_type", medalType);
-                medal.put("medal_description", medalDescription);
-                medal.put("medal_attr", decodedMedalAttr);
-                Transaction transaction = medalRepository.beginTransaction();
-                medalRepository.update(oId, medal);
-                transaction.commit();
-            }
+            updateMedalInCurrentTransaction(medalId, medalName, medalType, medalDescription, medalAttr);
+            tx.commit();
         } catch (RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Failed to update medal [" + medalId + "]", e);
-            throw new ServiceException("Failed to update medal");
+            throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
+        }
+    }
+
+    public void updateMedalInCurrentTransaction(final String medalId,
+                            final String medalName,
+                            final String medalType,
+                            final String medalDescription,
+                            final String medalAttr) throws ServiceException, RepositoryException {
+        if (!medalRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        Query nameQuery = new Query()
+                .setFilter(new PropertyFilter("medal_name", FilterOperator.EQUAL, medalName));
+        List<JSONObject> existByName = medalRepository.getList(nameQuery);
+        for (JSONObject medal : existByName) {
+            String existMedalId = medal.optString("medal_id");
+            if (!medalId.equals(existMedalId)) {
+                throw new ServiceException("勋章名称已存在：" + medalName);
+            }
+        }
+        Query medalQuery = new Query()
+                .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
+        List<JSONObject> medals = medalRepository.getList(medalQuery);
+
+        // 对 medalAttr 进行 URL 解码
+        String decodedMedalAttr = medalAttr;
+        if (medalAttr != null && !medalAttr.isEmpty()) {
+            try {
+                decodedMedalAttr = URLDecoder.decode(medalAttr, StandardCharsets.UTF_8.name());
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.log(Level.WARN, "Failed to decode medalAttr [" + medalAttr + "], using original value", e);
+            }
+        }
+
+        for (JSONObject medal : medals) {
+            String oId = medal.optString("oId");
+            if (oId == null || oId.isEmpty()) {
+                continue;
+            }
+            medal.put("medal_name", medalName);
+            medal.put("medal_type", medalType);
+            medal.put("medal_description", medalDescription);
+            medal.put("medal_attr", decodedMedalAttr);
+            medalRepository.update(oId, medal);
         }
     }
 
@@ -663,47 +702,54 @@ public class MedalService {
                                  final String medalId,
                                  final long expireTime,
                                  final String data) throws ServiceException {
-        Transaction transaction = userMedalRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(userMedalRepository.beginTransaction());
         try {
-            Query query = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
-                            new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
-                    ));
-            JSONObject existing = userMedalRepository.getFirst(query);
-            if (existing != null && existing.length() > 0) {
-                String oId = existing.optString("oId");
-                existing.put("expire_time", expireTime);
-                existing.put("data", data);
-                userMedalRepository.update(oId, existing);
-            } else {
-                Query allMedalsQuery = new Query()
-                        .setFilter(new PropertyFilter("user_id", FilterOperator.EQUAL, userId));
-                List<JSONObject> allUserMedals = userMedalRepository.getList(allMedalsQuery);
-                int maxOrder = 0;
-                for (JSONObject medal : allUserMedals) {
-                    int order = medal.optInt("display_order", 0);
-                    if (order > maxOrder) {
-                        maxOrder = order;
-                    }
-                }
-                int nextOrder = maxOrder + 1;
-                JSONObject userMedal = new JSONObject();
-                userMedal.put("user_id", userId);
-                userMedal.put("medal_id", medalId);
-                userMedal.put("data", data);
-                userMedal.put("expire_time", expireTime);
-                userMedal.put("display", true);
-                userMedal.put("display_order", nextOrder);
-                userMedalRepository.add(userMedal);
-            }
-            transaction.commit();
+            grantMedalToUserInCurrentTransaction(userId, medalId, expireTime, data);
+            tx.commit();
         } catch (RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
+            throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
+        }
+    }
+
+    public void grantMedalToUserInCurrentTransaction(final String userId,
+                                 final String medalId,
+                                 final long expireTime,
+                                 final String data) throws ServiceException, RepositoryException {
+        if (!userMedalRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        medalUsers.getForUpdate(userId);
+        Query query = new Query()
+                .setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
+                        new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
+                ));
+        JSONObject existing = userMedalRepository.getFirst(query);
+        if (existing != null && existing.length() > 0) {
+            String oId = existing.optString("oId");
+            existing.put("expire_time", expireTime);
+            existing.put("data", data);
+            userMedalRepository.update(oId, existing);
+        } else {
+            Query allMedalsQuery = new Query()
+                    .setFilter(new PropertyFilter("user_id", FilterOperator.EQUAL, userId));
+            List<JSONObject> allUserMedals = userMedalRepository.getList(allMedalsQuery);
+            int maxOrder = 0;
+            for (JSONObject medal : allUserMedals) {
+                int order = medal.optInt("display_order", 0);
+                if (order > maxOrder) {
+                    maxOrder = order;
+                }
             }
-            LOGGER.log(Level.ERROR, "Failed to grant medal [" + medalId + "] to user [" + userId + "]", e);
-            throw new ServiceException("Failed to grant medal to user");
+            int nextOrder = maxOrder + 1;
+            JSONObject userMedal = new JSONObject();
+            userMedal.put("user_id", userId);
+            userMedal.put("medal_id", medalId);
+            userMedal.put("data", data);
+            userMedal.put("expire_time", expireTime);
+            userMedal.put("display", true);
+            userMedal.put("display_order", nextOrder);
+            userMedalRepository.add(userMedal);
         }
     }
 
@@ -717,24 +763,32 @@ public class MedalService {
      */
     public void revokeMedalFromUser(final String userId,
                                     final String medalId) throws ServiceException {
+        final Transaction tx = ApiV3Transactions.strict(userMedalRepository.beginTransaction());
         try {
-            Query query = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
-                            new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
-                    ));
-            List<JSONObject> userMedals = userMedalRepository.getList(query);
-            for (JSONObject userMedal : userMedals) {
-                String oId = userMedal.optString("oId");
-                if (oId != null && !oId.isEmpty()) {
-                    Transaction transaction = userMedalRepository.beginTransaction();
-                    userMedalRepository.remove(oId);
-                    transaction.commit();
-                }
-            }
+            revokeMedalFromUserInCurrentTransaction(userId, medalId);
+            tx.commit();
         } catch (RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Failed to revoke medal [" + medalId + "] from user [" + userId + "]", e);
-            throw new ServiceException("Failed to revoke medal from user");
+            throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
+        }
+    }
+
+    public void revokeMedalFromUserInCurrentTransaction(final String userId,
+                                    final String medalId) throws ServiceException, RepositoryException {
+        if (!userMedalRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        medalUsers.getForUpdate(userId);
+        Query query = new Query()
+                .setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
+                        new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
+                ));
+        List<JSONObject> userMedals = userMedalRepository.getList(query);
+        for (JSONObject userMedal : userMedals) {
+            String oId = userMedal.optString("oId");
+            if (oId != null && !oId.isEmpty()) {
+                userMedalRepository.remove(oId);
+            }
         }
     }
 
@@ -1027,4 +1081,11 @@ public class MedalService {
 
         LOGGER.info("Finished reordering all sponsor medals.");
     }
+    public void reorderAllSponsorMedalsInCurrentTransaction() throws RepositoryException, ServiceException {
+        WeChatPayProcessor.updateMedalRanksInCurrentTransaction(WeChatPayProcessor.L1_NAME, 1);
+        WeChatPayProcessor.updateMedalRanksInCurrentTransaction(WeChatPayProcessor.L2_NAME, 2);
+        WeChatPayProcessor.updateMedalRanksInCurrentTransaction(WeChatPayProcessor.L3_NAME, 3);
+        WeChatPayProcessor.updateMedalRanksInCurrentTransaction(WeChatPayProcessor.L4_NAME, 4);
+    }
+
 }

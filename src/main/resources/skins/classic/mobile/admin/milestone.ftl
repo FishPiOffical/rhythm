@@ -38,7 +38,7 @@
         <div class="module-panel form fn-clear">
             <form action="${servePath}/admin/milestone/${milestone.oId}" method="POST">
                 <label for="milestoneTitle">大事记</label>
-                <input type="text" id="milestoneTitle" name="milestoneTitle" value="${milestone.milestoneTitle}"/>
+                <input type="text" id="milestoneTitle" name="milestoneTitle" value="${milestone.milestoneTitle?html}"/>
 
                 <label for="milestoneDate">开始日期</label>
                 <input type="date" id="milestoneDate" name="milestoneDate" value="${milestone.milestoneDate?number_to_datetime?string('yyyy-MM-dd')}">
@@ -47,16 +47,16 @@
                 <input type="date" id="milestoneEndDate" name="milestoneEndDate" value="${(milestone.milestoneEndDate?number_to_datetime?string('yyyy-MM-dd'))!''}">
 
                 <label for="milestoneContent">内容</label>
-                <textarea id="milestoneContent" name="milestoneContent" rows="5">${milestone.milestoneContent!''}</textarea>
+                <textarea id="milestoneContent" name="milestoneContent" rows="5">${(milestone.milestoneContent!'')?html}</textarea>
 
                 <label for="milestoneLink">相关链接</label>
-                <input type="text" id="milestoneLink" name="milestoneLink" value="${milestone.milestoneLink!''}">
+                <input type="text" id="milestoneLink" name="milestoneLink" value="${(milestone.milestoneLink!'')?html}">
 
                 <label for="milestoneMediaCaption">媒体标题</label>
-                <input type="text" id="milestoneMediaCaption" name="milestoneMediaCaption" value="${milestone.milestoneMediaCaption!''}">
+                <input type="text" id="milestoneMediaCaption" name="milestoneMediaCaption" value="${(milestone.milestoneMediaCaption!'')?html}">
 
                 <label for="milestoneMediaUrl">媒体链接</label>
-                <input type="text" id="milestoneMediaUrl" name="milestoneMediaUrl" value="${milestone.milestoneMediaUrl!''}">
+                <input type="text" id="milestoneMediaUrl" name="milestoneMediaUrl" value="${(milestone.milestoneMediaUrl!'')?html}">
 
                 <label for="milestoneMediaType">媒体类型</label>
                 <select id="milestoneMediaType" name="milestoneMediaType">

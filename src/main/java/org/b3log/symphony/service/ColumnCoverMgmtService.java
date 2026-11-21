@@ -90,7 +90,7 @@ public class ColumnCoverMgmtService {
 
     private JSONObject getOwnedColumn(final String userId, final String columnId)
             throws RepositoryException, ServiceException {
-        final JSONObject column = longArticleColumnRepository.get(columnId);
+        final JSONObject column = longArticleColumnRepository.getForUpdate(columnId);
         if (null == column || LongArticleColumn.COLUMN_STATUS_C_VALID != column.optInt(LongArticleColumn.COLUMN_STATUS)
                 || !StringUtils.equals(userId, column.optString(LongArticleColumn.COLUMN_AUTHOR_ID))) {
             throw new ServiceException("专栏不存在或无权限操作");

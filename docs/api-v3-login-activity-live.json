@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-03",
+  "backendPid": 11335,
+  "productionCommit": "8e9f9515",
+  "manualRebuildConfirmed": true,
+  "passwordAndAnnouncement": {
+    "date": "2026-11-03",
+    "scope": "Real v3 password login -> recent-login eligibility -> approved normal admin announcement publication -> v3 notification; no SQL recipient seeding",
+    "passed": 7,
+    "checks": [
+      "failed password login does not update activity",
+      "real successful password login records current time without online or geo changes",
+      "real cookie refresh and authenticated read do not record another login",
+      "actual published announcement reaches recently v3-logged-in owner",
+      "actual announcement description uses current escaped title",
+      "actual announcement hides withdrawn target after prior readable response",
+      "actual announcement owner isolation and authentication remain"
+    ],
+    "loginTimeRecorded": true,
+    "onlineGeoUnchanged": true,
+    "refreshAndReadUnchanged": true,
+    "perfectRewardRepeated": false,
+    "limits": [
+      "Native QR activity verified separately",
+      "Production wind-control/external services not exercised"
+    ]
+  },
+  "nativeQR": {
+    "date": "2026-11-03",
+    "backendPid": 11335,
+    "scope": "Real full-application QR create/claim/double-confirm/consume/native refresh flow using independent development account; no APP source or browser grant injection",
+    "checks": [
+      "QR create and claim do not record login",
+      "premature consume does not record login",
+      "both explicit confirmations leave login time unchanged",
+      "actual one-time APP consume records current login time",
+      "already-consumed request cannot record another login",
+      "actual native refresh and ordinary resource read preserve login time"
+    ],
+    "passed": 6,
+    "onlyConsumeRecordsLogin": true,
+    "failedAndConfirmedStatesUnchanged": true,
+    "refreshReadUnchanged": true
+  },
+  "cleanup": {
+    "announcementArticleAndNotificationsRemovedByAdmin": true,
+    "perfectRewardNotRepeated": true,
+    "totalApprovedPerfectRewards": 1,
+    "nativeProbeFamilies": 4,
+    "nativeProbeTokenRows": 12,
+    "activeProbeTokens": 0,
+    "nativeCleanup": "First probe used transactional exact family revocation after harness media error; subsequent grants revoked through existing OAuth revoke endpoint; no other grants changed"
+  },
+  "harnessCorrections": [
+    "OAuth token/revoke require URL-encoded form, not JSON",
+    "Native protocol calls omit browser Origin; no CORS relaxation",
+    "OAuth success token response is standard top-level snake_case, not v3 code/data envelope"
+  ],
+  "limits": [
+    "Complete admin browser UI was not tested; registered admin form handlers were used",
+    "Perfect type22 actual notification/reward generation was verified before this run; this run did not repeat the reward to redo its list/detail matrix",
+    "No production captcha/blacklist/unlock or full CDN/directory/upload-download audit",
+    "Natural read-settlement/profession chain remains independently observed"
+  ],
+  "sourceChangesThisRun": []
+}

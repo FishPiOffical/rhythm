@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-02",
+  "scope": "Current article-list author snapshots and signed avatar URL projection; new Java pending user rebuild",
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/service/ApiV3ContentDtoService.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3AvatarQueryService.java",
+    "src/main/java/org/b3log/symphony/util/ApiV3AvatarUrl.java",
+    "src/main/java/org/b3log/symphony/util/ApiV3ContentSnapshots.java",
+    "src/main/java/org/b3log/symphony/service/ApiV3DiscoveryQueryService.java"
+  ],
+  "testFiles": [
+    "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+    "src/test/java/org/b3log/symphony/service/ApiV3ArticleStickStateTest.java",
+    "src/test/java/org/b3log/symphony/service/ApiV3DiscoveryExtrasQueryTest.java",
+    "tools/api-v3-content-current-test.mjs",
+    "tools/api-v3-article-stick-test.mjs",
+    "tools/api-v3-discovery-extras-test.mjs",
+    "tools/api-v3-private-message-test.mjs",
+    "tools/api-v3-feed-query-test.mjs",
+    "tools/fixtures/v3-feed-query.java.txt"
+  ],
+  "focused": [
+    {
+      "database": "SQLite",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "database": "MySQL",
+      "exitCode": 0,
+      "passLines": 11
+    }
+  ],
+  "related": [
+    {
+      "runner": "tools/api-v3-article-stick-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-discovery-extras-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-private-message-test.mjs",
+      "exitCode": 0,
+      "passLines": 20
+    },
+    {
+      "runner": "tools/api-v3-profile-test.mjs",
+      "exitCode": 0,
+      "passLines": 2
+    },
+    {
+      "runner": "tools/api-v3-feed-query-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    }
+  ],
+  "totalPassLines": 67,
+  "negativeControls": [
+    "Old cached summary author fallback passes first 10 groups, fails new group11",
+    "Removing query parameters from stored avatar URL passes first 10 groups, fails new group11"
+  ],
+  "baseline": "api-v3-public-author-baseline.json",
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "problems": 0
+  },
+  "limits": [
+    "User IDEA rebuild/restart required before actual runtime revalidation",
+    "Feed SQL snapshot test uses actual production method with SQLite/DTO adapters; focused MySQL exercises shared snapshot SQL and DTO, not all full Discovery list variants",
+    "No remote image fetching; preserving a signed URL does not prove the provider serves an image",
+    "Classic image resize/static display behavior unchanged; no guarantee of cross-request snapshot serialization"
+  ]
+}

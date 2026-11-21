@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "scope": "Four concurrent fresh purchase requests across two distinct keys, same-key duplication, committed status/body and ledger",
+  "results": [
+    {
+      "step": "before-purchase-status",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "before-purchase-body-hidden",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "owner-body-reference",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "parallel-purchase-0",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true,
+      "safeResponseFields": [
+        "id",
+        "rewarded"
+      ]
+    },
+    {
+      "step": "parallel-purchase-1",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true,
+      "safeResponseFields": [
+        "id",
+        "rewarded"
+      ]
+    },
+    {
+      "step": "parallel-purchase-2",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true,
+      "safeResponseFields": [
+        "id",
+        "rewarded"
+      ]
+    },
+    {
+      "step": "parallel-purchase-3",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true,
+      "safeResponseFields": [
+        "id",
+        "rewarded"
+      ]
+    },
+    {
+      "step": "same-key-replay-0",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "same-key-replay-1",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "after-current-status",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "after-body-unlocked",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "guest-still-hidden",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    }
+  ],
+  "price": 17,
+  "debitCount": 1,
+  "creditCount": 1,
+  "purchaseRecordCount": 1,
+  "transferCount": 1,
+  "notificationCount": 1,
+  "idempotencyReceiptCount": 2,
+  "bothAccountIndexesUnique": true,
+  "prePostBalanceDeltaCheckPassedBeforeHarnessMetadataFailure": true,
+  "currentBalancesMatchCommittedTransfer": true,
+  "resumedOriginalKeysNoExtraCharge": true,
+  "guestStillCannotReadPaidBody": true,
+  "harnessCorrection": "Initial metadata assertion used plain SHA256 hex; actual utility prefixes rhythm-api-v3: and emits Base64URL. Inspected source and resumed saved original keys; no second fresh purchase",
+  "retainedFixture": "One legitimate test-account purchase, two safe idempotency receipts, one transfer with account indexes and one author notification; not removed/refunded by SQL",
+  "limits": [
+    "One application instance, no cross-node/network lost-ACK injection",
+    "Original process compared independent pre/post balances successfully before receipt-query assertion; resume preserves current balances and verifies committed ledger rather than inventing an original snapshot",
+    "Actual paid body equality against current author representation; no owner source access granted",
+    "Production captcha/blacklist and whole-site static/CDN/directory audit not repeated"
+  ],
+  "browser": {
+    "buyerAccountRead": true,
+    "reloadAfterAuthRestoreStillUnlocked": true,
+    "logoutRemovesPaidBody": true,
+    "noExtraPurchaseSubmittedInBrowser": true,
+    "finalPurchaseTransferNotificationCounts": [
+      1,
+      1,
+      1
+    ],
+    "mobileWidth": 390,
+    "mobileScrollWidth": 390,
+    "capturedWarnErrorCount": 0,
+    "originalAccountAndViewportRestored": true,
+    "screenshot": "Private .idea/rhythm-local/browser-purchase-concurrent-mobile-fixed.png"
+  }
+}

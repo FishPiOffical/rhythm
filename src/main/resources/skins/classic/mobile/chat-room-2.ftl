@@ -47,7 +47,7 @@
                             <#-- 消息列表区域 -->
                             <div class="chat-room__messages">
                                 <div class="list" id="comments" style="height: auto; padding: 20px 30px 5px 30px">
-                                    <div id="chats">
+                                    <div id="chats" data-pet-home-url="${petHomeUrl?html}">
                                     </div>
                                     <#if !isLoggedIn>
                                         <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>
@@ -395,6 +395,7 @@
     }
     Label.onlineAvatarData = "";
 </script>
+<#if currentUser??><script src="${staticServePath}/js/chat-game-status${miniPostfix}.js?${staticResourceVersion}"></script></#if>
 <script>
     // 判断消息区是否接近底部（用于决定是否自动跟随新消息滚动）
     ChatRoom.isAtBottom = function (threshold) {

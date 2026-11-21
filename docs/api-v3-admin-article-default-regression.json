@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-03",
+  "status": "LIVE_ADMIN_CREATION_PERFECT_AND_ANNOUNCEMENT_GENERATION_VERIFIED",
+  "scope": "User-approved local admin-triggered perfect and system-announcement event test; real admin form exposed existing required-field omission before article persistence",
+  "reproduction": {
+    "normalAdminLogin": true,
+    "form": "POST /admin/add-article",
+    "result": "Admin error page: Field isGoodArticle does not have a default value",
+    "createdArticles": 0,
+    "notificationsProduced": 0,
+    "perfectRewardsProduced": 0
+  },
+  "fix": {
+    "file": "src/main/java/org/b3log/symphony/service/ArticleMgmtService.java",
+    "method": "addArticleByAdmin",
+    "behavior": "Explicit empty ARTICLE_GOOD_POST; matches normal article publication unmarked value",
+    "schemaChanges": false
+  },
+  "checks": {
+    "articleRunnerPASS": 66,
+    "currentMySQLSchemaRequiredColumnsWithoutDefault": 39,
+    "explicitAdminConstructedColumns": 39,
+    "missingRequiredColumnsAfterFix": [],
+    "diffCheck": true
+  },
+  "limits": [
+    "Schema/constructor field coverage is static evidence, not execution of fixed admin method",
+    "Actual admin creation/perfect reward/announcement awaiting manual Java rebuild",
+    "Production anonymous/captcha/blacklist/unlock/CDN/directory/upload-download not exercised; existing auth routes unchanged"
+  ],
+  "next": [
+    "Do not repeat the already verified100point perfect reward just to increase test count",
+    "Retain limits recorded in api-v3-login-activity-live.json"
+  ],
+  "liveAfterUserRebuild": {
+    "backendPid": 89663,
+    "normalAdminArticleCreation": true,
+    "normalAdminDeletion": true,
+    "perfectNotificationType22": 1,
+    "perfectRewardPoints": 100,
+    "perfectLedgerCount": 1,
+    "perfectLedgerIndexes": 2,
+    "testArticlesRemaining": 0,
+    "matchingNotificationsRemaining": 0,
+    "SQLRefund": false,
+    "announcementArticlePublished": true,
+    "announcementNotificationObserved": false,
+    "announcementRecipientCause": "Development v3-only recipients have userLatestLoginTime=0; existing filter requires recent login; old UserChannel is the only active updater",
+    "unrelatedEnvironmentIssue": "IPv6 literal admin redirect produced invalid legacy address after commit; exact created row cleaned by normal localhost admin deletion; subsequent tests used verified localhost"
+  },
+  "announcementGapResolution": {
+    "approvedLoginActivityFix": "8e9f9515",
+    "deployedPid": 11335,
+    "actualLoginAndAnnouncementChecks": 7,
+    "noSQLRecipientEligibilitySeeding": true,
+    "evidence": "api-v3-login-activity-live.json"
+  }
+}

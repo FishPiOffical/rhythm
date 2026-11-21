@@ -18,12 +18,6 @@
  */
 package org.b3log.symphony.processor;
 
-import com.qiniu.cdn.CdnManager;
-import com.qiniu.cdn.CdnResult;
-import com.qiniu.storage.BucketManager;
-import com.qiniu.storage.Configuration;
-import com.qiniu.storage.Region;
-import com.qiniu.util.Auth;
 
 import cn.hutool.core.collection.CollectionUtil;
 
@@ -51,11 +45,9 @@ import org.b3log.latke.util.CollectionUtils;
 import org.b3log.latke.util.Paginator;
 import org.b3log.latke.util.Strings;
 import org.b3log.symphony.Server;
-import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.*;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
@@ -68,15 +60,17 @@ import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Firewall;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static org.b3log.symphony.util.Symphonys.QN_ENABLED;
 
 /**
  * Admin processor.
@@ -260,6 +254,9 @@ public class AdminProcessor {
     @Inject
     private PointtransferMgmtService pointtransferMgmtService;
 
+    @Inject
+    private AdminSalaryService salaryService;
+
     /**
      * Pointtransfer query service.
      */
@@ -332,6 +329,9 @@ public class AdminProcessor {
     @Inject
     private ReportQueryService reportQueryService;
 
+    @Inject
+    private RepeaterMgmtService repeaterMgmtService;
+
     /**
      * Operation management service.
      */
@@ -370,6 +370,12 @@ public class AdminProcessor {
     private UploadRepository uploadRepository;
 
     @Inject
+    private AdminImageReviewService imageReviewService;
+
+    @Inject
+    private AdminMiscSettingsService miscSettings;
+
+    @Inject
     private SystemSettingsService settingsService;
 
     @Inject
@@ -380,6 +386,12 @@ public class AdminProcessor {
      */
     @Inject
     private LongArticleReadService longArticleReadService;
+
+    @Inject
+    private PetAdminLogQueryService petAdminLogQueryService;
+
+    @Inject
+    private PetAnalyticsService petAnalyticsService;
 
     /**
      * Register request handlers.
@@ -394,9 +406,13 @@ public class AdminProcessor {
 
         Dispatcher.get("/cron/long-article/settle", adminProcessor::settleLongArticleReward, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/admin/auditlog", adminProcessor::showAuditlog, middlewares);
+        Dispatcher.get("/admin/pet-logs", adminProcessor::showPetLogs);
+        Dispatcher.get("/admin/pet-logs/export", adminProcessor::exportPetAnalytics);
         Dispatcher.get("/admin/report/ignore/{reportId}", adminProcessor::makeReportIgnored, middlewares);
         Dispatcher.get("/admin/report/{reportId}", adminProcessor::makeReportHandled, middlewares);
         Dispatcher.get("/admin/reports", adminProcessor::showReports, middlewares);
+        Dispatcher.post("/admin/repeater/{id}/remove", adminProcessor::removeRepeater,
+                loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/admin/role/{roleId}/remove", adminProcessor::removeRole, middlewares);
         Dispatcher.get("/admin/breezemoons", adminProcessor::showBreezemoons, middlewares);
         Dispatcher.get("/admin/breezemoon/{breezemoonId}", adminProcessor::showBreezemoon, middlewares);
@@ -471,6 +487,9 @@ public class AdminProcessor {
         Dispatcher.post("/admin/security/firewall", adminProcessor::toggleFirewall, permissionMidware::check, csrfMidware::check);
         Dispatcher.post("/admin/security/verification", adminProcessor::toggleVerificationShield, permissionMidware::check, csrfMidware::check);
         Dispatcher.post("/admin/security/verification-first", adminProcessor::toggleFirstVisitCaptcha, permissionMidware::check, csrfMidware::check);
+        Dispatcher.post("/admin/security/save", adminProcessor::saveSecuritySwitches, permissionMidware::check, csrfMidware::check);
+        Dispatcher.get("/admin/security/monitor", adminProcessor::securityMonitor, permissionMidware::check);
+        Dispatcher.get("/admin/security/self-check", adminProcessor::securitySelfCheck, permissionMidware::check);
         Dispatcher.get("/admin/ip", adminProcessor::showIp, middlewares);
         Dispatcher.post("/admin/ip", adminProcessor::modifyIp, middlewares);
         Dispatcher.get("/admin/pic", adminProcessor::showPic, middlewares);
@@ -570,96 +589,25 @@ public class AdminProcessor {
     }
 
     public void markPic(final RequestContext context) {
-        final Request request = context.getRequest();
-        final JSONObject user = Sessions.getUser();
-        String userId = user.optString(Keys.OBJECT_ID);
-        String uname = user.optString(User.USER_NAME);
-
+        final JSONObject actor = Sessions.getUser();
+        if (actor == null) {
+            context.sendError(401);
+            return;
+        }
         try {
-            String type = context.param("type");
-            String oId = context.param("oId");
-            Long month = System.currentTimeMillis() - 45L * 24 * 60 * 60 * 1000;
-            if (Long.parseLong(oId) < month) {
-                context.renderJSON(StatusCodes.ERR);
-                context.renderMsg("此图片已超过45天，无法审核！");
+            final JSONObject accepted = imageReviewService.reserveLegacy(context.param("oId"), context.param("type"),
+                    context.getRequest(), actor);
+            final JSONObject result = imageReviewService.complete(accepted, actor.getString(Keys.OBJECT_ID));
+            if (result.optInt("reviewed") != 1) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("图片云端审核结果待核对，请勿重复处理");
                 return;
             }
-
-            JSONObject picture = uploadRepository.get(oId);
-            String path = picture.optString("path");
-
-            if (!picture.optBoolean("public")) {
-                context.renderJSON(StatusCodes.ERR);
-                context.renderMsg("此照片已被审核过，请勿重复审核！");
-                return;
-            }
-
-            // 修改审核状态
-            JSONObject status = new JSONObject();
-            status.put("public", false);
-            Transaction transaction = uploadRepository.beginTransaction();
-            uploadRepository.update(oId, status);
-            transaction.commit();
-
-            if ("normal".equals(type)) {
-                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, 2, oId, System.currentTimeMillis(), "参与图片审核奖励：正常图片");
-                context.renderJSON(StatusCodes.SUCC);
-                context.renderMsg("审核成功，奖励已发放！");
-                return;
-            }
-
-            // 抹除MD5
-            status = new JSONObject();
-            if ("illegal".equals(type)) {
-                status.put("md5", "delete by " + uname);
-            }
-            transaction = uploadRepository.beginTransaction();
-            uploadRepository.update(oId, status);
-            transaction.commit();
-
-            if ("illegal".equals(type)) {
-                // 删除图片
-                if (QN_ENABLED) {
-                    Auth auth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
-                    Configuration cfg = new Configuration(Region.autoRegion());
-                    BucketManager bucketManager = new BucketManager(auth, cfg);
-                    String filename = path.replaceAll(Symphonys.UPLOAD_QINIU_DOMAIN + "/", "");
-                    LOGGER.log(Level.INFO, "Delete cdn file: " + filename);
-                    bucketManager.delete(Symphonys.UPLOAD_QINIU_BUCKET, filename);
-                    String[] urls = new String[]{path};
-                    CdnManager c = new CdnManager(auth);
-                    CdnResult.RefreshResult result = c.refreshUrls(urls);
-                    LOGGER.log(Level.INFO, "CDN Refresh result: " + result.code);
-                } else {
-                    context.renderJSON(StatusCodes.ERR);
-                    context.renderMsg("不支持操作本地图床！");
-                    return;
-                }
-            }
-
-            // 奖惩
-            if ("illegal".equals(type)) {
-                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, 128, oId, System.currentTimeMillis(), "参与图片审核奖励：违规图片");
-
-                String picUserName = picture.optString("userName");
-                String picUserId = userQueryService.getUserByName(picUserName).optString(Keys.OBJECT_ID);
-                ChatRoomBot.sendBotMsg("犯罪嫌疑人 @" + picUserName + "  由于上传违法文件/图片，被处以 500 积分的处罚，请引以为戒。\n@" + uname + "  处理人\n@adlered  审批人");
-                ChatRoomBot.abusePoint(picUserId, 500, "机器人罚单-上传违规文件");
-            }
-            String picData = picture.toString();
-            if (picData.length() > 254) {
-                picData = picData.substring(0, 254);
-            }
-            operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_DELETE_PICTURE, picData));
-
-            context.renderJSON(StatusCodes.SUCC);
-            context.renderMsg("审核成功，奖励已发放！");
-        } catch (Exception e) {
-            context.renderJSON(StatusCodes.ERR);
-            context.renderMsg("审核失败，原因：" + e.getCause());
-            LOGGER.error(e.getMessage(), e);
+            context.renderJSON(StatusCodes.SUCC).renderMsg("审核成功，奖励已发放！");
+        } catch (final ApiV3Exception e) {
+            context.renderJSON(StatusCodes.ERR).renderMsg(e.getMessage());
+        } catch (final Exception e) {
+            LOGGER.error("图片审核未确认", e);
+            context.renderJSON(StatusCodes.ERR).renderMsg("图片审核未确认，请核对原审核记录");
         }
     }
 
@@ -671,7 +619,7 @@ public class AdminProcessor {
         final int pageNum = Paginator.getPage(request);
         final int pageSize = 50;
         final int windowSize = WINDOW_SIZE;
-        String month = String.valueOf(System.currentTimeMillis() - 45L * 24 * 60 * 60 * 1000);
+        String month = String.valueOf(System.currentTimeMillis() - AdminImageReviewService.WINDOW);
         final List<Filter> filters = new ArrayList<>();
         filters.add(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN_OR_EQUAL, month));
         filters.add(new PropertyFilter("public", FilterOperator.EQUAL, 1));
@@ -725,11 +673,8 @@ public class AdminProcessor {
                             continue;
                         }
                         Firewall.unbanIp(ip);
-                        AnonymousViewCheckMidware.whiteList.add(ip);
-                        AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipFirstVisitTimeCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
+                        // 验证码盾解封须在系统解封之后；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+                        AnonymousCaptchaShield.administratorUnban(ip);
                         LogsService.simpleLog(context, "解封IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
                     break;
@@ -739,7 +684,8 @@ public class AdminProcessor {
                         if (ip.isEmpty()) {
                             continue;
                         }
-                        AnonymousViewCheckMidware.whiteList.remove(ip);
+                        // 系统封禁前撤销验证码豁免；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+                        AnonymousCaptchaShield.removeWhitelist(ip);
                         Firewall.banIp(ip);
                         LogsService.simpleLog(context, "封禁IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
@@ -882,6 +828,75 @@ public class AdminProcessor {
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
+    /** 分析导出沿用宠物日志的管理员网页会话权限。 */
+    public void exportPetAnalytics(final RequestContext context) {
+        final var response = context.getResponse();
+        response.setHeader("Cache-Control", "private, no-store");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        if (!petLogsAuthorized(context)) return;
+        final LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        try {
+            final var range = PetAdminLogQueryService.filters("activity", null, context.param("from"), context.param("to"), null, null, today);
+            final byte[] archive = petAnalyticsService.export(LocalDate.parse(range.from()), LocalDate.parse(range.to()));
+            response.setHeader("Content-Type", "application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=pet-analytics-" + range.from() + "-" + range.to() + ".zip");
+            response.sendBytes(archive);
+        } catch (final IllegalArgumentException error) {
+            context.setStatus(400);
+            response.setHeader("Content-Type", "text/plain; charset=utf-8");
+            response.sendBytes(error.getMessage().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (final Exception error) {
+            LOGGER.warn("导出宠物分析失败 ({})", error.getClass().getSimpleName());
+            context.setStatus(503);
+            response.setHeader("Content-Type", "text/plain; charset=utf-8");
+            response.sendBytes("宠物分析暂不可导出，请核对导出配置、数据迁移和日期范围。".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+    }
+
+    private boolean petLogsAuthorized(final RequestContext context) {
+        final JSONObject admin = Sessions.getUser();
+        if (admin != null && Role.ROLE_ID_C_ADMIN.equals(admin.optString(User.USER_ROLE))
+                && admin.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID && !isApiKeyRequest(context)) return true;
+        context.sendError(admin == null ? 401 : 403);
+        context.abort();
+        return false;
+    }
+
+    /** 只使用已校验的网页会话，旧 apiKey 不可读取宠物日志。 */
+    public void showPetLogs(final RequestContext context) {
+        context.getResponse().setHeader("Cache-Control", "private, no-store");
+        if (!petLogsAuthorized(context)) return;
+
+        final LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        final var renderer = new SkinRenderer(context, "admin/pet-logs.ftl");
+        final Map<String, Object> data = renderer.getDataModel();
+        final String tab = "risk".equals(context.param("tab")) ? "risk" : "activity";
+        var filters = PetAdminLogQueryService.filters(tab, null, null, null, null, null, today);
+        var result = new PetAdminLogQueryService.Page(List.of(), false);
+        try {
+            filters = PetAdminLogQueryService.filters(context.param("tab"), context.param("user"),
+                    context.param("from"), context.param("to"), context.param("operation"), context.param("p"), today);
+            result = petAdminLogQueryService.list(filters);
+        } catch (final IllegalArgumentException error) {
+            context.setStatus(400);
+            data.put("petLogError", error.getMessage());
+        } catch (final RepositoryException error) {
+            context.setStatus(503);
+            data.put("petLogError", "宠物日志暂时无法读取，请检查相关数据表是否已迁移。");
+            LOGGER.warn("读取宠物日志失败", error);
+        }
+        data.put("petLogTab", filters.tab());
+        data.put("petLogUser", filters.user());
+        data.put("petLogFrom", filters.from());
+        data.put("petLogTo", filters.to());
+        data.put("petLogOperation", filters.operation());
+        data.put("petLogOperations", PetAdminLogQueryService.operations(filters.tab()));
+        data.put("petLogPage", filters.page());
+        data.put("petLogHasNext", result.hasNext());
+        data.put("petLogRows", result.rows());
+        dataModelService.fillHeaderAndFooter(context, data);
+    }
+
     /**
      * Makes a report as ignored .
      *
@@ -956,6 +971,26 @@ public class AdminProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, CollectionUtils.jsonArrayToList(pageNums));
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    public void removeRepeater(final RequestContext context) {
+        final JSONObject actor = (JSONObject) context.attr(User.USER);
+        if (actor == null || Sessions.getUser() == null
+                || !actor.optString(Keys.OBJECT_ID).equals(Sessions.getUser().optString(Keys.OBJECT_ID))
+                || !Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_MENU_ADMIN_REPORTS),
+                roleQueryService.getPermissions(actor.optString(User.USER_ROLE)))) {
+            context.sendError(403);
+            return;
+        }
+        final String id = context.pathVar("id");
+        try {
+            repeaterMgmtService.removeContent(id, Operation.newOperation(context.getRequest(),
+                    Operation.OPERATION_CODE_C_REMOVE_REPEATER, id));
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (final ServiceException e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg(e.getMessage());
+        }
     }
 
     /**
@@ -2628,12 +2663,45 @@ public class AdminProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/misc.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
 
+        final boolean securityPanelAllowed = isSecurityAdminSession();
+        dataModel.put("securityPanelAllowed", securityPanelAllowed);
+        if (securityPanelAllowed) {
+            context.getResponse().setHeader("Cache-Control", "private, no-store");
+            final String name = StringUtils.trimToEmpty(context.param("leaseUserName"));
+            final boolean validName = name.length() <= 64 && name.codePoints().noneMatch(java.lang.Character::isISOControl);
+            dataModel.put("leaseUserName", validName ? name : "");
+            if (!validName) {
+                dataModel.put("leaseError", "用户名格式无效");
+            } else {
+                final UserIpLeaseService leaseService = BeanManager.getInstance().getReference(UserIpLeaseService.class);
+                try {
+                    final var recent = leaseService.findRecentUsers().stream().map(JSONObject::toMap).toList();
+                    if (!name.isEmpty()) {
+                        dataModel.put("leaseSearchResult", leaseService.findByUserName(name).stream().map(JSONObject::toMap).toList());
+                    }
+                    dataModel.put("leaseRecentUsers", recent);
+                } catch (final RepositoryException error) {
+                    LOGGER.error("查询账号 IP 租约失败", error);
+                    dataModel.put("leaseError", "暂时无法查询租约");
+                }
+            }
+        }
+
         final List<JSONObject> misc = optionQueryService.getMisc();
         dataModel.put(Option.OPTIONS, misc);
-        dataModel.put("firewallEnabled", Firewall.isEnabled());
-        dataModel.put("firewallThreshold", Firewall.getThreshold());
-        dataModel.put("verificationShieldEnabled", AnonymousViewCheckMidware.isEnabled());
-        dataModel.put("firstVisitCaptchaEnabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        if (securityPanelAllowed) {
+            dataModel.put("firewallEnabled", Firewall.isEnabled());
+            dataModel.put("firewallThreshold", Firewall.getThreshold());
+            // 验证码盾状态唯一来源；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
+            dataModel.put("verificationShieldEnabled", AnonymousCaptchaShield.isEnabled());
+            dataModel.put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
+            dataModel.put("securityRuntimeMode", Latkes.getRuntimeMode().name());
+            dataModel.put("securitySwitchEditable", isSecurityEditable());
+            dataModel.put("securityStats", SecurityMonitor.snapshot());
+            dataModel.put("securityEvents", SecurityMonitor.recentEvents(true));
+            dataModel.put("crawlerStats", CrawlerMonitor.snapshot(null));
+            dataModel.put("securitySelfCheck", SecuritySelfCheck.run());
+        }
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2649,28 +2717,34 @@ public class AdminProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/misc.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
 
-        List<JSONObject> misc = new ArrayList<>();
-
-        final Iterator<String> parameterNames = request.getParameterNames().iterator();
-        while (parameterNames.hasNext()) {
-            final String name = parameterNames.next();
-            final String value = context.param(name);
-
-            final JSONObject option = new JSONObject();
-            option.put(Keys.OBJECT_ID, name);
-            option.put(Option.OPTION_VALUE, value);
-            option.put(Option.OPTION_CATEGORY, Option.CATEGORY_C_MISC);
-
-            misc.add(option);
+        JSONObject actor = Sessions.getUser();
+        try {
+            actor = ApiProcessor.getUserByKey(context.param("apiKey"));
+        } catch (final NullPointerException ignored) { }
+        try {
+            actor = ApiProcessor.getUserByKey(context.requestJSON().optString("apiKey"));
+        } catch (final NullPointerException ignored) { }
+        if (actor == null) {
+            context.sendError(401);
+            return;
+        }
+        final JSONObject changes = new JSONObject();
+        for (final String name : request.getParameterNames()) {
+            if ("apiKey".equals(name) || "csrfToken".equals(name)) continue;
+            changes.put(name, context.param(name));
+        }
+        try {
+            miscSettings.updateLegacy(changes, roleQueryService.getPermissions(actor.optString(User.USER_ROLE)), request, actor);
+        } catch (final ApiV3Exception e) {
+            context.sendError(e.status);
+            return;
+        } catch (final Exception e) {
+            LOGGER.error("更新站点杂项配置失败", e);
+            context.sendError(503);
+            return;
         }
 
-        for (final JSONObject option : misc) {
-            optionMgmtService.updateOption(option.getString(Keys.OBJECT_ID), option);
-        }
-        operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_UPDATE_MISC, ""));
-
-        misc = optionQueryService.getMisc();
-        dataModel.put(Option.OPTIONS, misc);
+        dataModel.put(Option.OPTIONS, optionQueryService.getMisc());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2679,8 +2753,7 @@ public class AdminProcessor {
      * Toggle CC firewall (temporary, resets on restart).
      */
     public void toggleFirewall(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2709,18 +2782,19 @@ public class AdminProcessor {
      * Toggle anonymous verification shield (temporary, resets on restart).
      */
     public void toggleVerificationShield(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
         }
 
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
-        AnonymousViewCheckMidware.setEnabled(enabled);
+        // 须保留上方管理员鉴权；未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setEnabled(enabled);
 
         final JSONObject data = new JSONObject();
-        data.put("enabled", AnonymousViewCheckMidware.isEnabled());
+        // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
+        data.put("enabled", AnonymousCaptchaShield.isEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区验证盾已" + (enabled ? "开启" : "关闭"));
     }
 
@@ -2728,32 +2802,92 @@ public class AdminProcessor {
      * Toggle first-visit captcha rule (temporary, resets on restart).
      */
     public void toggleFirstVisitCaptcha(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
         }
 
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
-        AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(enabled);
+        // 须保留上方管理员鉴权；未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(enabled);
 
         final JSONObject data = new JSONObject();
-        data.put("enabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
+        data.put("enabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("首次访问验证码已" + (enabled ? "开启" : "关闭"));
     }
 
-    private JSONObject getCurrentUser(final RequestContext context) {
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        } catch (final Exception ignored) {
+    /** Atomically applies all temporary security switches in development mode. */
+    public void saveSecuritySwitches(final RequestContext context) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
+            context.sendError(403);
+            context.abort();
+            return;
         }
-        return currentUser;
+        final String thresholdText = StringUtils.trim(context.param("threshold"));
+        final int threshold;
+        try {
+            threshold = Integer.parseInt(thresholdText);
+        } catch (final NumberFormatException e) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("每分钟请求数必须是正整数");
+            return;
+        }
+        if (threshold <= 0) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("每分钟请求数必须大于0");
+            return;
+        }
+        final boolean firewallEnabled = Boolean.parseBoolean(context.param("firewallEnabled"));
+        final boolean verificationEnabled = Boolean.parseBoolean(context.param("verificationEnabled"));
+        final boolean firstVisitEnabled = Boolean.parseBoolean(context.param("firstVisitCaptchaEnabled"));
+        Firewall.setThreshold(threshold);
+        Firewall.setEnabled(firewallEnabled);
+        // 未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setEnabled(verificationEnabled);
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(firstVisitEnabled);
+        final JSONObject data = securitySwitchData();
+        SecurityMonitor.record("settings", "update", "统一保存");
+        context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("安全开关已保存");
     }
 
-    private boolean isSecurityOperator(final JSONObject currentUser) {
-        return currentUser != null && "adlered".equals(currentUser.optString(User.USER_NAME));
+    public void securityMonitor(final RequestContext context) {
+        if (!isSecurityAdminSession()) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        context.getResponse().setHeader("Cache-Control", "private, no-store");
+        context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecurityMonitor.snapshot())
+                .put("crawlers", CrawlerMonitor.snapshot(context.param("crawler")))
+                .put("events", SecurityMonitor.recentEvents(true)));
+    }
+
+    public void securitySelfCheck(final RequestContext context) {
+        if (!isSecurityAdminSession()) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecuritySelfCheck.run()));
+    }
+
+    private JSONObject securitySwitchData() {
+        return new JSONObject().put("firewallEnabled", Firewall.isEnabled())
+                .put("threshold", Firewall.getThreshold())
+                .put("verificationEnabled", AnonymousCaptchaShield.isEnabled())
+                .put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled())
+                .put("runtimeMode", Latkes.getRuntimeMode().name())
+                .put("editable", isSecurityEditable());
+    }
+
+    private boolean isSecurityEditable() {
+        return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
+    }
+
+    private boolean isSecurityAdminSession() {
+        final JSONObject sessionUser = Sessions.getUser();
+        return sessionUser != null && Role.ROLE_ID_C_ADMIN.equals(sessionUser.optString(User.USER_ROLE))
+                && sessionUser.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID;
     }
 
     /**
@@ -3277,10 +3411,17 @@ public class AdminProcessor {
         final long startTime = System.currentTimeMillis();
         int successCount = 0;
         int failCount = 0;
+        int unknownCount = 0;
+        int unprocessedCount = 0;
         final StringBuilder failDetails = new StringBuilder();
 
         for (int i = 0; i < employees.length(); i++) {
             final JSONObject employee = employees.optJSONObject(i);
+            if (employee == null) {
+                failCount++;
+                failDetails.append("员工条目无效\n");
+                continue;
+            }
             final String userName = employee.optString("userName");
             final int amount = employee.optInt("amount");
 
@@ -3299,26 +3440,18 @@ public class AdminProcessor {
                 }
 
                 final String toId = user.optString(Keys.OBJECT_ID);
-                final String memo = "发放工资";
-                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, toId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, amount, toId,
-                        System.currentTimeMillis(), memo);
-                final JSONObject notification = new JSONObject();
-                notification.put(Notification.NOTIFICATION_USER_ID, toId);
-                notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-                notificationMgmtService.addPointTransferNotification(notification);
-
-                if (null != transferId) {
-                    successCount++;
-                    logMessage.append(userName).append("：").append(amount).append(" 积分\n");
-                } else {
-                    failCount++;
-                    failDetails.append("用户名：").append(userName).append("，转账失败\n");
-                }
-            } catch (final Exception e) {
+                salaryService.pay(toId, userName, amount, "发放工资");
+                successCount++;
+                logMessage.append(userName).append("：").append(amount).append(" 积分\n");
+            } catch (final ApiV3Exception e) {
                 failCount++;
-                failDetails.append("用户名：").append(userName).append("，错误：").append(e.getMessage()).append("\n");
+                failDetails.append("用户名：").append(userName).append("，").append(e.getMessage()).append("\n");
+            } catch (final Exception e) {
+                unknownCount = 1;
+                unprocessedCount = employees.length() - i - 1;
+                failDetails.append("用户名：").append(userName).append("，发放结果待核对\n");
                 LOGGER.log(Level.ERROR, "Pay salary to [" + userName + "] failed", e);
+                break;
             }
         }
 
@@ -3329,8 +3462,12 @@ public class AdminProcessor {
         logMessage.append("\n成功发放：").append(successCount).append(" 人\n");
         if (failCount > 0) {
             logMessage.append("发放失败：").append(failCount).append(" 人\n");
-            logMessage.append("失败详情：\n").append(failDetails);
         }
+        if (unknownCount > 0) {
+            logMessage.append("结果待核对：").append(unknownCount).append(" 人，尚未处理：")
+                    .append(unprocessedCount).append(" 人\n");
+        }
+        if (failCount + unknownCount > 0) logMessage.append("详情：\n").append(failDetails);
         logMessage.append("\n完成时间：").append(completeTime);
 
         // 生成日志
@@ -3343,7 +3480,11 @@ public class AdminProcessor {
         result.put("completeTime", completeTime);
         result.put("logMessage", logMessage.toString());
 
-        if (failCount > 0) {
+        if (unknownCount > 0) {
+            result.put("unknownCount", unknownCount).put("unprocessedCount", unprocessedCount);
+            context.renderJSON(StatusCodes.ERR).renderJSON(result);
+            context.renderMsg("工资发放已中止，请核对本次发放结果");
+        } else if (failCount > 0) {
             context.renderJSON(StatusCodes.SUCC).renderJSON(result);
             context.renderMsg("部分员工发放失败");
         } else {
@@ -3353,21 +3494,7 @@ public class AdminProcessor {
     }
 
     private void updateArticleSearchIndex(final JSONObject article) {
-        if (null == article || Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)
-                || Article.ARTICLE_TYPE_C_THOUGHT == article.optInt(Article.ARTICLE_TYPE)) {
-            return;
-        }
-
-        if (Symphonys.ALGOLIA_ENABLED) {
-            searchMgmtService.updateAlgoliaDocument(article);
-        }
-
-        if (Symphonys.ES_ENABLED) {
-            searchMgmtService.updateESDocument(article, Article.ARTICLE);
-        }
-
-        final String articlePermalink = Latkes.getServePath() + article.optString(Article.ARTICLE_PERMALINK);
-        ArticleBaiduSender.sendToBaidu(articlePermalink);
+        articleMgmtService.updateAdminArticleSearchIndex(article);
     }
 
 

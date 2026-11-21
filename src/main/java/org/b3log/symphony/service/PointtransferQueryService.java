@@ -34,6 +34,7 @@ import org.b3log.symphony.util.DateUtils;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Escapes;
 import org.b3log.symphony.util.Symphonys;
+import org.b3log.symphony.util.UserNamePointData;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -237,6 +238,10 @@ public class PointtransferQueryService {
      * </pre>
      */
     public JSONObject getUserPoints(final String userId, final int currentPageNum, final int pageSize) {
+        return getUserPoints(userId, currentPageNum, pageSize, true);
+    }
+
+    public JSONObject getUserPoints(final String userId, final int currentPageNum, final int pageSize, final boolean includeDescription) {
         try {
             final JSONObject ret = PointtransferRedcRepository.getPointtransferByUserId(userId, currentPageNum, pageSize);
             JSONArray arr = ret.optJSONArray("rslts");
@@ -253,6 +258,8 @@ public class PointtransferQueryService {
 
                 final String toId = record.optString(Pointtransfer.TO_ID);
                 final String fromId = record.optString(Pointtransfer.FROM_ID);
+                if (!includeDescription && !userId.equals(toId) && !userId.equals(fromId))
+                    throw new RepositoryException("会员流水索引与用户不匹配");
 
                 String typeStr = record.optString(Pointtransfer.TYPE);
                 if (("3".equals(typeStr) && userId.equals(toId))
@@ -273,12 +280,26 @@ public class PointtransferQueryService {
                     record.put(Common.OPERATION, "+");
                 }
 
-                record.put(Common.DISPLAY_TYPE, langPropsService.get("pointType" + typeStr + "Label"));
-
                 final int type = record.optInt(Pointtransfer.TYPE);
                 final String dataId = record.optString(Pointtransfer.DATA_ID);
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type) {
+                    // 外观购买没有对应的语言资源，必须在通用 key 查询前单独投影。
+                    record.put(Common.DISPLAY_TYPE, "外观购买");
+                } else if (Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE == type) {
+                    record.put(Common.DISPLAY_TYPE, "宠物乱斗强化");
+                } else if (Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE == type) {
+                    record.put(Common.DISPLAY_TYPE, "宠物咖啡");
+                } else {
+                    record.put(Common.DISPLAY_TYPE, langPropsService.get("pointType" + typeStr + "Label"));
+                }
+
+                if (!includeDescription) continue;
+
                 String desTemplate;
-                if (Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST == type) {
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type || Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE == type
+                        || Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE == type) {
+                    desTemplate = Escapes.escapeHTML(dataId);
+                } else if (Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST == type) {
                     desTemplate = buildAppPointDescription(record, userId.equals(toId));
                 } else {
                     desTemplate = langPropsService.get("pointType" + typeStr + "DesLabel");
@@ -452,6 +473,10 @@ public class PointtransferQueryService {
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST:
                         break;
+                    case Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE:
+                    case Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE:
+                    case Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE:
+                        break;
                     case Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER:
                         final JSONObject newUser = userRepository.get(dataId);
                         final String newUserLink = UserExt.getUserLink(newUser);
@@ -592,9 +617,7 @@ public class PointtransferQueryService {
                         desTemplate = desTemplate.replace("{article}", articleLink34);
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_CHANGE_USERNAME:
-                        final String oldName = dataId.split("-")[0];
-                        final String newName = dataId.split("-")[1];
-                        desTemplate = desTemplate.replace("{oldName}", oldName).replace("{newName}", newName);
+                        desTemplate = UserNamePointData.description(record, desTemplate);
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_BLMZ:
                         break;

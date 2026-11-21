@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-03",
+  "scope": "Full application current notification list/detail with controlled historical frames; valid existing alias deliberately points at a different account, not actual event publication",
+  "passed": 18,
+  "checks": [
+    "detail 38 missing",
+    "detail 38 null",
+    "detail 38 blank",
+    "detail 38 invalid",
+    "detail 38 zero",
+    "detail 38 leading-zero",
+    "detail 38 string-id",
+    "detail 38 integer-id",
+    "detail 39 missing",
+    "detail 39 null",
+    "detail 39 blank",
+    "detail 39 invalid",
+    "detail 39 zero",
+    "detail 39 leading-zero",
+    "detail 39 string-id",
+    "detail 39 integer-id",
+    "page consistent with all16 details",
+    "foreign404 anonymous401"
+  ],
+  "metadataOnlyFixtures": true,
+  "missingIDNoActor": true,
+  "validStringIntegerIDUsesCurrentAuthor": true,
+  "backendPid": 39318,
+  "productionCommit": "aff19442",
+  "manualRebuildConfirmed": true,
+  "cleanup": {
+    "temporaryNotifications": 16,
+    "temporaryChatFrames": 16,
+    "originalNotificationBalancesLedgersReceiptsUnchanged": true
+  },
+  "limits": [
+    "Controlled historical frames verify actual reads, not business event publication",
+    "Client missing-actor handling/browser evidence is separate; no new frontend code in this run",
+    "Production captcha/blacklist/unlock and full CDN/directory/upload-download not revalidated"
+  ]
+}

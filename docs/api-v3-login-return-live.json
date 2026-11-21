@@ -1,0 +1,135 @@
+{
+  "date": "2026-11-03",
+  "batch": 80,
+  "productionFilesChanged": [
+    "website_v3/src/views/LoginView.vue"
+  ],
+  "testFilesChanged": [
+    "website_v3/tools/v3-login-navigation-test.mjs"
+  ],
+  "documentationFilesChanged": [
+    "Rhythm/UPDATE_LOG.md",
+    "Both repos: docs/api-v3-progress.md, docs/api-v3-current-completion-audit.md, docs/api-v3-live-integration-work.md, docs/api-v3-login-return-live.json",
+    "website_v3/AGENTS.md",
+    "website_v3/docs/V3_MIGRATION.md"
+  ],
+  "behavior": [
+    "Optional username storage get/set failure cannot break mount or successful login navigation",
+    "After confirmed authentication, clear password/MFA and show confirmed status, hide credential form",
+    "Catch rejected navigation and detect actual Vue Router resolved NavigationFailure; show independent retry of exact original path/query/fragment",
+    "Retry route only; no additional login call or credentials; initial already-authenticated navigation waits for mount and does not run in SSR",
+    "API contract, browser authentication policy and server routes unchanged"
+  ],
+  "negativeEvidence": [
+    "Real SFC test against untouched HEAD LoginView: blocked username storage write leaves actual memory router at /login after successful authentication",
+    "Rejected router replacement formerly swallowed without visible navigation failure; initial already-authenticated rejected promise unhandled",
+    "Vue Router beforeEach=false returns resolved NavigationFailure rather than throwing; now explicitly tested with real createMemoryHistory/router"
+  ],
+  "tests": {
+    "newActualSFCWithRealVueRouterGroups": 6,
+    "fullClientScripts": 96,
+    "fullClientPASS": 1074,
+    "clientFailures": [],
+    "typeClientSSRBuildExit": 0,
+    "mavenRun": false,
+    "fullBuildAfterSuite": true
+  },
+  "realBackendAndBrowser": {
+    "manualJavaRebuildConfirmed": true,
+    "javaPid": 47272,
+    "listenerAndNoCredentialPublicJSONChecked": true,
+    "previousJavaFilesNowDeployed": [
+      "LongArticleParagraphService.java",
+      "ShortLinkQueryService.java"
+    ],
+    "oldAliasOriginalDestinationHTTPGroups": 7,
+    "mixedCanonicalProvisionalRecords": 23,
+    "returnedPage": 2,
+    "desktop1280x720TargetBounds": {
+      "top": 391.984375,
+      "bottom": 498.078125
+    },
+    "mobile390x844TargetBounds": {
+      "left": 39,
+      "right": 372,
+      "top": 391.984375,
+      "bottom": 498.078125
+    },
+    "hrefPreservedOriginal": true,
+    "restrictedTitleVisible": false,
+    "historyBackToAliasTarget": true,
+    "actualDevelopmentUserLoginToOriginalComment": true,
+    "actualLoginReturnQueryAndHashPreserved": true,
+    "realNormalLoginLogoutWarnErrorLogs": [],
+    "guestRestored": true,
+    "historyBackToExistingOrdinaryComment": true,
+    "historyForwardToExistingLongComment": true,
+    "existingLongForwardTargetBounds": {
+      "top": 199.59375,
+      "bottom": 327.78125,
+      "viewportHeight": 720
+    }
+  },
+  "isolatedFaultBrowser": {
+    "url": "http://127.0.0.1:18771",
+    "component": "Actual source LoginView.vue with real Vue Router/Pinia; controlled auth and appearance stores",
+    "noBackendRequests": true,
+    "storageBlockedReadWriteSuccess": true,
+    "navigationGuardBlockedVisibleError": true,
+    "guardRestoredThenExplicitRetrySuccess": true,
+    "loginCallCountAfterRetry": 1,
+    "emulatedMobile390px": true,
+    "warnings": "Only omitted fixture destinations /register /forget-pwd /agreement /download; no production counterpart warning",
+    "closedTabAndStoppedServer": true
+  },
+  "cleanup": {
+    "temporaryArticles": 2,
+    "temporaryComments": 23,
+    "explicitTransaction": true,
+    "fingerprintUnchangedAfterLoginAndLogout": true,
+    "scope": "Original ordinary/long rows, all user point balances, request receipt IDs and point transfer IDs",
+    "viewportReset": true,
+    "noNewPostCommentOrFeeOperation": true,
+    "testLoginFamilyLoggedOut": true
+  },
+  "audits": {
+    "contractAndDocs": 293,
+    "routeAccessProblems": 0,
+    "sourceFiles": 338,
+    "literalApiSeeds": 168,
+    "boundaryFindings": 0,
+    "routeReferences": 216,
+    "routeParityFindings": 0,
+    "dynamicExpressionsNotRuntimeProof": 47,
+    "generatedClientJS": 79,
+    "versionFindings": 0,
+    "maps": 0,
+    "sourceMappingURL": 0
+  },
+  "security": {
+    "anonymous": "Login same existing auth endpoint and global gate; no new public route/viewSkips or credential bypass",
+    "blacklistCaptcha": "BeforeRequestHandler/AnonymousViewCheckMidware/validateCaptcha unchanged; local gate behavior not a production captcha test",
+    "authorization": "Confirmed status only from existing auth.isLoggedIn; no new scope, token or third-party access",
+    "csrf": "Same existing login/logout transport and refresh-cookie policies",
+    "xssInjectionSSRF": "Fixed Vue escaped messages; no new raw HTML, SQL or external fetch",
+    "sensitiveData": "Only username stored as before; password/MFA cleared on success, never saved or put in retry; report excludes all credentials",
+    "bulk": "Busy/confirmed state blocks repeated credential submission; retry only router navigation",
+    "staticUploadDownloadEnumeration": "No CDN/upload/download endpoint or public fixture added; local generated scan only, production CDN/directory scan deferred"
+  },
+  "manualSteps": [
+    "5173 ordinary or long comment URL -> login -> authenticate: return to identical article/query/hash and visible current target, then exit restores guest",
+    "With browser optional storage unavailable, login form still opens and successful login returns; stored username absence is harmless",
+    "In controlled route failure, authenticate once -> confirmed/error status without password form -> restore target -> retry opens exact target with login call count1",
+    "Open a known local long article with restricted short link and mixed legacy IDs beyond20: safe URL label, original valid href, canonical page2 target visible on desktop/390px; back/forward restores correct target",
+    "Invalid credentials keep normal auth error and login form; actual ambiguous paragraph mapping409/unreadable404 remain, deleted target explicitly unavailable"
+  ],
+  "limits": [
+    "Blocked-storage/navigation faults tested with actual component in isolated browser/auth fixture, not faults injected into the actual backend",
+    "Normal real development login/read/logout and Java old-alias chain tested; not all business writes, rewards, permissions or third-party integrations",
+    "Production blacklisting/CAPTCHA/unlock, directory/CDN enumeration, multi-instance and physical mobile devices untested",
+    "No new Java/FTL or migration in this batch; previous latest Java explicitly rebuilt and verified"
+  ],
+  "pendingIDEAJava": [],
+  "committed": false,
+  "pushed": false
+}

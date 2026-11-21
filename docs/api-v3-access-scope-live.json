@@ -1,0 +1,1941 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 91346,
+    "target": "IPv6 loopback Rhythm HTTP8081"
+  },
+  "scope": "Missing all scopes on a current valid separate integration Access; no valid business write payload",
+  "narrowedCredentialReachesScopeBoundary": true,
+  "expectedChecks": 274,
+  "completedChecks": 274,
+  "allCompletedPassed": true,
+  "results": [
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/admin/oauth/clients",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/column",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/heat",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraph-comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraphs",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reads",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/realtime-ticket",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions/{revisionId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/random",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/decision",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/requests",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/status",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/breezemoons",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/barrager",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/barrager/price",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/messages",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}/context",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/music",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/mutes",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/online-users",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/realtime-ticket",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packet-types",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packets/{id}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets/{id}/claims",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/topic",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/topic",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/weather",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/users",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/columns/{columnId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/cover",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/title",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/hot",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions/{revisionId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/game-save-options",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/invitation-codes/status",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/logs",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/markdown/preview",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/articles/{articleId}/source",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/bag",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin1day/use",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin2days/use",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/patchCheckinCard/use",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/checkin",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/collections/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/collections/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/columns",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/columns/order",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/read",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/read",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/drafts",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}/download",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/game-saves/{gameId}/migrations",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications/{applicationId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/identity-applications/enterprise",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/invitation-codes",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/medals/{medalId}/display",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/medals/{medalId}/move",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals/image",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/membership",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/membership",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/membership/config",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/messages/{messageId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/{messageId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/messages/realtime-ticket",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/unread-count",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones/{milestoneId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/{notificationId}/read",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/read",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/unread-count",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/point-transfers",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/points",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}/records",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/onboarding",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/primary",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/privacy",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/security/mfa",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/security/mfa",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/security/mfa",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/security/mfa/preparations",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/avatar",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/avatar",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/display",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/display",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/email",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/email/verification",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-group-imports",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/shares",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-migrations",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emojis",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotion-options",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emotions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/functions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/functions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/locale",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale-options",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/location",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/location",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/password",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/personality",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality-options",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/phone",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/phone/verification",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/privacy",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/privacy",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/profile",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/profile",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/qq",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/qq",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/skins",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/watching/breezemoons",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/levels",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/styles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/milestones",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones/{milestoneId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/payments/donation-page",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/guides",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/ranking",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/rankings/{type}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/reactions/emojis",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/realtime/tickets",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/recent-members",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/items",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/repeater/items",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/next",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/report/options",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/reports",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/review/identity-applications",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/review/identity-applications/{applicationId}/decision",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/review/identity-applications/{applicationId}/material/open",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/search",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/statistics",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/users",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/uploads/tickets",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/breezemoons",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/comments",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/followers",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/tags",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/users",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals/image",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/professions",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching/articles",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    }
+  ],
+  "originalScopeAndStateRestored": true,
+  "selectedBusinessCountsUnchanged": true,
+  "businessCountChanges": {},
+  "failure": null,
+  "limits": [
+    "Current first-party fixture scope is directly narrowed in a guarded transaction, not a third-party authorization grant flow",
+    "Empty-scope denial does not prove the second scope of compound-scope routes or horizontal/role authorization",
+    "Access lastUsedAt/updatedAt may legitimately change; business counts, original scope and state are checked"
+  ]
+}

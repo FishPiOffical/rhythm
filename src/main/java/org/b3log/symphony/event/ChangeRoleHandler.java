@@ -19,15 +19,19 @@
 package org.b3log.symphony.event;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.b3log.latke.event.AbstractEventListener;
 import org.b3log.latke.event.Event;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.ServiceException;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.service.UserMgmtService;
+import org.b3log.symphony.repository.RoleRepository;
 import org.json.JSONObject;
 
 import java.util.Arrays;
@@ -42,7 +46,9 @@ import java.util.List;
  **/
 @Singleton
 public class ChangeRoleHandler extends AbstractEventListener<JSONObject> {
-
+    private static final Logger LOGGER = LogManager.getLogger(ChangeRoleHandler.class);
+    @Inject
+    private RoleRepository roleRepository;
 
     @Inject
     private UserMgmtService userMgmtService;
@@ -68,14 +74,17 @@ public class ChangeRoleHandler extends AbstractEventListener<JSONObject> {
         }
         if (!author.optString(User.USER_ROLE).equals(Role.ROLE_ID_C_DEFAULT)) {
             return;
-        } else {
-            author.put(User.USER_ROLE, "1630553360689");
         }
 
         try {
+            if (null == roleRepository.get(Role.ROLE_ID_C_INTRODUCTION_MEMBER)) {
+                LOGGER.error("Introduction promotion skipped: target role {} is missing", Role.ROLE_ID_C_INTRODUCTION_MEMBER);
+                return;
+            }
+            author.put(User.USER_ROLE, Role.ROLE_ID_C_INTRODUCTION_MEMBER);
             userMgmtService.updateUser(author.optString("oId"), author);
-        } catch (ServiceException e) {
-            e.printStackTrace();
+        } catch (RepositoryException | ServiceException e) {
+            LOGGER.error("Introduction promotion failed for user {}", author.optString("oId"), e);
         }
     }
 }

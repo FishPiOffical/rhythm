@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.*;
-import org.b3log.latke.repository.annotation.Transactional;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Invitecode;
@@ -57,38 +56,14 @@ public class InvitecodeMgmtService {
     @Inject
     private InvitecodeRepository invitecodeRepository;
 
+    @Inject private AccountRegistrationRequestService registrationRequests;
+
     /**
      * Expires invitecodes.
      */
-    @Transactional
     public void expireInvitecodes() {
-        final long now = System.currentTimeMillis();
-        final long expired = now - Symphonys.INVITECODE_EXPIRED;
-
-        final Query query = new Query().setPage(1, Integer.MAX_VALUE).
-                setFilter(CompositeFilterOperator.and(
-                        new PropertyFilter(Invitecode.STATUS, FilterOperator.EQUAL, Invitecode.STATUS_C_UNUSED),
-                        new PropertyFilter(Invitecode.GENERATOR_ID, FilterOperator.NOT_EQUAL, Pointtransfer.ID_C_SYS),
-                        new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN_OR_EQUAL, expired)
-                ));
-
-        JSONObject result;
-        try {
-            result = invitecodeRepository.get(query);
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Gets invitecodes failed", e);
-            return;
-        }
-
-        final List<JSONObject> data = (List<JSONObject>) result.opt(Keys.RESULTS);
-        try {
-            for (final JSONObject invitecode : data) {
-                final String invitecodeId = invitecode.optString(Keys.OBJECT_ID);
-                invitecodeRepository.remove(invitecodeId);
-            }
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Expires invitecodes failed", e);
-        }
+        try{registrationRequests.expireInvitations(Symphonys.INVITECODE_EXPIRED);}
+        catch(Exception e){LOGGER.warn("Invitation expiry unavailable");}
     }
 
     /**

@@ -23,6 +23,8 @@ import org.b3log.latke.cache.CacheFactory;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.symphony.model.Membership;
 import org.b3log.symphony.util.JSONs;
+import org.b3log.symphony.util.MembershipStyleCache;
+import java.util.Objects;
 import org.json.JSONObject;
 
 /**
@@ -68,7 +70,11 @@ public class MembershipCache {
         if (null == userId || userId.isEmpty()) {
             return;
         }
+        final JSONObject previous = CACHE.get(userId);
+        final boolean changed = previous == null || java.util.stream.Stream.of("lvCode", "state", "expiresAt", "configJson")
+                .anyMatch(field -> !Objects.equals(previous.opt(field), membership.opt(field)));
         CACHE.put(userId, JSONs.clone(membership));
+        if (changed) MembershipStyleCache.invalidate();
     }
 
     /**
@@ -78,5 +84,6 @@ public class MembershipCache {
      */
     public void remove(final String userId) {
         CACHE.remove(userId);
+        MembershipStyleCache.invalidate();
     }
 }
