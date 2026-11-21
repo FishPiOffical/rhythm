@@ -61,6 +61,10 @@ V3 网页续期直接使用原有来源、正文和刷新凭据校验。验证�
 
 额外豁免已注册的五个精确 GET 路由：`/openid/user/profile`、`/openid/user/detail`、`/openid/user/points`、`/openid/user/articles`、`/openid/user/membership`。豁免只跳过全局验证码黑名单及匿名验证码计数，不创建或放宽 Bearer 身份、访问令牌状态和对应 scope 校验；Firewall/CC、UA 与资源处理器原有权限检查保持不变。其他 `/openid/user/*` 路径、错误 HTTP 方法及子路径仍按原盾策略处理。
 
+## 版本 9：V3 网页会话探测
+
+额外豁免精确的 `POST /api/v3/auth/session`，避免页面恢复焦点时用于核对第一方 Cookie 会话绑定的探测请求被 IP 验证码盾按匿名请求处理。该端点仍执行原有可信 Origin、请求体及服务端 Cookie/绑定会话核对，不签发令牌；本豁免不清除 IP 黑名单、不重置计数、不加白。其他 V3 业务请求仍按既有验证码状态处理，UA、Firewall/CC、认证及业务授权保持不变。
+
 ## 修改授权与指纹
 
 2026-11-11 经用户明确授权增加三段运行观测，策略标识更新为 2，验证/封禁规则不变。

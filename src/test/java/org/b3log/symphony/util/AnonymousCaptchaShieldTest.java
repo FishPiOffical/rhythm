@@ -418,9 +418,8 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject()
                     .getString("code"), "forbidden");
         }
-        for (final String path : List.of(refreshPath + "/extra", "/api/v3/auth/session")) {
-            final boolean refreshSubpath = path.endsWith("/extra");
-            try (final Exchange exchange = new Exchange(path, refreshSubpath ? "POST" : "GET", null, UA)) {
+        for (final var route : Map.of(refreshPath + "/extra", "POST", "/api/v3/auth/session", "GET").entrySet()) {
+            try (final Exchange exchange = new Exchange(route.getKey(), route.getValue(), null, UA)) {
                 Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
                 Assert.assertEquals(exchange.status, 403);
                 Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject()
@@ -433,6 +432,42 @@ public class AnonymousCaptchaShieldTest {
         final Boolean priorBan = banned.getIfPresent(IP);
         banned.put(IP, true);
         try (final Exchange exchange = new Exchange(refreshPath, "POST", null, UA)) {
+            exchange.run(new BeforeRequestHandler());
+            Assert.assertEquals(exchange.status, 429);
+            Assert.assertFalse(exchange.reached);
+        } finally {
+            if (priorBan == null) banned.invalidate(IP); else banned.put(IP, priorBan);
+        }
+    }
+
+    @Test
+    public void websiteSessionProbeBypassesCaptchaOnlyForPost() throws Exception {
+        final String sessionPath = "/api/v3/auth/session";
+        Firewall.setEnabled(false);
+        for (final boolean pending : List.of(false, true)) {
+            if (pending) {
+                cache("ipBlacklistCache").put(IP, true);
+                cache("ipV3VisitCountCache").put(IP, 29);
+            }
+            try (final Exchange exchange = new Exchange(sessionPath, "POST", null, UA)) {
+                exchange.raw.headers().set("Origin", Latkes.getServer());
+                Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+                exchange.run(middleware::handle);
+                Assert.assertTrue(exchange.reached);
+                Assert.assertEquals(AnonymousCaptchaShield.isAwaitingCaptcha(IP), pending);
+                Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), pending ? 29 : null);
+                Assert.assertFalse(whitelist().contains(IP));
+            }
+            if (pending) {
+                assertV3CaptchaRequired(sessionPath, "GET");
+                assertV3CaptchaRequired(sessionPath + "/extra", "POST");
+            }
+        }
+        Firewall.setEnabled(true);
+        final Cache<String, Boolean> banned = cacheForFirewall();
+        final Boolean priorBan = banned.getIfPresent(IP);
+        banned.put(IP, true);
+        try (final Exchange exchange = new Exchange(sessionPath, "POST", null, UA)) {
             exchange.run(new BeforeRequestHandler());
             Assert.assertEquals(exchange.status, 429);
             Assert.assertFalse(exchange.reached);

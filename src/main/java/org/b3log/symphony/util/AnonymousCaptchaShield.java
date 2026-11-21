@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 8;
+    public static final int POLICY_VERSION = 9;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -191,7 +191,7 @@ public final class AnonymousCaptchaShield {
             return false;
         }
         return switch (uri.substring(prefix.length())) {
-            case "/auth/refresh", "/oauth/consent", "/oauth/token", "/oauth/revoke" -> "POST".equalsIgnoreCase(method);
+            case "/auth/refresh", "/auth/session", "/oauth/consent", "/oauth/token", "/oauth/revoke" -> "POST".equalsIgnoreCase(method);
             case "/oauth/authorize" -> "GET".equalsIgnoreCase(method);
             default -> false;
         };

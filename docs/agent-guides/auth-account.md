@@ -26,6 +26,7 @@
 - 管理后台的内置 OAuth 客户端仍为 `website_v3`。仅允许固定 `/manage/oauth/callback` 地址与精确匹配的换码 Origin，沿用同意页、PKCE、一次性码及当前账号校验。申请完整第一方网站 scope，使共用刷新 Cookie 的网站功能保持一致。换码只在 HttpOnly Cookie 中交付刷新凭据，后台仍按现有能力矩阵及端点权限鉴权。
 - OAuth/OpenID 用户资源链路在 `OpenIdProcessor`：`/openid/login` 通过 `fishpi.scope` 请求 `profile.read/profile.detail.read/points.read/articles.read/membership.read`，`/openid/verify` 成功后返回 Bearer `access_token` 与可轮换 `refresh_token`；资源接口只认 `Authorization: Bearer`，续签走匿名 `POST /openid/token`，不接收 `apiKey`、不支持 `userId` 代查。
 - V3 OAuth 的授权、同意、令牌和撤销端点，以及旧 OpenID 的授权闭环四端点和五个已注册 `/openid/user/*` GET 资源路由跳过验证码盾；资源仍逐次校验 Bearer、令牌状态及各自 scope，保留 Firewall、端点限流及所有原鉴权、来源、CSRF、PKCE/签名校验。`openid.return_to` 是验证并绑定到旧 OpenID 授权请求的第三方回调地址，不是新的服务端 API 路由。豁免仅针对实际登记的方法/路径，不涵盖未知用户资源路径、错误方法或额外子路径。旧 `/openid/confirm` 在授权请求过期、用户取消、授权范围不匹配或当前用户凭据版本变化时仍可返回“登录失败”。排查需核对实际失败步骤、响应与来源 IP，不能单凭提示判定验证码拦截。
+- `POST /api/v3/auth/session` 也跳过验证码盾，用于页面恢复焦点时核对第一方会话 Cookie；它仍校验可信来源、请求体及服务端会话绑定，不签发令牌、不清 IP 挑战或加白。其他 V3 请求不因此获得豁免。
 
 ## 账号凭据与验证码
 
