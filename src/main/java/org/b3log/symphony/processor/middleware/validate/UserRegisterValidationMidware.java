@@ -149,6 +149,7 @@ public class UserRegisterValidationMidware {
         return password.length() < MIN_PWD_LENGTH || password.length() > MAX_PWD_LENGTH;
     }
 
+    // [验证码链路指纹开始：handle]
     public void handle(final RequestContext context) {
         final JSONObject requestJSONObject = context.requestJSON();
         String referral = context.param("r");
@@ -283,6 +284,7 @@ public class UserRegisterValidationMidware {
 
         context.handle();
     }
+    // [验证码链路指纹结束：handle]
 
     public static boolean isMobileNO(String mobiles) {
         String telRegex = "[1]\\d{10}";

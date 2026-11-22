@@ -51,6 +51,7 @@ public class AfterRequestHandler implements Handler {
      */
     private static final Logger LOGGER = LogManager.getLogger(AfterRequestHandler.class);
 
+    // [验证码链路指纹开始：handle]
     @Override
     public void handle(final RequestContext context) {
         if (context.attr(ApiV3Processor.IDENTITY) instanceof JSONObject identity) {
@@ -77,6 +78,7 @@ public class AfterRequestHandler implements Handler {
         }
         Stopwatchs.release();
     }
+    // [验证码链路指纹结束：handle]
 
 
 }

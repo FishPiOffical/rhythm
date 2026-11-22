@@ -134,6 +134,7 @@ public class ApiV3RealtimeService {
         return active == null ? 0 : active.articleConnectionCount(articleId);
     }
 
+    // [验证码链路指纹开始：registry]
     private synchronized ApiV3RealtimeSessions registry() {
         if (sessions == null) {
             sessions = new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority() {
@@ -216,6 +217,7 @@ public class ApiV3RealtimeService {
         }
         return sessions;
     }
+    // [验证码链路指纹结束：registry]
 
     public void open(WebSocketSession session, String ip) {
         final ApiV3RealtimeSessions active = sessions == null ? registry() : sessions;

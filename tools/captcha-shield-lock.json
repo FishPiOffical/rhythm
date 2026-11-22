@@ -6,11 +6,11 @@
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "a45975fbd86a849dd81d3acac5c54845afd6f17df26e6bca011edb554f6e9732"
+      "sha256": "5c38e62e863a3c716839e89b1f10904259bcc84a0ff42a26b1bc2e77e87b665a"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
-      "sha256": "190df488200e3f07ab0c122da5d8828919e9bac62e064a8643a174458398f377"
+      "sha256": "d266cce2e4af546901192ad7770591d67476b8c858922220b18a9389499a719d"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
@@ -104,7 +104,7 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/SecuritySelfCheck.java",
-      "sha256": "0f0e759de52c7a97d28a89fcb2d6e8944021c0d1c3c4a3b3a31f3bb71f6f375f"
+      "sha256": "a726dff78d9170615786765b915264cacb881f19e4681d1235870419f9cff6ff"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
@@ -118,11 +118,11 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
-      "sha256": "278581628af0008e0783ce3a65514dcc564ec44fd0be8a53996009890b4458f3"
+      "sha256": "acee9e6ea07724f77f1ed2479ec4b3715036c8b02769b57c7fa3feea22acd8a1"
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/ApiV3Cors.java",
-      "sha256": "d853cc0d2176a8b08b0f6f579c605ad24b4588431d9d1063bc77538517a02697"
+      "sha256": "0c5fe6c1036c57d5b0e2148255158543a1f5a3030566c11183e65761748fa787"
     },
     {
       "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
@@ -156,11 +156,11 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/Firewall.java",
-      "sha256": "de303d2d548d4825802465a589a8370225bd4c259810d371e2093d02ac1d1538"
+      "sha256": "84dced3be51896c332a456cbee09d85b23597ae08e21b0be93e8b090b412c526"
     },
     {
       "file": "src/main/java/org/b3log/symphony/service/UserIpLeaseService.java",
-      "sha256": "c9296b91e9548aa3ff10ddd3628b67317892123507b502737093ff538f1392a0"
+      "sha256": "9f1dc4f5b5bc23e339fd1da6d20f16d84bd8075c2a809cab77c245c23e9b5f16"
     },
     {
       "file": "src/main/java/org/b3log/symphony/repository/UserIpLeaseRepository.java",

@@ -87,6 +87,7 @@ public class CaptchaProcessor {
      */
     private static final String CHARS = "acdefhijklmnprstuvwxy234578";
 
+    // [验证码链路指纹开始：register]
     /**
      * Register request handlers.
      */
@@ -100,16 +101,21 @@ public class CaptchaProcessor {
         Dispatcher.get("/captcha", captchaProcessor::get);
         Dispatcher.get("/captcha/login", captchaProcessor::getLoginCaptcha);
     }
+    // [验证码链路指纹结束：register]
 
+    // [验证码链路指纹开始：captcha]
     public void captcha(final RequestContext context) {
         // 验证码盾页面入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
         AnonymousCaptchaShield.showChallenge(context);
     }
+    // [验证码链路指纹结束：captcha]
 
+    // [验证码链路指纹开始：validateCaptcha]
     public void validateCaptcha(final RequestContext context) {
         // 验证与解封须经统一入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
         AnonymousCaptchaShield.validateChallenge(context);
     }
+    // [验证码链路指纹结束：validateCaptcha]
 
     /**
      * Checks whether the specified captcha is invalid.

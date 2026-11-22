@@ -29,6 +29,7 @@ import org.json.JSONObject;
 @Singleton
 public class ApiCheckMidware {
 
+    // [验证码链路指纹开始：handle]
     public void handle(final RequestContext context) {
         JSONObject currentUser = null;
         try {
@@ -59,4 +60,5 @@ public class ApiCheckMidware {
         context.attr(User.USER, currentUser);
         context.handle();
     }
+    // [验证码链路指纹结束：handle]
 }

@@ -652,6 +652,7 @@ public class LoginProcessor {
         catch(Exception e){LOGGER.warn("Account registration unavailable");context.renderMsg("注册暂不可用，请稍后重试");}
     }
 
+    // [验证码链路指纹开始：login]
     /**
      * Logins user.
      *
@@ -679,6 +680,7 @@ public class LoginProcessor {
             context.renderMsg(langPropsService.get("loginFailLabel"));
         }
     }
+    // [验证码链路指纹结束：login]
 
     /**
      * Shared credential verification for browser login and API v3. It deliberately owns

@@ -50,6 +50,7 @@ public class UserIpLeaseRepository extends AbstractRepository {
         super(UserIpLease.REPOSITORY);
     }
 
+    // [验证码链路指纹开始：active]
     public List<UserIpLease> active(final long now) throws RepositoryException {
         return select("SELECT l.userId,u.userName,l.ip,l.lastSeenAt,l.expiresAt FROM `" + getName()
                 + "` l INNER JOIN `" + users.getName() + "` u ON u.oId=l.userId"
@@ -57,7 +58,9 @@ public class UserIpLeaseRepository extends AbstractRepository {
                 .map(row -> new UserIpLease(row.getString("userId"), row.getString("userName"), row.getString("ip"),
                         row.getLong("lastSeenAt"), row.getLong("expiresAt"))).toList();
     }
+    // [验证码链路指纹结束：active]
 
+    // [验证码链路指纹开始：persist]
     public void persist(final List<Change> batch) throws RepositoryException {
         if (batch.isEmpty()) return;
         final var newIds = allocateNewLeaseIds(batch);
@@ -98,7 +101,9 @@ public class UserIpLeaseRepository extends AbstractRepository {
             ApiV3Transactions.releaseThreadResources();
         }
     }
+    // [验证码链路指纹结束：persist]
 
+    // [验证码链路指纹开始：allocateNewLeaseIds]
     private Map<UserIpLease, String> allocateNewLeaseIds(final List<Change> batch) throws RepositoryException {
         final var userIds = batch.stream().filter(change -> !change.current().isEmpty()).map(Change::userId).toList();
         if (userIds.isEmpty()) return Map.of();
@@ -121,7 +126,9 @@ public class UserIpLeaseRepository extends AbstractRepository {
         }
         return newIds;
     }
+    // [验证码链路指纹结束：allocateNewLeaseIds]
 
+    // [验证码链路指纹开始：removeSuperseded]
     private void removeSuperseded(final List<Change> batch, final Connection connection) throws SQLException {
         final var groups = new HashMap<Integer, List<Change>>();
         for (final var change : batch) {
@@ -142,7 +149,9 @@ public class UserIpLeaseRepository extends AbstractRepository {
             }
         }
     }
+    // [验证码链路指纹结束：removeSuperseded]
 
+    // [验证码链路指纹开始：purgeExpired]
     public void purgeExpired(final long now) throws RepositoryException {
         try {
             final var tx = ApiV3Transactions.strict(beginTransaction());
@@ -158,6 +167,7 @@ public class UserIpLeaseRepository extends AbstractRepository {
             ApiV3Transactions.releaseThreadResources();
         }
     }
+    // [验证码链路指纹结束：purgeExpired]
 
     public List<JSONObject> findByUserName(final String userName) throws RepositoryException {
         return select("SELECT u.userName,l.ip,l.lastSeenAt,l.expiresAt FROM `" + users.getName()

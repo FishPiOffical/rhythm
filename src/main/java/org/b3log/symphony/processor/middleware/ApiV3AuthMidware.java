@@ -50,6 +50,7 @@ public class ApiV3AuthMidware {
         optional(context, "profile.read");
     }
 
+    // [验证码链路指纹开始：optional]
     private void optional(final RequestContext context, final String scope) {
         if (null == context.header("Authorization")) {
             context.handle();
@@ -65,11 +66,14 @@ public class ApiV3AuthMidware {
         }
         proceed(context, identity);
     }
+    // [验证码链路指纹结束：optional]
 
+    // [验证码链路指纹开始：handle]
     public void handle(final RequestContext context) {
         final JSONObject identity = resolve(context);
         if (identity != null) proceed(context, identity);
     }
+    // [验证码链路指纹结束：handle]
 
     public void messagesRead(final RequestContext context) {
         required(context, "messages.read");
@@ -135,10 +139,13 @@ public class ApiV3AuthMidware {
         required(context, "settings.write", true);
     }
 
+    // [验证码链路指纹开始：required]
     private void required(final RequestContext context, final String scope) {
         required(context, scope, false);
     }
+    // [验证码链路指纹结束：required]
 
+    // [验证码链路指纹开始：required]
     private void required(final RequestContext context, final String scope, final boolean partner) {
         final JSONObject identity = resolve(context, partner);
         if (null == identity) return;
@@ -150,11 +157,15 @@ public class ApiV3AuthMidware {
         }
         proceed(context, identity);
     }
+    // [验证码链路指纹结束：required]
 
+    // [验证码链路指纹开始：resolve]
     private JSONObject resolve(final RequestContext context) {
         return resolve(context, false);
     }
+    // [验证码链路指纹结束：resolve]
 
+    // [验证码链路指纹开始：resolve]
     private JSONObject resolve(final RequestContext context, final boolean partner) {
         final String header = context.header("Authorization");
         if (null == header || !header.startsWith("Bearer ") || header.length() > 300) {
@@ -180,7 +191,9 @@ public class ApiV3AuthMidware {
         }
         return identity;
     }
+    // [验证码链路指纹结束：resolve]
 
+    // [验证码链路指纹开始：proceed]
     private void proceed(final RequestContext context, final JSONObject identity) {
         final JSONObject user = identity.optJSONObject("user");
         context.attr(User.USER, user);
@@ -188,4 +201,5 @@ public class ApiV3AuthMidware {
         SecurityMonitor.markAuthenticated(user);
         context.handle();
     }
+    // [验证码链路指纹结束：proceed]
 }

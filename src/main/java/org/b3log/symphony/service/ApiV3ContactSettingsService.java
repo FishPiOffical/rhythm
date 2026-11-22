@@ -60,10 +60,12 @@ public class ApiV3ContactSettingsService {
         return String.format(Locale.ROOT, "%06d", RANDOM.nextInt(1_000_000));
     }
 
+    // [验证码链路指纹开始：captcha]
     protected boolean captcha(String proof) {
         // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
         return AnonymousCaptchaShield.verifyProof(proof);
     }
+    // [验证码链路指纹结束：captcha]
 
     protected boolean allowed(String ip, String actor, String target, boolean phone) {
         return !phone || AccountSmsQuota.access(ip, actor, target);

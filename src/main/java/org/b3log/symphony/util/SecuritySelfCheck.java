@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+// [验证码链路指纹开始：整文件]
 package org.b3log.symphony.util;
 
 import org.b3log.latke.Latkes;
@@ -72,3 +73,4 @@ public final class SecuritySelfCheck {
         checks.add(item);
     }
 }
+// [验证码链路指纹结束：整文件]

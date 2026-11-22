@@ -193,6 +193,7 @@ public class ApiProcessor {
         return Crypts.encryptByAES(payload.toString(), Symphonys.COOKIE_SECRET_API);
     }
 
+    // [验证码链路指纹开始：loginWebInApiKey]
     public void loginWebInApiKey(final RequestContext context) {
         JSONObject currentUser;
         try {
@@ -218,6 +219,7 @@ public class ApiProcessor {
             context.renderJSON(StatusCodes.ERR).renderMsg("ApiKey 错误。");
         }
     }
+    // [验证码链路指纹结束：loginWebInApiKey]
 
     public void callbackFromQiNiu(final RequestContext context) {
         Auth auth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);

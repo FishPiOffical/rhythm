@@ -43,10 +43,12 @@ public class AccountPasswordResetRequestService {
     protected long now(){return System.currentTimeMillis();}
     protected String newCode(){return String.format(Locale.ROOT,"%06d",RANDOM.nextInt(1_000_000));}
     protected boolean allowed(String ip,String name,String phone){return AccountSmsQuota.access(ip,name,phone);}
+    // [验证码链路指纹开始：captchaAccepted]
     protected boolean captchaAccepted(String proof) {
         // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
         return AnonymousCaptchaShield.verifyProof(proof);
     }
+    // [验证码链路指纹结束：captchaAccepted]
     protected boolean send(String phone,String code){return sms.sendAccountVerifyCodeSMS(phone,code);}
     protected void unavailable(Exception e){LogManager.getLogger(getClass()).warn("Password reset request unavailable");}
     public JSONObject request(String phone,String captcha,String ip)throws Exception {

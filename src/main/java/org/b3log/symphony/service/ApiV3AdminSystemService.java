@@ -128,6 +128,7 @@ public class ApiV3AdminSystemService {
                 .put("rows", rows);
     }
 
+    // [验证码链路指纹开始：getIpPolicyStatus]
     /**
      * 查询防火墙与验证码盾当前运行状态摘要。
      */
@@ -153,7 +154,9 @@ public class ApiV3AdminSystemService {
                 .put("verificationEnabled", AnonymousCaptchaShield.isEnabled())
                 .put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
     }
+    // [验证码链路指纹结束：getIpPolicyStatus]
 
+    // [验证码链路指纹开始：mutateIps]
     /**
      * 批量封禁或解封 IP，严格保留旧版防火墙与验证码盾调用顺序并记录操作日志。
      */
@@ -178,6 +181,7 @@ public class ApiV3AdminSystemService {
         return enqueue(identity, Permission.PERMISSION_ID_C_IP_MANAGE, false, "admin.ips.mutate", idempotencyKey,
                 "IP", new JSONObject().put("action", action).put("ipList", addresses), context.getRequest(), null);
     }
+    // [验证码链路指纹结束：mutateIps]
 
     /**
      * 读取站点杂项配置列表（`menuAdminMisc` 权限）。
@@ -268,6 +272,7 @@ public class ApiV3AdminSystemService {
         return new JSONObject(SecuritySelfCheck.run());
     }
 
+    // [验证码链路指纹开始：saveSecuritySwitches]
     /**
      * 在开发模式下原子更新临时安全开关（生产模式严格只读返回 403）。
      */
@@ -289,6 +294,7 @@ public class ApiV3AdminSystemService {
         return enqueue(identity, Permission.PERMISSION_ID_C_MENU_ADMIN_MISC, true, "admin.security.switches.save",
                 idempotencyKey, "SWITCHES", input, null, null);
     }
+    // [验证码链路指纹结束：saveSecuritySwitches]
 
     /**
      * 重建单篇文章搜索索引并记录审计日志。
@@ -394,6 +400,7 @@ public class ApiV3AdminSystemService {
         return new ApiV3Exception(422, "invalid_request", message);
     }
 
+    // [验证码链路指纹开始：currentSecuritySwitches]
     private static JSONObject currentSecuritySwitches() {
         return new JSONObject()
                 .put("firewallEnabled", Firewall.isEnabled())
@@ -403,4 +410,5 @@ public class ApiV3AdminSystemService {
                 .put("runtimeMode", Latkes.getRuntimeMode().name())
                 .put("editable", Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode());
     }
+    // [验证码链路指纹结束：currentSecuritySwitches]
 }

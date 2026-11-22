@@ -80,6 +80,7 @@ public class BeforeRequestHandler implements Handler {
             add("43.155.63.117");
         }};*/
 
+    // [验证码链路指纹开始：handle]
     @Override
     public void handle(final RequestContext context) {
         SecurityMonitor.beginRequest();
@@ -130,6 +131,7 @@ public class BeforeRequestHandler implements Handler {
 
         resolveSkinDir(context);
     }
+    // [验证码链路指纹结束：handle]
 
     /**
      * 输出匿名访问风控决策日志，统一前缀便于检索：{@code [SHIELD]}

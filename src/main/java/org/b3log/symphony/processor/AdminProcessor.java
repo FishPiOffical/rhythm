@@ -654,6 +654,7 @@ public class AdminProcessor {
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
+    // [验证码链路指纹开始：modifyIp]
     public void modifyIp(final RequestContext context) {
         JSONObject currentUser = Sessions.getUser();
         try {
@@ -694,6 +695,7 @@ public class AdminProcessor {
         });
         context.sendRedirect(Latkes.getServePath() + "/admin/ip");
     }
+    // [验证码链路指纹结束：modifyIp]
 
     public void showIp(final RequestContext context) {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/ip.ftl");
@@ -2654,6 +2656,7 @@ public class AdminProcessor {
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
+    // [验证码链路指纹开始：showMisc]
     /**
      * Shows admin miscellaneous.
      *
@@ -2705,6 +2708,7 @@ public class AdminProcessor {
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
+    // [验证码链路指纹结束：showMisc]
 
     /**
      * Updates admin miscellaneous.
@@ -2778,6 +2782,7 @@ public class AdminProcessor {
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区CC防火墙已" + (enabled ? "开启" : "关闭"));
     }
 
+    // [验证码链路指纹开始：toggleVerificationShield]
     /**
      * Toggle anonymous verification shield (temporary, resets on restart).
      */
@@ -2797,7 +2802,9 @@ public class AdminProcessor {
         data.put("enabled", AnonymousCaptchaShield.isEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区验证盾已" + (enabled ? "开启" : "关闭"));
     }
+    // [验证码链路指纹结束：toggleVerificationShield]
 
+    // [验证码链路指纹开始：toggleFirstVisitCaptcha]
     /**
      * Toggle first-visit captcha rule (temporary, resets on restart).
      */
@@ -2817,7 +2824,9 @@ public class AdminProcessor {
         data.put("enabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("首次访问验证码已" + (enabled ? "开启" : "关闭"));
     }
+    // [验证码链路指纹结束：toggleFirstVisitCaptcha]
 
+    // [验证码链路指纹开始：saveSecuritySwitches]
     /** Atomically applies all temporary security switches in development mode. */
     public void saveSecuritySwitches(final RequestContext context) {
         if (!isSecurityAdminSession() || !isSecurityEditable()) {
@@ -2849,6 +2858,7 @@ public class AdminProcessor {
         SecurityMonitor.record("settings", "update", "统一保存");
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("安全开关已保存");
     }
+    // [验证码链路指纹结束：saveSecuritySwitches]
 
     public void securityMonitor(final RequestContext context) {
         if (!isSecurityAdminSession()) {
@@ -2871,6 +2881,7 @@ public class AdminProcessor {
         context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecuritySelfCheck.run()));
     }
 
+    // [验证码链路指纹开始：securitySwitchData]
     private JSONObject securitySwitchData() {
         return new JSONObject().put("firewallEnabled", Firewall.isEnabled())
                 .put("threshold", Firewall.getThreshold())
@@ -2879,6 +2890,7 @@ public class AdminProcessor {
                 .put("runtimeMode", Latkes.getRuntimeMode().name())
                 .put("editable", isSecurityEditable());
     }
+    // [验证码链路指纹结束：securitySwitchData]
 
     private boolean isSecurityEditable() {
         return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();

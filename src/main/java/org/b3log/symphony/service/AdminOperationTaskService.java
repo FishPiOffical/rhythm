@@ -202,6 +202,7 @@ public class AdminOperationTaskService {
         }
     }
 
+    // [验证码链路指纹开始：executeIps]
     private void executeIps(final JSONObject task, final JSONObject payload, final JSONObject result) throws Exception {
         final boolean ban = "ban".equals(payload.getString("action"));
         final JSONArray items = new JSONArray();
@@ -237,7 +238,9 @@ public class AdminOperationTaskService {
             checkpoint(task, result);
         }
     }
+    // [验证码链路指纹结束：executeIps]
 
+    // [验证码链路指纹开始：executeSwitches]
     private void executeSwitches(final JSONObject payload, final JSONObject result) {
         if (Latkes.RuntimeMode.DEVELOPMENT != Latkes.getRuntimeMode()) throw new IllegalStateException("生产只读");
         Firewall.setThreshold(payload.getInt("threshold"));
@@ -247,6 +250,7 @@ public class AdminOperationTaskService {
         AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(payload.getBoolean("firstVisitCaptchaEnabled"));
         result.put("switches", new JSONObject(payload.toString()));
     }
+    // [验证码链路指纹结束：executeSwitches]
 
     private void indexOne(final String id, final JSONObject result, final boolean pushToBaidu) throws Exception {
         final JSONObject article = articles.get(id);

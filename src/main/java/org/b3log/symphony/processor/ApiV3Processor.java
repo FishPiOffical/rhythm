@@ -76,6 +76,7 @@ public class ApiV3Processor {
     @Inject
     private RoleQueryService roleQueryService;
 
+    // [验证码链路指纹开始：register]
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3Processor processor = beans.getReference(ApiV3Processor.class);
@@ -183,7 +184,9 @@ public class ApiV3Processor {
         Dispatcher.get("/api/v3/columns/{columnId}", processor::column, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/articles/{articleId}/column", processor::articleColumn, auth::optionalContent, anonymous::handle);
     }
+    // [验证码链路指纹结束：register]
 
+    // [验证码链路指纹开始：login]
     public void login(final RequestContext context) {
         final JSONObject body = authenticationBody(context, Set.of("nameOrEmail", User.USER_PASSWORD, "mfaCode", "deviceId"), false);
         if (body == null) return;
@@ -236,7 +239,9 @@ public class ApiV3Processor {
             error(context, 500, "internal_error", "登录服务暂不可用");
         }
     }
+    // [验证码链路指纹结束：login]
 
+    // [验证码链路指纹开始：refresh]
     public void refresh(final RequestContext context) {
         // 先验证来源和正文，再读取并消费 Cookie 中的刷新令牌。
         if (!WebsiteLoginCookies.trustedOrigin(context, false)) {
@@ -280,7 +285,9 @@ public class ApiV3Processor {
             error(context, 503, "temporarily_unavailable", "登录状态暂不可用");
         }
     }
+    // [验证码链路指纹结束：refresh]
 
+    // [验证码链路指纹开始：websiteSession]
     /** 页面重新获得焦点时核对绑定状态；只返回身份标识，不兑换旧 Cookie 或签发令牌。 */
     public void websiteSession(final RequestContext context) {
         if (!WebsiteLoginCookies.trustedOrigin(context, false)) {
@@ -317,6 +324,7 @@ public class ApiV3Processor {
             error(context, 503, "temporarily_unavailable", "登录状态暂不可用");
         }
     }
+    // [验证码链路指纹结束：websiteSession]
 
     public void logout(final RequestContext context) {
         // 来源和正文校验通过后，才撤销刷新令牌并清理 Cookie。
@@ -341,6 +349,7 @@ public class ApiV3Processor {
         success(context, new JSONObject());
     }
 
+    // [验证码链路指纹开始：authenticationBody]
     private static JSONObject authenticationBody(final RequestContext context, final Set<String> fields, final boolean emptyAllowed) {
         try {
             final JSONObject body = ApiV3WriteInputs.body(context, fields, emptyAllowed, MAX_AUTH_BODY_BYTES);
@@ -353,6 +362,7 @@ public class ApiV3Processor {
             return null;
         }
     }
+    // [验证码链路指纹结束：authenticationBody]
 
     public void me(final RequestContext context) {
         final JSONObject user = (JSONObject) context.attr(User.USER);
@@ -463,11 +473,13 @@ public class ApiV3Processor {
         return dto;
     }
 
+    // [验证码链路指纹开始：cookie]
     private static String cookie(final RequestContext context, final String name) {
         for (final Cookie cookie : context.getRequest().getCookies())
             if (name.equals(cookie.getName())) return cookie.getValue();
         return "";
     }
+    // [验证码链路指纹结束：cookie]
 
     private static boolean isSameOrigin(final RequestContext context) {
         final String origin = StringUtils.trimToEmpty(context.header("Origin"));

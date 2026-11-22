@@ -543,6 +543,7 @@ public class SettingsProcessor {
         }
     }
 
+    // [验证码链路指纹开始：sendPhoneVC]
     /**
      * Sends phone verify code.
      *
@@ -617,7 +618,9 @@ public class SettingsProcessor {
             context.renderMsg(e.getMessage());
         }
     }
+    // [验证码链路指纹结束：sendPhoneVC]
 
+    // [验证码链路指纹开始：sendEmailVC]
     /**
      * Sends email verify code.
      *
@@ -678,6 +681,7 @@ public class SettingsProcessor {
             context.renderMsg(e.getMessage());
         }
     }
+    // [验证码链路指纹结束：sendEmailVC]
 
     /**
      * Updates phone.

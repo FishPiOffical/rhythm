@@ -46,6 +46,7 @@ public class UserForgetPwdValidationMidware {
     @Inject
     private LangPropsService langPropsService;
 
+    // [验证码链路指纹开始：handle]
     public void handle(final RequestContext context) {
         final JSONObject requestJSONObject = context.requestJSON();
         final String phone = requestJSONObject.optString("userPhone");
@@ -66,6 +67,7 @@ public class UserForgetPwdValidationMidware {
 
         context.handle();
     }
+    // [验证码链路指纹结束：handle]
 
     public static boolean isMobileNO(String mobiles) {
         String telRegex = "[1]\\d{10}";

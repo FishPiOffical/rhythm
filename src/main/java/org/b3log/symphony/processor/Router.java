@@ -34,6 +34,7 @@ import org.b3log.symphony.util.Vocation;
  */
 public final class Router {
 
+    // [验证码链路指纹开始：requestMapping]
     /**
      * 请求路由映射.
      */
@@ -73,6 +74,7 @@ public final class Router {
 
         Dispatcher.mapping();
     }
+    // [验证码链路指纹结束：requestMapping]
 
     private static void registerProcessors() {
         // 活动

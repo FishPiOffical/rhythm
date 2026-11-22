@@ -35,6 +35,7 @@ import org.json.JSONObject;
  */
 @Singleton
 public class LoginCheckMidware {
+    // [验证码链路指纹开始：handle]
     public void handle(final RequestContext context) {
         JSONObject currentUser = Sessions.getUser();
         try {
@@ -73,4 +74,5 @@ public class LoginCheckMidware {
         context.attr(User.USER, currentUser);
         context.handle();
     }
+    // [验证码链路指纹结束：handle]
 }

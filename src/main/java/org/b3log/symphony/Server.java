@@ -114,6 +114,7 @@ public final class Server extends BaseServer {
         super.start(socketPath);
     }
 
+    // [验证码链路指纹开始：main]
     /**
      * Main.
      *
@@ -397,4 +398,5 @@ public final class Server extends BaseServer {
             server.start(Integer.parseInt(portArg));
         }
     }
+    // [验证码链路指纹结束：main]
 }
