@@ -434,7 +434,8 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertFalse(exchange.reached);
         }
         Firewall.setEnabled(true);
-        @SuppressWarnings("unchecked") final Cache<String, Boolean> banned = (Cache<String, Boolean>) field(Firewall.class, "BANNED");
+        final Cache<String, Boolean> banned = cacheForFirewall();
+        final Boolean priorBan = banned.getIfPresent(IP);
         banned.put(IP, true);
         try (final Exchange exchange = new Exchange("/api/v3/me", "OPTIONS", null, UA)) {
             exchange.raw.headers().set("Origin", "https://example.invalid");
@@ -442,6 +443,8 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertEquals(exchange.status, 429);
             Assert.assertNull(exchange.response.getHeader("Access-Control-Allow-Origin"));
             Assert.assertFalse(exchange.reached);
+        } finally {
+            if (priorBan == null) banned.invalidate(IP); else banned.put(IP, priorBan);
         }
         for (final String path : List.of("/", "/unregistered-path", "/api/search")) {
             try (final Exchange exchange = new Exchange(path)) {
