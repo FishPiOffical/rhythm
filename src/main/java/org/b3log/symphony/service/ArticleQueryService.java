@@ -2665,26 +2665,12 @@ public class ArticleQueryService {
             final Document doc = Jsoup.parse(content, StringUtils.EMPTY, Parser.htmlParser());
             doc.outputSettings().prettyPrint(false);
             final Elements hs = doc.select("body>h1, body>h2, body>h3, body>h4, body>h5, body>h6");
-            if (hs.size() < 3) {
+            if (hs.isEmpty()) {
                 return "";
             }
-
-            final StringBuilder listBuilder = new StringBuilder();
-            listBuilder.append("<ul class=\"article-toc\">");
-            for (int i = 0; i < hs.size(); i++) {
-                final Element element = hs.get(i);
-                final String tagName = element.tagName().toLowerCase();
-                final String text = element.text();
-                final String id = "toc_" + tagName + "_" + i;
-                element.attr("id", id);
-                listBuilder.append("<li class='toc-").append(tagName).append("'><a data-id=\"").append(id).append("\" href=\"javascript:Comment._bgFade($('#").append(id).append("'))\">").append(text).append(
-                        "</a></li>");
-            }
-            listBuilder.append("</ul>");
-
+            final String toc = ArticleHeadingLinks.prepare(doc, hs);
             article.put(Article.ARTICLE_CONTENT, doc.select("body").html());
-
-            return listBuilder.toString();
+            return toc;
         } finally {
             Stopwatchs.end();
         }

@@ -22,40 +22,6 @@
  * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
  * @author <a href="http://88250.b3log.org">Liang Ding</a> */
 
-function isLetterOrDigit(ch) {
-    return /\p{L}|\p{N}/u.test(ch);
-}
-
-function normalizeHeadingIdFromString(rawId, caretChar) {
-    let id = rawId.replace(/^#+/, '');
-
-    if (caretChar) {
-        const reCaret = new RegExp(
-            caretChar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-            'g'
-        );
-        id = id.replace(reCaret, '');
-    }
-
-    let ret = '';
-    for (const ch of id) {
-        if (isLetterOrDigit(ch)) {
-            ret += ch;
-        } else {
-            ret += '-';
-        }
-    }
-
-    ret = ret.replace(/-{3,}/g, '--');
-    if (ret.startsWith('--')) {
-        ret = '-' + ret.slice(2);
-    }
-    if (ret.endsWith('--')) {
-        ret = ret.slice(0, -2) + '-';
-    }
-    return ret;
-}
-
 /**
  * @description Add comment function.
  * @static
@@ -3086,11 +3052,14 @@ var Article = {
     toc = []
 
     // 目录点击
-    $articleToc.find('li').click(function () {
-      var $it = $(this)
-      let elem = $(this).find('a').text()
-      elem = normalizeHeadingIdFromString(elem)
-      document.getElementById(elem).scrollIntoView({ behavior: 'smooth' })
+    $articleToc.find('a[data-id]').click(function (event) {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+      var heading = document.getElementById(this.dataset.id)
+      if (!heading) return
+      event.preventDefault()
+      var $it = $(this).closest('li')
+      window.scrollTo({ top: heading.getBoundingClientRect().top + window.scrollY - 48, behavior: 'smooth' })
+      Comment._bgFade($(heading), { scroll: false })
       setTimeout(function () {
         $articleToc.find('li').removeClass('current')
         $it.addClass('current')

@@ -50,3 +50,6 @@
 - 文章上下篇链路：`ArticleProcessor` 统一填充时间、作者、热门三组导航数据及小窗口列表；PC/移动模板共用 `skins/classic/*/common/article-adjacent-nav.ftl`；“全部文章”排序选择由 `article.js`/`m-article.js` 写入 `localStorage.articleAdjacentSort`。
 - 发帖草稿箱链路：前端入口在 classic PC/移动 `home/post.ftl`、`home/long-article-post.ftl` + `add-article.js`，后端为 `ArticleDraftProcessor` + `ArticleDraftMgmtService` + `article_draft`；接口 `/api/article-drafts*` 挂 `loginCheck` 并支持 `apiKey`，不挂 CSRF；普通文章与长文章共用同一组草稿接口，长文章通过 `articleType=6` 和 `columnId/columnTitle/chapterNo` 区分；思绪帖草稿必须同时保存编辑器正文与 `articleDraftThoughtContent`。
 - `/recent` 与 `/api/articles/recent*` 共用 `ArticleQueryService#getRecentArticles`；该链路已明确排除长篇（`articleType=6`），长篇列表请走 `/recent/long` 页面或 `GET /api/articles/recent/long`。
+## 经典文章页目录
+
+正文中可唯一匹配的标题链接与右栏目录共用实际标题 ID。保留已有 `toc_*` 深链接，右栏按 `data-id` 定位，不根据显示文字猜测目标。验收须分别点击正文链接和 PC 右栏，移动端核对正文链接；仅检查 Markdown 标题是否同名不足以验证站内跳转。
