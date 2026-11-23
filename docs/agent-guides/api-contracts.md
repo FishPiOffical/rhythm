@@ -27,6 +27,7 @@
 
 - `ApiDocumentationProcessor` 提供 `/api-docs` 页面、两版 OpenAPI 及完整中文说明，入口统一使用 `LoginCheckMidware`。v1 的编号只用于文档分组，接口路径沿用旧版。
 - Maven 在 `generate-resources` 阶段运行 `tools/generate-api-docs.py`，将 `API.md` 的版本分区和路由清单生成到构建输出。构建机需 Python 3.9 或更高版本，若 Python 命令名不同，可传 `-Dapi-docs.python=python`。IDEA 直接启动时先执行该阶段再重启。生成文件不提交。
+- Scalar 渲染脚本由项目 CDN 提供，使用 SRI 和匿名跨域加载；CSP 只放行指定脚本 URL。只改 `API.md` 不需要更新 CDN，文档数据继续由 Rhythm 按登录状态提供。更新 Scalar 脚本时，使用新 URL 避免旧缓存，同时更新页面的完整性哈希和 CSP，并验证 CDN 的跨域响应。
 - 修改接口时同步维护 `API.md` 的中文参数、响应和事件说明。v3 的路由缺少说明时生成会失败。v1 按文档里明确列出的旧版和兼容接口生成。仍在 Markdown 正文中定义的字段和实时事件可点开完整说明查看。
 
 ## 写入幂等

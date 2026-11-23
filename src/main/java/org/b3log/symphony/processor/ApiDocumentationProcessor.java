@@ -71,7 +71,7 @@ public class ApiDocumentationProcessor {
         response.setHeader("Cache-Control", "private, no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("Referrer-Policy", "no-referrer");
-        response.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; "
+        response.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self' https://file.fishpi.cn/ada/js/scalar.js; "
                 + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
                 + "base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
         // 只读取各处理方法指定的构建产物，资源路径不接受请求参数。
