@@ -18,7 +18,7 @@
 
 > V3 请求需要人机验证时返回 HTTP 403，`code` 为 `captcha_required`，`data` 为 `null`。这与 HTTP 401 登录失效不同，重新登录不能代替人机验证。客户端应合并同时出现的验证请求，服务端确认通过后再恢复原请求；写操作沿用原请求体及适用的 Idempotency-Key，不能因网络错误或未知提交结果自动重发。
 
-`POST /api/v3/auth/session` 是第一方网页会话状态探测，不签发访问令牌；该精确端点不受站点验证码盾拦截。它仍校验可信网页来源与当前服务端会话 Cookie，不代表其他 V3 请求也免于验证码检查。
+`POST /api/v3/auth/session` 供第一方网页使用当前会话 Cookie 查询登录状态。
 
 ### 提交访问人机验证
 
@@ -54,11 +54,7 @@ curl 'https://fishpi.cn/validateCaptcha' \
 
 获取账号流程使用的验证组件标识，用于初始化极验4组件。
 
-请求：
-
-| Key | 说明 | 示例 |
-| --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
+请求：无参数。
 
 请求示例：
 
@@ -86,7 +82,6 @@ curl 'https://fishpi.cn/api/v3/auth/captcha-options'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
 | referral | 可选，邀请人用户名，去除首尾空白后最多64个字符 | username |
 
 请求示例：
@@ -125,9 +120,9 @@ curl --get 'https://fishpi.cn/api/v3/auth/registration-options' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | userName | 用户名，1–64位英文字母、数字或连字符，不允许保留名称 | Fresh-Name |
-| userPhone | 手机号，11位数字且以1开头 | 13800138000 |
+| userPhone | 手机号，11位数字且以1开头 | PHONE_NUMBER |
 | captcha | 极验4结果的JSON字符串，最多4096个UTF-8字节；四个字段均为非空字符串 | {"lot_number":"...","captcha_output":"...","pass_token":"...","gen_time":"..."} |
-| invitecode | 可选，16位英文字母或数字；邀请注册且没有有效邀请链接时必填 | AbCdEfGh12345678 |
+| invitecode | 可选，16位英文字母或数字；邀请注册且没有有效邀请链接时必填 | INVITE_CODE |
 | referral | 可选，已激活的其他用户的用户名，最多64字符 | username |
 
 请求示例：
@@ -135,7 +130,7 @@ curl --get 'https://fishpi.cn/api/v3/auth/registration-options' \
 ```bash
 curl --request POST 'https://fishpi.cn/api/v3/auth/registration/request' \
   --header 'Content-Type: application/json' \
-  --data '{"userName":"Fresh-Name","userPhone":"13800138000","captcha":"{\"lot_number\":\"...\",\"captcha_output\":\"...\",\"pass_token\":\"...\",\"gen_time\":\"...\"}","invitecode":"AbCdEfGh12345678","referral":"username"}'
+  --data '{"userName":"Fresh-Name","userPhone":"PHONE_NUMBER","captcha":"{\"lot_number\":\"...\",\"captcha_output\":\"...\",\"pass_token\":\"...\",\"gen_time\":\"...\"}","invitecode":"INVITE_CODE","referral":"username"}'
 ```
 
 响应：
@@ -161,9 +156,9 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/registration/request' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| userPhone | 注册短信对应的当前手机号，11位数字 | 13800138000 |
-| code | 注册短信验证码，6位数字 | 123456 |
-| userPassword | 密码的32位小写MD5 | e10adc3949ba59abbe56e057f20f883e |
+| userPhone | 注册短信对应的当前手机号，11位数字 | PHONE_NUMBER |
+| code | 注册短信验证码，6位数字 | VERIFICATION_CODE |
+| userPassword | 密码的32位小写MD5 | PASSWORD_MD5 |
 | userAppRole | 可选，0 程序员、1 设计师，默认0；使用JSON数字 | 0 |
 | mbti | 可选，最多32字符；沿用资料页格式，转为大写，不符合格式时保存为空 | INFJ-T |
 | referral | 可选，邀请人用户名，去除首尾空白后最多64字符 | username |
@@ -173,7 +168,7 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/registration/request' \
 ```bash
 curl --request POST 'https://fishpi.cn/api/v3/auth/registration/complete' \
   --header 'Content-Type: application/json' \
-  --data '{"userPhone":"13800138000","code":"123456","userPassword":"e10adc3949ba59abbe56e057f20f883e","userAppRole":0,"mbti":"INFJ-T","referral":"username"}'
+  --data '{"userPhone":"PHONE_NUMBER","code":"VERIFICATION_CODE","userPassword":"PASSWORD_MD5","userAppRole":0,"mbti":"INFJ-T","referral":"username"}'
 ```
 
 响应：
@@ -198,7 +193,7 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/registration/complete' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| userPhone | 当前手机号，11位数字 | 13800138000 |
+| userPhone | 当前手机号，11位数字 | PHONE_NUMBER |
 | captcha | 极验4结果的JSON字符串，最多4096个UTF-8字节；四个字段均为非空字符串 | {"lot_number":"...","captcha_output":"...","pass_token":"...","gen_time":"..."} |
 
 请求示例：
@@ -206,7 +201,7 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/registration/complete' \
 ```bash
 curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/request' \
   --header 'Content-Type: application/json' \
-  --data '{"userPhone":"13800138000","captcha":"{\"lot_number\":\"...\",\"captcha_output\":\"...\",\"pass_token\":\"...\",\"gen_time\":\"...\"}"}'
+  --data '{"userPhone":"PHONE_NUMBER","captcha":"{\"lot_number\":\"...\",\"captcha_output\":\"...\",\"pass_token\":\"...\",\"gen_time\":\"...\"}"}'
 ```
 
 响应：
@@ -228,16 +223,16 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/request' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| userPhone | 接收验证码的当前手机号，11位数字 | 13800138000 |
-| code | 找回密码短信验证码，6位数字 | 123456 |
-| userPassword | 新密码的32位小写MD5 | e10adc3949ba59abbe56e057f20f883e |
+| userPhone | 接收验证码的当前手机号，11位数字 | PHONE_NUMBER |
+| code | 找回密码短信验证码，6位数字 | VERIFICATION_CODE |
+| userPassword | 新密码的32位小写MD5 | PASSWORD_MD5 |
 
 请求示例：
 
 ```bash
 curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/complete' \
   --header 'Content-Type: application/json' \
-  --data '{"userPhone":"13800138000","code":"123456","userPassword":"e10adc3949ba59abbe56e057f20f883e"}'
+  --data '{"userPhone":"PHONE_NUMBER","code":"VERIFICATION_CODE","userPassword":"PASSWORD_MD5"}'
 ```
 
 响应：
@@ -264,8 +259,8 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/complete' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | nameOrEmail | 用户名或邮箱 | username |
-| userPassword | 密码的 32 位小写 MD5 | e10adc3949ba59abbe56e057f20f883e |
-| mfaCode | 两步验证码，未启用时可不传 | 123456 |
+| userPassword | 密码的 32 位小写 MD5 | PASSWORD_MD5 |
+| mfaCode | 两步验证码，未启用时可不传 | VERIFICATION_CODE |
 | deviceId | 可选 UUID v4 设备提示；服务端以签名设备 Cookie 识别网站设备 | 随机 UUID v4 |
 
 请求示例：
@@ -273,7 +268,7 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/complete' \
 ```bash
 curl --request POST 'https://fishpi.cn/api/v3/auth/login' \
   --header 'Content-Type: application/json' \
-  --data '{"nameOrEmail":"username","userPassword":"e10adc3949ba59abbe56e057f20f883e"}'
+  --data '{"nameOrEmail":"username","userPassword":"PASSWORD_MD5"}'
 ```
 
 响应：
@@ -314,7 +309,7 @@ curl 'https://fishpi.cn/api/v3/me/security/devices' --header 'Authorization: Bea
 | - lastActiveAt | 该设备仍有效的登录会话中，最近一次登录、续期或访问的毫秒时间戳；访问时间按分钟记录 | 1795000000000 |
 | - current | 是否为发起请求的设备 | true |
 
-> 同一浏览器的多个标签和新旧网站共享设备；第三方应用的授权独立管理。上线前先执行 `sql/20261120_api_v3_website_devices.sql`。已有绑定的浏览器在后续会话核验时显示为「早期网页登录」，未能核实归属的历史登录不会列入。
+> 同一浏览器的多个标签和新旧网站共享设备；第三方应用的授权独立管理。已有绑定的浏览器在后续会话核验时显示为「早期网页登录」，未能核实归属的历史登录不会列入。
 
 ### 退出其他网页登录设备
 
@@ -440,7 +435,6 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 | data.userOnlineFlag / data.onlineMinute | 在线标记 / 累计在线分钟数 |
 | data.userLatestLoginTime | 最后登录时间，Unix 毫秒时间戳。仅第一方网站令牌读取本人资料且有登录记录时返回 |
 
-
 > 返回当前账号资料；账号不再有效或已删除时，原访问令牌也会返回 HTTP 401。
 >
 > capabilities 仅是网站入口提示，不代替资源接口的当前鉴权；第三方访问令牌的以上能力均为 false，不扩大其 OAuth 授权。角色名称和 ID 仅用于展示，不能据此推导管理权限。历史查看与后台入口取当前角色的真实权限配置，权限回收后重新读取即更新；isAdmin 仍只代表管理员，不包含 OP 或纪律委员。
@@ -455,7 +449,6 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
 | Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
 | p | 页码，从1开始 | 1 |
 | size | 每页数量，默认12，最大50 | 12 |
@@ -495,7 +488,6 @@ curl 'https://fishpi.cn/api/v3/columns?p=1&size=12'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
 | Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
 | p | 页码，从1开始 | 1 |
 | size | 每页数量，默认12，最大50 | 12 |
@@ -527,7 +519,6 @@ curl 'https://fishpi.cn/api/v3/columns/hot?p=1&size=12'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
 | Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
 | columnId | 专栏ID | 2026101600000000001 |
 
@@ -560,7 +551,6 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
 | Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
 | columnId | 专栏ID | 2026101600000000001 |
 | p | 页码，从1开始 | 1 |
@@ -586,7 +576,6 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001/articles?p=1&size=20'
 
 > 可见范围与专栏详情相同；没有当前可见章节时返回HTTP 404。读取暂不可用时返回503，不能将失败当作空目录。
 
-
 ### 长篇章节导航
 
 `GET /api/v3/articles/{articleId}/column`
@@ -597,7 +586,6 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001/articles?p=1&size=20'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | xxx |
 | Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
 | articleId | 文章ID | 1770000000001 |
 
@@ -998,7 +986,6 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 
 > 文章和评论引用均按当前状态及可读范围返回。文章不存在或不可查看时返回 HTTP 404。仅作者可见评论的正文只对评论作者和文章作者可见，其他阅读者会得到 contentVisible=false 的占位记录。非法 ID、分页或排序返回 HTTP 422。
 
-
 > 每条评论附带 `interactions`，其中 `vote` 含赞同数、反对数，`thanks` 含感谢数，`reactions` 含各表情的计数。登录读者同时获得自己的投票、感谢状态与费用、表态选择。正文不可见时 `interactions` 为 null。表态用户明细可通过单条表态接口读取。
 
 > `threads` 和 `replies` 固定 `oldest`、每页 20 条。线程视图的每条一级评论额外返回 `replyCount` 和至多 3 条 `replies`，分页只统计一级评论。回复视图返回 `data.rootId`，按评论 ID 升序分页返回该线程所有层的回复，`parentId` 仍指直接回复对象。缺失或失效父评论的可用子评论以独立线程展示。不可用的线程返回 HTTP 404。默认平铺视图的字段与分页保持原规则。
@@ -1234,9 +1221,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/review/identity-applications/179280
 
 本模块采用授权码与 PKCE S256，不接收 apiKey。授权页返回 HTML，授权决定返回 HTTP 303，令牌及撤销响应为直接 JSON，不使用 code/msg/data 信封。错误 JSON 包含 error、error_description；参数错误为 HTTP 400，凭据或来源不受支持为 401/403，媒体类型错误为 415，请求过频为 429，暂时不可用为 503。
 
-授权、同意、令牌和撤销接口不会要求接入方提交站点访问人机验证。站点登录和授权后的业务请求仍遵循各自规则；OAuth 的凭据、来源、权限和速率限制不变。
-
-旧 OpenID 授权、服务端响应核验/续期端点，以及五个已登记的 `/openid/user/*` 资源 GET 接口不受站点访问人机验证拦截。`openid.return_to` 仍须满足原有校验并与授权请求绑定；用户资源仍要求有效 Bearer 及对应 scope，其他资源路径不豁免。
+旧 OpenID 授权使用已登记的回调地址，用户资源接口需要有效 Bearer 令牌及对应 scope。
 
 ### 第一方管理后台授权
 
@@ -1394,7 +1379,7 @@ curl --request POST 'https://fishpi.cn/api/v3/oauth/revoke' \
 
 `POST /api/v3/articles/{articleId}/reads`
 
-正文成功显示后登记当前用户的一次阅读，需要 apiKey。同一用户、同一文章在同一6小时窗口内只计一次；仅支持当前有效、可读、可列出的署名长篇，作者本人不计入。SSR、预览及正文读取失败时不应调用。
+正文成功显示后登记阅读，需要 Bearer 令牌及 `content.read`、`activity.write`。仅支持当前可读、可列出的署名长篇，作者本人不计入。每次实际显示正文时调用一次，预览及读取失败时请勿调用。
 
 请求：
 
@@ -1662,7 +1647,7 @@ curl 'https://fishpi.cn/api/v3/suggestions/users?prefix=al' \
 | -- id | 公开用户ID | 1770000000001 |
 | -- userName | 用户名，保留原大小写 | Alpha |
 | -- userNickname | 昵称文本，可为空 | 示例昵称 |
-| -- userAvatarURL | 头像地址，可为空 | https://file.fishpi.cn/avatar.png |
+| -- userAvatarURL | 头像地址，可为空 | https://example.com/image.png |
 
 > 只匹配用户名，不搜索昵称；下划线按普通字符匹配。不返回总人数或分页信息，空前缀不返回管理员名单。无匹配时list为空数组；无效前缀返回422。昵称按文本展示。
 
@@ -1746,7 +1731,6 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000001/comments' \
 >
 > 相同请求键及相同内容重试返回原发布结果，不重复发布或扣款；同键不同内容返回 HTTP 409。文章或原评论不存在、不可查看、跨文章回复、段落不存在时返回 HTTP 404；缺少权限、未绑定手机、文章禁止评论或评论状态未知时返回 HTTP 403；字段、审核、余额或发言间隔条件未满足时返回 HTTP 422，操作过于频繁返回 HTTP 429。
 
-
 ### 编辑本人评论
 
 `PUT /api/v3/comments/{commentId}`
@@ -1785,7 +1769,6 @@ curl --request PUT 'https://fishpi.cn/api/v3/comments/1770000000003' \
 > 正文需通过审核。编辑费用与五分钟规则沿用平台行为；窗口外的普通公开评论编辑即使正文未变化，也按原规则收费。相同请求键重试不重复编辑、扣款或发送提醒，重放不会覆盖后续编辑；同键不同内容返回 HTTP 409。
 >
 > 不存在、不属于本人或所属文章不可查看时返回 HTTP 404；文章锁定、评论关闭或状态未知、评论不可编辑或缺权限返回 HTTP 403。字段、审核或余额不满足要求返回 HTTP 422，操作过于频繁返回 HTTP 429。
-
 
 ### 删除本人评论
 
@@ -2046,7 +2029,6 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000003/thanks' \
 
 > 成功响应可包含 `data.interaction`，表示当前感谢状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
-
 ### 读取文章打赏状态
 
 `GET /api/v3/articles/{articleId}/reward`
@@ -2193,7 +2175,6 @@ curl --request PUT 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 
 > 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
-
 ### 清除文章投票
 
 `DELETE /api/v3/articles/{articleId}/vote`
@@ -2234,7 +2215,6 @@ curl --request DELETE 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 ## API v3 评论投票
 
 > 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
-
 
 ### 读取评论投票
 
@@ -3063,7 +3043,6 @@ curl 'https://fishpi.cn/api/v3/breezemoons'
 | - pagination | 分页信息 |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
 
-
 ## API v3 个人资源
 
 以下接口使用 Bearer 访问令牌读取当前账号的数据。无效或缺失令牌返回 HTTP 401，缺少所需权限返回 HTTP 403。
@@ -3324,7 +3303,6 @@ curl 'https://fishpi.cn/api/v3/me/columns' --header 'Authorization: Bearer TOKEN
 | -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
 | - pagination | 分页信息 |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
-
 
 ## API v3 个人设置
 
@@ -4718,7 +4696,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1792304100000' \
 | - removed | 已撤回 | true |
 | - cost | 本次消耗积分 | 32 |
 
-> 无需请求体，也可发送空 JSON 对象。普通用户每天可撤回多次，当天费用依次为 0、32、64……积分，与旧撤回接口共享计次；改名和服务重启不重置计次，平台自然日切换后重新计算。原有管理角色的免费规则保留。第一方网页管理撤回在写事务内重新核验当前角色；权限回收后不能用旧的页面能力或令牌内用户快照继续撤回他人消息。
+> 无需请求体，也可发送空 JSON 对象。普通用户每天可撤回多次，当天费用依次为 0、32、64……积分，与旧撤回接口共享计次；改名和服务重启不重置计次，平台自然日切换后重新计算。原有管理角色的免费规则保留。
 >
 > 不存在、已撤回或无权撤回的消息返回 HTTP 404；红包消息对所有角色返回 HTTP 409（message_not_removable），积分不足返回 HTTP 409（insufficient_points）。未提交成功的操作不会扣分或增加计次。 拒绝撤回时保留消息及已有互动，客户端无需按撤回成功清理记录。
 >
@@ -5005,7 +4983,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/online-users?p=1&size=20' \
 | - list | 当前页用户 | [] |
 | -- id | 用户 ID | 123456 |
 | -- userName | 用户名 | Fish |
-| -- userAvatarURL | 头像地址 | https://file.fishpi.cn/avatar.png |
+| -- userAvatarURL | 头像地址 | https://example.com/image.png |
 | - pagination | 分页信息 | |
 | -- p | 当前页码 | 1 |
 | -- size | 每页条数 | 20 |
@@ -5051,7 +5029,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/mutes?p=1&size=20' \
 | -- id | 用户ID | 123456 |
 | -- userName | 当前用户名 | Fish |
 | -- userNickname | 昵称，可空 | 鱼 |
-| -- userAvatarURL | 头像地址，可空 | https://file.fishpi.cn/avatar.png |
+| -- userAvatarURL | 头像地址，可空 | https://example.com/image.png |
 | -- expiresAt | 解除时间，毫秒时间戳 | 1793116800000 |
 | - pagination | 分页信息 | |
 | -- p | 当前页码 | 1 |
@@ -5100,7 +5078,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | --- id | 作者 ID；系统机器人可能为空 | 1630399192600 |
 | --- userName | 用户名 | reader |
 | --- userNickname | 昵称 | 摸鱼中 |
-| --- userAvatarURL | 头像地址 | https://file.fishpi.cn/avatar.png |
+| --- userAvatarURL | 头像地址 | https://example.com/image.png |
 | -- client | 客户端标记，可能为空 | Web/PC网页端 |
 | -- petStatus | 可选，普通消息发言时的宠物快照 | `{"petId":"1792304000001","speciesId":"hexiaotun","name":"荷小豚","state":"course","level":12}` |
 | --- name | 宠物昵称，纯文本 | 荷小豚 |
@@ -5133,7 +5111,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | weather.t / st | 温度 / 体感文本 | 22 / 舒适 |
 | music.title | 音乐标题，纯文本 | 一首歌 |
 | music.source | 音乐 ID 或地址；不可用时为空 | 123456 |
-| music.coverURL | 封面地址，可能为空 | https://file.fishpi.cn/cover.png |
+| music.coverURL | 封面地址，可能为空 | https://example.com/image.png |
 | music.from | 音乐来源标记，可能为空 | netease |
 
 > card 中直接使用相应类型的字段，例如 `{"type":"random","message":"一起摸鱼","money":256,"count":10,"got":2}`。所有卡片文本按纯文本展示；content 是源文本，展示 HTML 时使用 contentHtml。
@@ -5373,7 +5351,7 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/realtime-ticket' \
 | -- id | 作者ID | 123 |
 | -- userName | 用户名 | Fish |
 | -- userNickname | 昵称 | 摸鱼人 |
-| -- userAvatarURL | 头像地址，可为空 | https://file.fishpi.cn/avatar.png |
+| -- userAvatarURL | 头像地址，可为空 | https://example.com/image.png |
 
 > 沿用上节的连接及认证步骤。此事件没有 revision，不加入聊天历史游标；重连或收到 chat.sync_required 时不补播。显示昵称和正文时使用文本节点，并按 id 去重；客户端应忽略未知事件类型。
 
@@ -5536,7 +5514,7 @@ curl --request POST 'https://pic.fishpi.cn/api/v1/files' \
 | --- | --- | --- |
 | code / msg | 图床返回的结果码 / 提示 | 0 |
 | data | 上传结果 | `{...}` |
-| - succMap | 原文件名到文件网址的映射 | `{"example.png":"https://file.fishpi.cn/..."}` |
+| - succMap | 原文件名到文件网址的映射 | `{"example.png":"https://example.com/image.png"}` |
 | - errFiles | 上传失败的文件名列表 | `[]` |
 
 > 图床响应沿用其上传协议，文件格式、大小及失败响应以图床服务为准。直传请求使用 ticket，不能使用 Rhythm 的 accessToken；uploadURL 已包含 `/api/v1/files`，无需再追加路径。裸 Blob 也应提供文件名，例如 `form.append('file', blob, 'example.png')`。
@@ -5876,7 +5854,6 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/drafts/20261016003' \
 
 > 无需请求体。成功删除后用相同键重试仍成功；使用新键删除不存在或不属于当前账号的草稿返回 HTTP 404。原创建请求的重试不会重新创建后来已删除的草稿。
 
-
 ## API v3 通知
 
 本模块使用 Bearer 访问令牌。读取需要 `notifications.read`，状态变更需要 `notifications.write`；升级后请重新登录获取包含相应权限的令牌。
@@ -6116,7 +6093,6 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/notifications' \
 | - changed | 本次原操作变更的通知数；重试返回原结果 |
 
 > 需要 JSON 请求体及明确分类，不支持 all。成功后的重试不删除后来新增的通知。
-
 
 ## API v3 本人大事记投稿
 
@@ -6500,7 +6476,6 @@ curl 'https://fishpi.cn/api/v3/cities/%E4%B8%8A%E6%B5%B7/articles'
 
 > 只包含作者公开位置的文章，不包含匿名发表、讨论帖或不可列出的文章。
 
-
 ### 设置鱼游投票
 
 `PUT /api/v3/fish-games/{gameId}/vote`
@@ -6711,7 +6686,6 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/articles/1770000000000/r
 
 > 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
-
 ### 清除文章表态
 
 `DELETE /api/v3/articles/{targetId}/reactions`
@@ -6751,7 +6725,6 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/articles/177000000000
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
 > 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
-
 
 ### 读取评论表态
 
@@ -6946,7 +6919,6 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/chat/messages/1770000000
 
 > 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。状态补查失败时省略该字段。
 
-
 ### 清除聊天室消息表态
 
 `DELETE /api/v3/chat/messages/{targetId}/reactions`
@@ -6988,7 +6960,6 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1770000
 ## API v3 清风明月写入与详情
 
 > 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。状态补查失败时省略该字段。
-
 
 ### 发布清风明月
 
@@ -7442,7 +7413,6 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/me/collections/177000000
 
 > 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
-
 ### 取消收藏文章
 
 `DELETE /api/v3/me/collections/{targetId}`
@@ -7480,7 +7450,6 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/collections/177000
 > 可以清理已删除或当前不可访问目标的关系。关系不存在时成功返回 `changed=false`。
 
 > 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
-
 
 ### 本人的订阅文章列表
 
@@ -7552,7 +7521,6 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/me/subscriptions/1770000
 
 > 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
-
 ### 取消订阅文章
 
 `DELETE /api/v3/me/subscriptions/{targetId}`
@@ -7592,7 +7560,6 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/subscriptions/1770
 ## API v3 排行榜
 
 > 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
-
 
 ### 获取排行榜
 
@@ -8117,13 +8084,13 @@ curl --get 'https://fishpi.cn/chat/revoke' \
 
 ## 注意事项
 
-* 请一定要在请求时带上 UA，推荐使用 Chrome 的 UA，空 UA 将返回 500 状态码
-* 对单个接口的访问频率必须控制在最低1次/30秒，否则IP可能进入小黑屋（WebSocket、发送消息接口除外）
+* 请求请携带标识客户端的 User-Agent。
+* 按需请求，避免频繁轮询。
 * 所有WebSocket频道设计时必须有断开自动重连机制
 
 ## 鉴权
 
-摸鱼派社区 API 引入了 `apiKey` 的概念，对 API 的请求不需要提供 Cookie，只需要在参数中带上申请的 `apiKey` 即可。
+本节旧版接口使用 `apiKey`。请按各接口指定的位置传入，避免在日志或分享的链接中保留凭据。
 
 > 注意：凡是 POST 请求，请求体必须是 JSON 格式，例如：`{ "nameOrEmail":"","userPassword":"" }`
 
@@ -8138,8 +8105,8 @@ curl --get 'https://fishpi.cn/chat/revoke' \
 | Key          | 说明                               | 示例                             |
 | ------------ | ---------------------------------- | -------------------------------- |
 | nameOrEmail  | 用户名或邮箱地址                   | username                         |
-| userPassword | 使用 MD5 加密后的密码*             | e10adc3949ba59abbe56e057f20f883e |
-| mfaCode      | 两步认证一次性密码（如未设置留空） | 123456                           |
+| userPassword | 密码的 32 位小写 MD5 摘要*             | PASSWORD_MD5 |
+| mfaCode      | 两步认证一次性密码（如未设置留空） | VERIFICATION_CODE |
 
 请求示例：
 
@@ -8148,12 +8115,12 @@ curl --location --request POST 'https://fishpi.cn/api/getKey' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --data-raw '{
  "nameOrEmail":"username",
- "userPassword":"e10adc3949ba59abbe56e057f20f883e",
- "mfaCode":"123456"
+ "userPassword":"PASSWORD_MD5",
+ "mfaCode":"VERIFICATION_CODE"
 }'
 ```
 
-> <sup>*</sup> 注意：这里不支持直接传递明文，必须是32位小写MD5加密后的密码
+> <sup>*</sup> 注意：这里不支持直接传递明文，必须是密码的 32 位小写 MD5 摘要
 
 响应：
 
@@ -8191,18 +8158,18 @@ curl --location --request GET 'https://fishpi.cn/api/user?apiKey=YOUR_API_KEY'
 | data*                | 对应用户详细信息                                                      | `{ ... }`                                         |
 | - oId                | Id                                                                    | 1630512345670                                     |
 | - userNo             | 用户序号                                                              | 26                                                |
-| - userName           | 用户名                                                                | imlinhanchao                                      |
+| - userName           | 用户名                                                                | example_user |
 | - userRole           | 用户组                                                                | OP                                                |
-| - userNickname       | 昵称                                                                  | 我是跳跳吧                                        |
-| - userAvatarURL      | 头像地址                                                              | https://...                                       |
+| - userNickname       | 昵称                                                                  | 示例用户 |
+| - userAvatarURL      | 头像地址                                                              | https://example.com/avatar.png |
 | - userCity           | 最近所在城市，根据用户 IP 确定                                        | 深圳                                              |
 | - userOnlineFlag     | 是否在线                                                              | true                                              |
 | - onlineMinute       | 在线时长，单位分钟                                                    | 85467                                             |
 | - userPoint          | 积分                                                                  | 183939                                            |
 | - userAppRole        | 角色                                                                  | 0 = 黑客，1 = 画家                                |
 | - userGuideStep      | 新人引导步骤：0 已完成，1 上传头像，2 关注标签，3 关注用户，4 Star 项目，-1 未开始 | -1                                                |
-| - userIntro          | 签名                                                                  | 人生而自由，卻無往不在枷鎖之中。                  |
-| - userURL            | URL                                                                   | https://...                                       |
+| - userIntro          | 签名                                                                  | 示例简介 |
+| - userURL            | URL                                                                   | https://example.com/profile |
 | - cardBg             | 卡片背景                                                              | https://...                                       |
 | - followingUserCount | 关注用户                                                              | 5                                                 |
 | - sysMetal           | 徽章列表, JSON**字符串**                                              | `{ ... }`                                         |
@@ -8253,8 +8220,8 @@ curl --location --request GET 'https://fishpi.cn/api/reset-pwd/meta?code=xxxx'
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | userId | 元数据返回的用户 ID | 1630000000000 |
-| code | 当前手机号收到的找回密码验证码，6位数字 | 123456 |
-| userPassword | 新密码的 MD5 | e10adc3949ba59abbe56e057f20f883e |
+| code | 当前手机号收到的找回密码验证码，6位数字 | VERIFICATION_CODE |
+| userPassword | 新密码的 MD5 | PASSWORD_MD5 |
 
 请求示例：
 
@@ -8262,7 +8229,7 @@ curl --location --request GET 'https://fishpi.cn/api/reset-pwd/meta?code=xxxx'
 curl --request POST 'https://fishpi.cn/reset-pwd' \
   --header 'Content-Type: application/json' \
   --cookie-jar cookies.txt \
-  --data '{"userId":"1630000000000","code":"123456","userPassword":"e10adc3949ba59abbe56e057f20f883e"}'
+  --data '{"userId":"1630000000000","code":"VERIFICATION_CODE","userPassword":"PASSWORD_MD5"}'
 ```
 
 响应：
@@ -8290,9 +8257,9 @@ curl --request POST 'https://fishpi.cn/reset-pwd' \
 
 | Key        | 说明                                                                                                                                             | 示例        |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| userName   | 用户名                                                                                                                                           | adlered     |
-| userPhone  | 手机号                                                                                                                                           | 13261327290 |
-| invitecode | 邀请码（选填，无则留空，必须提供让用户填写邀请人的输入框，如果用户留空，可以将作者作为邀请人，但如果用户主动填写了邀请人，则必须按用户输入请求） | 000000      |
+| userName   | 用户名                                                                                                                                           | example_user |
+| userPhone  | 手机号                                                                                                                                           | PHONE_NUMBER |
+| invitecode | 邀请码（选填，无则留空，必须提供让用户填写邀请人的输入框，如果用户留空，可以将作者作为邀请人，但如果用户主动填写了邀请人，则必须按用户输入请求） | INVITE_CODE |
 | captcha    | 第一步的验证码（大小写不敏感）                                                                                                                   | abcd        |
 
 > 邀请码为当前手机号预留一天；同手机号可重发，其他手机号在有效预留期间申请将返回原JSON错误格式。正常字段及成功响应保持。如收到HTTP 302，请按Location完成页面交互后返回原入口重试；不要自动反复发送短信。
@@ -8305,7 +8272,7 @@ curl --request POST 'https://fishpi.cn/reset-pwd' \
 
 | Key  | 说明       | 示例   |
 | ---- | ---------- | ------ |
-| code | 短信验证码 | 123456 |
+| code | 短信验证码 | VERIFICATION_CODE |
 
 返回结果后请验证返回 JSON 中 code 的值是否为 0，如为 0 则验证码正确，**并记录下返回的userId**。
 
@@ -8318,9 +8285,9 @@ curl --request POST 'https://fishpi.cn/reset-pwd' \
 | Key          | 说明                                   | 示例                             |
 | ------------ | -------------------------------------- | -------------------------------- |
 | userAppRole  | 角色（0为黑客，1为画家）               | 0                                |
-| userPassword | 使用 MD5 加密后的密码 *                | e10adc3949ba59abbe56e057f20f883e |
+| userPassword | 密码的 32 位小写 MD5 摘要 *                | PASSWORD_MD5 |
 | userId       | 请填写第三步返回的userId               | 1652062402334                    |
-| code         | 必填，第三步验证的6位注册短信验证码；须仍在有效期内 | 123456 |
+| code         | 必填，第三步验证的6位注册短信验证码；须仍在有效期内 | VERIFICATION_CODE |
 | r            | 邀请人的用户名（选填，无邀请人则留空） | csfwff                           |
 
 code 返回 0 则注册成功！
@@ -8349,7 +8316,7 @@ code 返回 0 则注册成功！
 
 | Key      | 说明      | 示例                             |
 | -------- | --------- | -------------------------------- |
-| username | 用户名    | taozhiyu                         |
+| username | 用户名    | example_user |
 | apiKey   | 通用密钥* | YOUR_API_KEY |
 
 > <sup>*</sup> 选填，填写后 `canFollow` 返回值可以显示是否已经关注该用户
@@ -8357,7 +8324,7 @@ code 返回 0 则注册成功！
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/user/taozhiyu?apiKey=YOUR_API_KEY'\
+curl --location --request GET 'https://fishpi.cn/user/example_user?apiKey=YOUR_API_KEY'\
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 ```
 
@@ -8367,18 +8334,18 @@ curl --location --request GET 'https://fishpi.cn/user/taozhiyu?apiKey=YOUR_API_K
 | ------------------ | --------------------------------------------------------------------- | ------------------------------------------------- |
 | oId                | Id                                                                    | 1630512345670                                     |
 | userNo             | 用户序号                                                              | 26                                                |
-| userName           | 用户名                                                                | imlinhanchao                                      |
+| userName           | 用户名                                                                | example_user |
 | userRole           | 用户组                                                                | OP                                                |
-| userNickname       | 昵称                                                                  | 我是跳跳吧                                        |
-| userAvatarURL      | 头像地址                                                              | https://...                                       |
+| userNickname       | 昵称                                                                  | 示例用户 |
+| userAvatarURL      | 头像地址                                                              | https://example.com/avatar.png |
 | userCity           | 最近所在城市，根据用户 IP 确定                                        | 深圳                                              |
 | userOnlineFlag     | 是否在线                                                              | true                                              |
 | onlineMinute       | 在线时长，单位分钟                                                    | 85467                                             |
 | userPoint          | 积分                                                                  | 183939                                            |
 | canFollow          | 是否可以关注                                                          | no/yes/hide                                       |
 | userAppRole        | 角色                                                                  | 0 = 黑客，1 = 画家                                |
-| userIntro          | 签名                                                                  | 人生而自由，卻無往不在枷鎖之中。                  |
-| userURL            | URL                                                                   | https://...                                       |
+| userIntro          | 签名                                                                  | 示例简介 |
+| userURL            | URL                                                                   | https://example.com/profile |
 | cardBg             | 卡片背景                                                              | https://...                                       |
 | followingUserCount | 关注用户                                                              | 5                                                 |
 | sysMetal           | 徽章列表, JSON**字符串**                                              | `{ ... }`                                         |
@@ -8418,8 +8385,8 @@ curl --location --request POST 'https://fishpi.cn/users/names' \
 | code            | 为0则密钥有效，为-1则密钥无效 | 0           |
 | msg             | 错误信息                      |             |
 | data            | 用户列表                      | `[ ... ]`   |
-| - userAvatarURL | 头像                          | https://... |
-| - userName      | 用户名                        | adlered     |
+| - userAvatarURL | 头像                          | https://example.com/avatar.png |
+| - userName      | 用户名                        | example_user |
 
 ### 用户常用表情
 
@@ -8579,7 +8546,7 @@ curl --location --request GET 'https://fishpi.cn/api/user/bag?apiKey=YOUR_API_KE
 | Key      | 说明                                     | 示例         |
 | -------- | ---------------------------------------- | ------------ |
 | apiKey   | 通用密钥                                 | YOUR_API_KEY |
-| userName | 新用户名，规则同注册：1-64 位字母数字-   | mynewname    |
+| userName | 新用户名，规则同注册：1-64 位字母数字-   | example_user |
 
 请求示例：
 
@@ -8656,7 +8623,7 @@ curl --location --request GET 'https://fishpi.cn/api/activity/is-collected-liven
 
 | Key            | 说明         | 示例                                                                                              |
 | -------------- | ------------ | ------------------------------------------------------------------------------------------------- |
-| apiKey         | 通用密钥     | YOUR_API_KEY                                                                  |
+| apiKey         | 通用密钥     | YOUR_API_KEY |
 | reportDataId   | 举报 Id      | 1651126540998                                                                                     |
 | reportDataType | 举报数据类型 | 0:文章,1:评论,2:用户,3:聊天消息                                                                   |
 | reportType     | 举报类型     | 0:垃圾广告,1: H,2:违规,3:侵权,4:人身攻击,5:冒充他人账号,6:垃圾广告账号,7:违规泄露个人信息,49:其他 |
@@ -8697,7 +8664,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 | Key      | 说明     | 示例                             |
 | -------- | -------- | -------------------------------- |
 | apiKey   | 通用密钥 | YOUR_API_KEY |
-| userName | 收款人   | adlered                          |
+| userName | 收款人   | example_user |
 | amount   | 转账金额 | 100                              |
 | memo     | 转账备注 | hello                            |
 
@@ -8732,10 +8699,10 @@ curl --location --request POST 'https://fishpi.cn/report' \
 | Key          | 说明                             | 示例                             |
 | ------------ | -------------------------------- | -------------------------------- |
 | apiKey       | 通用密钥                         | YOUR_API_KEY |
-| userNickname | 用户昵称                         | 阿达                             |
+| userNickname | 用户昵称                         | 示例用户 |
 | userTags     | 用户标签，多个标签用英文逗号分隔 | 标签1,标签2                      |
-| userURL      | 用户URL                          | https://xxx.com                  |
-| userIntro    | 个性签名                         | 这个人很懒，没有个性签名         |
+| userURL      | 用户URL                          | https://example.com/profile |
+| userIntro    | 个性签名                         | 示例简介 |
 | mbti         | 用户的MBTI                       | ENFJ-A                           |
 
 ### 修改用户头像
@@ -8746,8 +8713,8 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key           | 说明        | 示例                                   |
 | ------------- | ----------- | -------------------------------------- |
-| apiKey        | 通用密钥    | YOUR_API_KEY       |
-| userAvatarURL | 用户头像URL | https://file.fishpi.cn/2025/12/xxx.png |
+| apiKey        | 通用密钥    | YOUR_API_KEY |
+| userAvatarURL | 用户头像URL | https://example.com/avatar.png |
 
 ### 查询用户积分余额
 
@@ -8956,9 +8923,9 @@ curl --location --request GET 'https://fishpi.cn/openid/user/profile' \
 | msg              | 错误消息             |                               |
 | data             | 响应数据             |                               |
 | - userId         | 用户 oId             | 1659430635383                 |
-| - userName       | 用户名               | admin                         |
-| - userNickname   | 昵称                 | 管理员                        |
-| - userAvatarURL  | 头像                 | https://file.fishpi.cn/a.png  |
+| - userName       | 用户名               | example_user |
+| - userNickname   | 昵称                 | 示例用户 |
+| - userAvatarURL  | 头像                 | https://example.com/avatar.png |
 
 ### 查询 OAuth 用户详细信息
 
@@ -8986,15 +8953,15 @@ curl --location --request GET 'https://fishpi.cn/openid/user/detail' \
 | code                   | 0 为成功，-1 为失败  | 0                            |
 | msg                    | 错误消息             |                              |
 | data                   | 响应数据             |                              |
-| - userName             | 用户名               | admin                        |
+| - userName             | 用户名               | example_user |
 | - userOnlineFlag       | 是否在线             | true                         |
 | - onlineMinute         | 在线分钟数           | 1000                         |
-| - userURL              | 个人链接             | https://example.com          |
-| - userNickname         | 昵称                 | 管理员                       |
+| - userURL              | 个人链接             | https://example.com/profile |
+| - userNickname         | 昵称                 | 示例用户 |
 | - userCity             | 公开城市             | 北京                         |
-| - userAvatarURL        | 头像                 | https://file.fishpi.cn/a.png |
+| - userAvatarURL        | 头像                 | https://example.com/avatar.png |
 | - userPoint            | 当前积分             | 183939                       |
-| - userIntro            | 简介                 | 摸鱼中                       |
+| - userIntro            | 简介                 | 示例简介 |
 | - oId                  | 用户 oId             | 1659430635383                |
 | - userNo               | 用户编号             | 1                            |
 | - userAppRole          | 站内身份             | 0                            |
@@ -9123,7 +9090,7 @@ curl --location --request GET 'https://fishpi.cn/openid/user/articles?p=1&size=2
 | - userId                         | 用户 oId             | 1659430635383 |
 | - articles                       | 发帖记录列表         |               |
 | -- oId                           | 帖子 oId             | 1760000000000 |
-| -- articleTitle                  | 标题                 | 摸鱼          |
+| -- articleTitle                  | 标题                 | 示例文章 |
 | -- articlePermalink              | 链接                 | /article/1760000000000 |
 | -- articleTags                   | 标签                 | 摸鱼,生活     |
 | -- articleCreateTime             | 创建时间             | 1760000000000 |
@@ -9230,13 +9197,13 @@ curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=YOU
 | msg                         | 错误信息                      |                                              |
 | data                        | 通知数据列表                  | `[ ... ]`                                    |
 | - hasRead                   | 是否已读                      | true                                         |
-| - commentAuthorName         | 回帖作者                      | Tocker                                       |
-| - commentAuthorThumbnailURL | 回帖作者头像缩略图            | https://...                                  |
+| - commentAuthorName         | 回帖作者                      | example_user |
+| - commentAuthorThumbnailURL | 回帖作者头像缩略图            | https://example.com/avatar.png |
 | - commentCreateTime         | 回帖时间                      | Sun Dec 19 09:57:03 CST 2021                 |
 | - commentSharpURL           | 回帖地址                      | /article/1637143985245?p=1&m=1#1639879022994 |
 | - commentContent            | 回帖内容，内容为 HTML         | `牛蛙牛蛙`                                   |
 | - commentArticleType        | 回帖的文章类型                | 0                                            |
-| - commentArticleTitle       | 回帖文章标题                  | 摸鱼派聊天室应用                             |
+| - commentArticleTitle       | 回帖文章标题                  | 示例文章 |
 | - commentArticlePerfect     | 是否精选的文章                | 1                                            |
 
 收到的 @ (at) 通知响应：
@@ -9247,8 +9214,8 @@ curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=YOU
 | msg             | 错误信息                      |                                                       |
 | data            | 通知数据列表                  | `[ ... ]`                                             |
 | - hasRead       | 是否已读                      | true,                                                 |
-| - userName      | 发起 @ 用户                   | imlinhanchao                                          |
-| - userAvatarURL | 发起 @ 用户头像               | https://file.fishpi.cn/2021/09/1502581-141c6da3.png", |
+| - userName      | 发起 @ 用户                   | example_user |
+| - userAvatarURL | 发起 @ 用户头像               | https://example.com/avatar.png |
 | - deleted       | 是否已删除                    | false,                                                |
 | - createTime"   | 创建时间                      | Mon Dec 20 10:00:56 CST 2021",                        |
 | - content       | @ 的内容                      | @imlinhanchao 大佬一直在线 还可以看直播"              |
@@ -9261,7 +9228,7 @@ curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=YOU
 | msg                   | 错误信息                      |                                         |
 | data                  | 通知数据列表                  | `[ ... ]`                               |
 | - hasRead             | 是否已读                      | true                                    |
-| - articleTitle        | 文章标题                      | 【社区维护日志】IP 黑名单列表           |
+| - articleTitle        | 文章标题                      | 示例文章 |
 | - isComment           | 是否评论                      | false                                   |
 | - articleTags         | 文章标签                      | 摸鱼派,熊孩子                           |
 | - url                 | 文章地址                      | https://fishpi.cn/article/1639719358591 |
@@ -9442,9 +9409,9 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 | data            | 消息列表                                                              | `[ ... ]`                                         |
 | - oId           | 消息 Id                                                               | 1640074796395                                     |
 | - time          | 发布时间                                                              | 2021-12-21 16:19:56                               |
-| - userName      | 用户名                                                                | adlered                                           |
-| - userNickname  | 昵称                                                                  | 陈辉                                              |
-| - userAvatarURL | 用户头像                                                              | https://...                                       |
+| - userName      | 用户名                                                                | example_user |
+| - userNickname  | 昵称                                                                  | 示例用户 |
+| - userAvatarURL | 用户头像                                                              | https://example.com/avatar.png |
 | - client        | 客户端来源                                                            | Web/Latest                                        |
 | - sysMetal      | 徽章列表, JSON**字符串**                                              | `{ ... }`                                         |
 | -- list         | 徽章列表数据                                                          | `[ ... ]`                                         |
@@ -9461,7 +9428,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 | -- type         | 红包类型                                                              | random                                            |
 | -- got          | 已领取个数                                                            | 1                                                 |
 | -- who          | 已领取者信息                                                          | `[ ... ]`                                         |
-| --- userName    | 用户名                                                                | dannio                                            |
+| --- userName    | 用户名                                                                | example_user |
 | --- avatar      | 用户头像                                                              | https://...                                       |
 | --- userMoney   | 领取到的积分                                                          | 23                                                |
 | --- time        | 领取时间                                                              | 2021-12-21 16:26:43                               |
@@ -9490,9 +9457,9 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 | data            | 消息列表                                                              | `[ ... ]`                                         |
 | - oId           | 消息 Id                                                               | 1640074796395                                     |
 | - time          | 发布时间                                                              | 2021-12-21 16:19:56                               |
-| - userName      | 用户名                                                                | adlered                                           |
-| - userNickname  | 昵称                                                                  | 陈辉                                              |
-| - userAvatarURL | 用户头像                                                              | https://...                                       |
+| - userName      | 用户名                                                                | example_user |
+| - userNickname  | 昵称                                                                  | 示例用户 |
+| - userAvatarURL | 用户头像                                                              | https://example.com/avatar.png |
 | - sysMetal      | 徽章列表, JSON**字符串**                                              | `{ ... }`                                         |
 | -- list         | 徽章列表数据                                                          | `[ ... ]`                                         |
 | --- attr        | 徽章数据，包含徽章图地址`url`, 背景色 `backcolor`, 前景色 `fontcolor` | url=https://...&backcolor=b91c22&fontcolor=ffffff |
@@ -9508,7 +9475,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 | -- type         | 红包类型                                                              | random                                            |
 | -- got          | 已领取个数                                                            | 1                                                 |
 | -- who          | 已领取者信息                                                          | `[ ... ]`                                         |
-| --- userName    | 用户名                                                                | dannio                                            |
+| --- userName    | 用户名                                                                | example_user |
 | --- avatar      | 用户头像                                                              | https://...                                       |
 | --- userMoney   | 领取到的积分                                                          | 23                                                |
 | --- time        | 领取时间                                                              | 2021-12-21 16:26:43                               |
@@ -9529,7 +9496,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 
 | Key        | 说明                                                                                                                                                                                                                                                                                            | 示例                                     |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| apiKey     | 通用密钥                                                                                                                                                                                                                                                                                        | YOUR_API_KEY         |
+| apiKey     | 通用密钥                                                                                                                                                                                                                                                                                        | YOUR_API_KEY |
 | client     | 格式：`标识/版本`，标识支持 `Web`、`PC`、`Mobile`、`CLI`、`uTools`、`Windows`、`macOS`、`Linux`、`IceNet`、`ElvesOnline`、`iOS`、`Android`、`Extension`、`IDEA`、`Chrome`、`Edge`、`VSCode`、`Python`、`Golang`、`Bird`、`Dart`、`Harmony`、`Rust`、`Deepseek Harness`、`Codex`、`WPS`、`Other`；版本允许使用中文、英文、数字、英文句号、英文横线和空格，最大32字符，超过则自动截断 | Codex/1.0 |
 | content    | 消息正文（支持Markdown格式）。                                                                                                                                                                                                                                                                  | `...` 或 `[redpacket]{...}[/redpacket]`* |
 | - msg      | 红包祝福语                                                                                                                                                                                                                                                                                      | 摸鱼者，事竟成！                         |
@@ -9648,15 +9615,15 @@ curl --location --request POST 'https://fishpi.cn/chat-room/red-packet/open' \
 | --------------- | -------------------------------------------------------- | ------------------- |
 | recivers        | 红包接收者用户名列表，专属红包有效                       | `[ ... ]`           |
 | who             | 已打开红包的用户                                         | `[ ... ]`           |
-| - userName      | 用户名                                                   | dannio              |
+| - userName      | 用户名                                                   | example_user |
 | - avatar        | 用户头像                                                 | https://...         |
 | - userMoney     | 领取到的积分                                             | 23                  |
 | - time          | 领取时间                                                 | 2021-12-21 16:26:43 |
 | info            | 红包信息                                                 | `{ ... }`           |
 | - msg           |                                                          | 玩的就是心跳！      |
-| - userName      | 发送者用户名                                             | hewei               |
-| - userAvatarURL | 发送者头像                                               | https://...         |
-| - userAvatarURL48 | 新核心红包的头像兼容字段 | https://... |
+| - userName      | 发送者用户名                                             | example_user |
+| - userAvatarURL | 发送者头像                                               | https://example.com/avatar.png |
+| - userAvatarURL48 | 新核心红包的头像兼容字段 | https://example.com/avatar.png |
 | - gesture | 新核心猜拳发送者出拳，仅本人查看或结算后返回 | 0 |
 | - count         | 红包个数                                                 | 2                   |
 | - got           | 已领取个数                                               | 2                   |
@@ -9745,41 +9712,41 @@ curl --location --request POST 'https://fishpi.cn/api/cloud/get' \
 
 1. **获取分组列表**
    `GET /api/emoji/groups`
-   Body 可选：`{"apiKey":"xxx"}`
+   Body 可选：`{"apiKey":"YOUR_API_KEY"}`
    说明：缺少“全部”分组会自动创建后返回。
 2. **获取分组内表情**
    `GET /api/emoji/group/emojis?groupId={groupId}`
-   Body 可选：`{"apiKey":"xxx"}`
+   Body 可选：`{"apiKey":"YOUR_API_KEY"}`
 3. **上传 URL 到“全部”分组**
    `POST /api/emoji/upload`
-   Body：`{"apiKey":"xxx","url":"https://.../a.png"}`
+   Body：`{"apiKey":"YOUR_API_KEY","url":"https://.../a.png"}`
 4. **创建分组**
    `POST /api/emoji/group/create`
-   Body：`{"apiKey":"xxx","name":"我的包","sort":0}`
+   Body：`{"apiKey":"YOUR_API_KEY","name":"我的包","sort":0}`
 5. **更新分组**
    `POST /api/emoji/group/update`
-   Body：`{"apiKey":"xxx","groupId":"g1","name":"新名字","sort":5}`
+   Body：`{"apiKey":"YOUR_API_KEY","groupId":"g1","name":"新名字","sort":5}`
 6. **删除分组**
    `POST /api/emoji/group/delete`
-   Body：`{"apiKey":"xxx","groupId":"g1"}`
+   Body：`{"apiKey":"YOUR_API_KEY","groupId":"g1"}`
 7. **分组添加已有表情**
    `POST /api/emoji/group/add-emoji`
-   Body：`{"apiKey":"xxx","groupId":"g1","emojiId":"e1","sort":0,"name":"可选名称"}`
+   Body：`{"apiKey":"YOUR_API_KEY","groupId":"g1","emojiId":"e1","sort":0,"name":"可选名称"}`
    说明：若目标分组不是“全部”，会自动同步到“全部”分组。
 8. **分组添加 URL 表情**
    `POST /api/emoji/group/add-url-emoji`
-   Body：`{"apiKey":"xxx","groupId":"g1","url":"https://.../a.png","sort":0,"name":"可选名称"}`
+   Body：`{"apiKey":"YOUR_API_KEY","groupId":"g1","url":"https://.../a.png","sort":0,"name":"可选名称"}`
    说明：自动同步到“全部”，`sort<=0` 时追加到末尾。
 9. **从分组移除表情**
    `POST /api/emoji/group/remove-emoji`
-   Body：`{"apiKey":"xxx","groupId":"g1","emojiId":"e1"}`
+   Body：`{"apiKey":"YOUR_API_KEY","groupId":"g1","emojiId":"e1"}`
    说明：若 `groupId` 为“全部”，会同时从所有分组移除。
 10. **更新表情项（重命名/排序）**
     `POST /api/emoji/emoji/update`
-    Body：`{"apiKey":"xxx","oId":"item1","groupId":"g1","name":"新名称","sort":10}`
+    Body：`{"apiKey":"YOUR_API_KEY","oId":"item1","groupId":"g1","name":"新名称","sort":10}`
 11. **迁移旧表情到 v2**
     `POST /api/emoji/emoji/migrate`
-    Body：`{"apiKey":"xxx"}`
+    Body：`{"apiKey":"YOUR_API_KEY"}`
 12. **错误示例**
     ```json
     { "code": -1, "msg": "未找到分组" }
@@ -9795,7 +9762,7 @@ curl -X GET -H "Content-Type: application/json" \
 
 # 将远程图片收藏到指定分组
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"apiKey":"YOUR_API_KEY","groupId":"g1","url":"https://file.fishpi.cn/emoji/demo.png","name":"demo","sort":0}' \
+  -d '{"apiKey":"YOUR_API_KEY","groupId":"g1","url":"https://example.com/image.png","name":"demo","sort":0}' \
   "${SERVE_PATH}/api/emoji/group/add-url-emoji"
 
 # 迁移旧表情
@@ -9806,7 +9773,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 ## 图床
 
-> **【接口停用预告】** 站点图床已切换为新的 **RhyPic 韵图** 图床（OSS 与 CDN 同机部署，统一域名 `file.fishpi.cn`），本页所述旧上传接口 `POST /upload` 将在不久后**彻底停用**。请第三方客户端开发者尽快改用 RhyPic 韵图的新上传接口完成适配，接口说明见 **[《RhyPic 韵图对接文档》](https://fishpi.cn/article/1790518451759)**。
+> **【接口停用预告】** 站点图床已切换为新的 **RhyPic 韵图** 图床，本页所述旧上传接口 `POST /upload` 将在不久后**彻底停用**。请第三方客户端开发者尽快改用 RhyPic 韵图的新上传接口完成适配，接口说明见 **[《RhyPic 韵图对接文档》](https://fishpi.cn/article/1790518451759)**。
 
 ### 上传图片
 
@@ -10146,7 +10113,7 @@ curl --location --request GET 'https://fishpi.cn/api/columns/latest?size=12'
 | -- articleId                | 章节帖子 Id                | 1630...     |
 | -- articlePermalink         | 章节帖子链接               | /article/x  |
 | -- chapterNo                | 章节序号                   | 19          |
-| -- articleTitle             | 章节标题                   | 第19章      |
+| -- articleTitle             | 章节标题                   | 示例文章 |
 | - secondLatestChapter       | 第二新章节，结构同上       | `{ ... }`   |
 
 ### 热门专栏
@@ -10217,9 +10184,9 @@ curl --location --request GET 'https://fishpi.cn/api/columns/1770000000000'
 | - columnDescription  | 专栏简介（暂不支持） |             |
 | - columnArticleCount | 章节数               | 19          |
 | - author             | 作者信息             | `{ ... }`   |
-| -- userName          | 用户名               | imlinha...  |
-| -- userNickname      | 昵称                  | 我是跳跳    |
-| -- userAvatarURL     | 头像地址             | https://..  |
+| -- userName          | 用户名               | example_user |
+| -- userNickname      | 昵称                  | 示例用户 |
+| -- userAvatarURL     | 头像地址             | https://example.com/avatar.png |
 
 ### 专栏章节列表
 
@@ -10252,7 +10219,7 @@ curl --location --request GET 'https://fishpi.cn/api/columns/1770000000000/artic
 | -- articleId                    | 帖子 Id                  | 1630...    |
 | -- articlePermalink             | 帖子链接                 | /article/x |
 | -- chapterNo                    | 章节序号                 | 1          |
-| -- articleTitle                 | 章节标题                 | 第一章     |
+| -- articleTitle                 | 章节标题                 | 示例文章 |
 | -- articleCreateTime            | 发布时间                 | 2026-10-01 |
 | - pagination                    | 分页信息                 | `{ ... }`  |
 | -- paginationPageCount          | 总页数                   | 1          |
@@ -10272,14 +10239,14 @@ curl --location --request GET 'https://fishpi.cn/api/columns/1770000000000/artic
 | -------------- | ------------------------------------------------ | -------------------------------- |
 | columnId       | 专栏 Id，本参数为 URL 参数                       | 1770000000000                    |
 | apiKey         | 通用密钥                                         | YOUR_API_KEY |
-| columnCoverURL | 封面图地址，支持站内路径或 HTTP/HTTPS，最长 1024 | https://file.fishpi.cn/demo.jpg  |
+| columnCoverURL | 封面图地址，支持站内路径或 HTTP/HTTPS，最长 1024 | https://example.com/image.png  |
 
 请求示例：
 
 ```bash
 curl --location --request POST 'https://fishpi.cn/api/columns/1770000000000/cover' \
 --header 'Content-Type: application/json' \
---data-raw '{"apiKey":"YOUR_API_KEY","columnCoverURL":"https://file.fishpi.cn/demo.jpg"}'
+--data-raw '{"apiKey":"YOUR_API_KEY","columnCoverURL":"https://example.com/image.png"}'
 ```
 
 响应：
@@ -10292,7 +10259,7 @@ curl --location --request POST 'https://fishpi.cn/api/columns/1770000000000/cove
 | - column           | 更新后的专栏数据     | `{...}`                    |
 | -- oId             | 专栏 Id              | 1770000000000              |
 | -- columnTitle     | 专栏名称             | 我的专栏                   |
-| -- columnCoverURL  | 封面图地址           | https://file.fishpi.cn/... |
+| -- columnCoverURL  | 封面图地址           | https://example.com/image.png |
 | -- columnHasCover  | 是否设置了自定义封面 | true                       |
 
 ## 帖子
@@ -10346,7 +10313,7 @@ curl --location --request GET 'https://fishpi.cn/api/article-drafts?apiKey=YOUR_
 | -------------------------- | -------------------------------- | -------------------------------- |
 | apiKey                     | 通用密钥                         | YOUR_API_KEY |
 | articleDraftId             | 草稿 Id，更新时填写              | 1770000000000                    |
-| articleTitle               | 标题，最长 255 字符              | 今天摸鱼了吗                     |
+| articleTitle               | 标题，最长 255 字符              | 示例文章 |
 | articleContent             | 正文，最长 1024000 字符          | 正文内容                         |
 | articleDraftThoughtContent | 思绪正文，最长 1024000 字符      | 思绪内容                         |
 | articleTags                | 标签，最长 255 字符              | 摸鱼,日常                        |
@@ -10629,11 +10596,11 @@ curl --location --request GET 'https://fishpi.cn/api/search?q=%E6%91%B8%E9%B1%BC
 | data.pagination    | 分页信息                       | `{...}`          |
 | data.articles      | 命中帖子列表 | `[...]`      |
 | -- oId             | 帖子 ID                        | 1636516552191    |
-| -- articleTitle    | 帖子标题                       | 摸鱼派社区开放 API 使用文档 |
+| -- articleTitle    | 帖子标题                       | 示例文章 |
 | -- articleTags     | 帖子标签                       | 摸鱼派,API       |
 | -- articlePermalink| 帖子固定链接                   | /article/1636516552191 |
 | -- articlePreviewContent | 命中内容预览             | `...`            |
-| -- articleAuthor   | 作者公开信息                   | `{...}`          |
+| -- articleAuthor   | 作者公开信息                   | example_user |
 
 > 注意：搜索服务不可用时返回 `code=-1`。命中结果不包含机要帖、思绪帖等受限内容，返回字段为白名单内的公开字段。
 
@@ -10728,9 +10695,9 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | msg                             | 错误消息                                                       |                                    |
 | data                            | 帖子数据                                                       | `{...}`                            |
 | - article                       | 帖子数据                                                       | `{...}`                            |
-| -- articleTitleEmoj             | 文章标题                                                       | 摸鱼派社区开放 API 使用文档 V2.0.0 |
-| -- articleTitleEmojUnicode      | 文章标题                                                       | 摸鱼派社区开放 API 使用文档 V2.0.0 |
-| -- articleTitle                 | 文章标题                                                       | 摸鱼派社区开放 API 使用文档 V2.0.0 |
+| -- articleTitleEmoj             | 文章标题                                                       | 示例文章 |
+| -- articleTitleEmojUnicode      | 文章标题                                                       | 示例文章 |
+| -- articleTitle                 | 文章标题                                                       | 示例文章 |
 | -- articleCreateTimeStr         | 文章创建时间字符串                                             | 2021-11-10 11:55:52                |
 | -- articleCreateTime            | 文章创建时间                                                   | Wed Nov 10 11:55:52 CST 2021       |
 | -- articlePermalink             | 文章固定链接                                                   | /article/1636516552191             |
@@ -10761,7 +10728,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | -- articleQnAOfferPoint         | 悬赏积分                                                       | 0                                  |
 | -- offered                      | 是否悬赏                                                       | false                              |
 | -- articleAnonymous             | 是否匿名                                                       | 0                                  |
-| -- articleAuthorName            | 作者用户名                                                     | adlered                            |
+| -- articleAuthorName            | 作者用户名                                                     | example_user |
 | -- isFollowing                  | 是否已关注                                                     | false                              |
 | -- isWatching                   | 是否关注                                                       | false                              |
 | -- isMyArticle                  | 是否是我的文章                                                 | false                              |
@@ -10775,14 +10742,14 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | -- articleImg1URL               | 第一张图片地址                                                 |                                    |
 | -- articleVote                  | 文章点赞数                                                     | 0                                  |
 | -- articleRandomDouble          | 文章随机数                                                     | 0.33495039072745036                |
-| -- articleAuthorIntro           | 作者签名                                                       | 业余开源爱好者                     |
+| -- articleAuthorIntro           | 作者签名                                                       | 示例简介 |
 | -- articleCity                  | 发布地址                                                       | 北京                               |
 | -- articleAuthorId              | 发布者Id                                                       | "1630399192600"                    |
-| -- articleAuthorURL             | 作者首页地址                                                   | https://github.com/adlered         |
-| -- articleAuthor                | 作者用户信息                                                   | `{...}`                            |
-| -- articleAuthorThumbnailURL210 | 作者头像缩略图                                                 | `https:/...`                       |
-| -- articleAuthorThumbnailURL48  | 作者头像缩略图                                                 | `https://...`                      |
-| -- articleAuthorThumbnailURL20  | 作者头像缩略图                                                 | `https://...`                      |
+| -- articleAuthorURL             | 作者首页地址                                                   | https://example.com/profile |
+| -- articleAuthor                | 作者用户信息                                                   | example_user |
+| -- articleAuthorThumbnailURL210 | 作者头像缩略图                                                 | https://example.com/avatar.png |
+| -- articleAuthorThumbnailURL48  | 作者头像缩略图                                                 | https://example.com/avatar.png |
+| -- articleAuthorThumbnailURL20  | 作者头像缩略图                                                 | https://example.com/avatar.png |
 | -- articlePushOrder             | 推送 Email 推送顺序                                            | 0                                  |
 | -- articleTags                  | 文章标签                                                       | 系统公告,摸鱼派,API                |
 | -- oId                          | 文章id                                                         | 1636516552191                      |
@@ -10852,11 +10819,11 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | userTags                      | 用户标签                                  | `...,...`     |
 | sysMetal                      | 用户徽章                                  | `[...]`       |
 | userTimezone                  | 用户时区                                  | Asia/Shanghai |
-| userURL                       | 用户个人主页                              | `http://...`  |
+| userURL                       | 用户个人主页                              | https://example.com/profile |
 | userIndexRedirectURL          | 自定义首页跳转地址                        |               |
 | userLatestArticleTime         | 最近发帖时间                              | 1646191348504 |
 | userTagCount                  | 标签计数                                  | 0             |
-| userNickname                  | 昵称                                      | 大白菜        |
+| userNickname                  | 昵称                                      | 示例用户 |
 | userListViewMode              | 回帖浏览模式， 0 = 传统， 1 = 实时        | 1             |
 | userLongestCheckinStreak      | 最长连续签到                              | 4             |
 | userAvatarType                | 用户头像类型                              | 2             |
@@ -10872,7 +10839,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | userProvince                  | 用户省份                                  | 河北省        |
 | userCurrentCheckinStreak      | 用户当前连续签到计数                      | 1             |
 | userNo                        | 用户编号                                  | 4611          |
-| userAvatarURL                 | 用户头像                                  | `https://...` |
+| userAvatarURL                 | 用户头像                                  | https://example.com/avatar.png |
 | userLanguage                  | 用户语言                                  | zh_CN         |
 | userCurrentCheckinStreakEnd   | 上次签到日期                              | 20220413      |
 | userReplyWatchArticleStatus   | 是否回帖后自动关注帖子                    | 1             |
@@ -10884,7 +10851,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | userMobileSkin                | 移动端主题                                | mobile        |
 | userListPageSize              | 分页每页条目                              | 60            |
 | oId                           | 用户 ID                                   | 1645580042349 |
-| userName                      | 用户Id                                    | 2516484465    |
+| userName                      | 用户Id                                    | example_user |
 | userGeoStatus                 | 是否公开 IP 地理信息                      | 0             |
 | userLongestCheckinStreakStart | 最长连续签到起始日                        | 20220223      |
 | userSkin                      | 用户主题                                  | classic       |
@@ -10901,7 +10868,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | commentAuthorId           | 评论作者 Id       | 1630586509670                              |
 | commentScore              | 评论分数          | 0.549092369988321                          |
 | commentCreateTime         | 评论创建时间      | Thu Dec 02 22:01:15 CST 2021               |
-| commentAuthorURL          | 评论作者 URL      | https://my.hancel.org/about                |
+| commentAuthorURL          | 评论作者 URL      | https://example.com/profile |
 | commentVote               | 评论点赞数        | -1                                         |
 | timeAgo                   | 评论日期简写      | 4 个月前                                   |
 | commentOriginalCommentId  | 评论原始oId       |                                            |
@@ -10919,11 +10886,11 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | commentStatus             | 评论状态          | 0                                          |
 | commenter                 | 评论者用户信息    | `{...}`                                    |
 | paginationCurrentPageNum  | 评论所在页码      | 1                                          |
-| commentAuthorName         | 评论者用户名      | imlinhanchao                               |
+| commentAuthorName         | 评论者用户名      | example_user |
 | commentThankCnt           | 感谢数            | 3                                          |
 | commentBadCnt             | 反对数            | 0                                          |
 | rewarded                  | 是否感谢了        | false                                      |
-| commentAuthorThumbnailURL | 评论作者头像      | `https://...`                              |
+| commentAuthorThumbnailURL | 评论作者头像      | https://example.com/avatar.png |
 | commentAudioURL           | 评论音频地址      |                                            |
 | commentQnAOffered         | 是否被采纳        | 0                                          |
 
@@ -10937,7 +10904,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | -------- | ---------------------------------------------------------------------------------- | ----- |
 | p        | 页码（第几页）                                                                     | 1     |
 | size     | 每页显示多少条结果（可能由于部分用户权限设置，最终显示条数低于该结果，属正常情况） | 20    |
-| userName | 用户名（本参数为URL参数，请注意）                                                  | adler |
+| userName | 用户名（本参数为URL参数，请注意）                                                  | example_user |
 
 ### 置顶帖子（API）
 
@@ -10949,7 +10916,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 
 | Key       | 说明      | 示例                             |
 | --------- | --------- | -------------------------------- |
-| apiKey    | 通用密钥  | YOUR_API_KEY                     |
+| apiKey    | 通用密钥  | YOUR_API_KEY |
 | articleId | 帖子 Id   | 1645002736006                    |
 
 请求示例：
@@ -11138,10 +11105,10 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/parents' \
 | - oId                      | 评论 Id                                                | 1645002736006        |
 | - commentId                 | 评论 Id                                                | 1645002736006        |
 | - commentContent           | 评论内容，格式为 HTML                                  | `牛蛙牛蛙`           |
-| - commentAuthorName        | 评论作者用户名                                         | adlered              |
+| - commentAuthorName        | 评论作者用户名                                         | example_user |
 | - commentAuthorId          | 评论作者 Id                                            | 1630512345670        |
-| - commentAuthorNickName    | 评论作者昵称                                           | 阿达                 |
-| - commentAuthorThumbnailURL | 评论作者头像                                           | `https://...`        |
+| - commentAuthorNickName    | 评论作者昵称                                           | 示例用户 |
+| - commentAuthorThumbnailURL | 评论作者头像                                           | https://example.com/avatar.png |
 | - commenter                 | 评论者公开信息，仅包含 `userName/userNickname/userUAStatus` | `{...}`              |
 | - commentIsArticleAuthor   | 评论作者是否为楼主                                     | true                 |
 | - commentIsCurrentUser     | 评论作者是否为当前用户                                 | false                |
@@ -11207,16 +11174,16 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/replies' \
 | - commentId                 | 回复 Id                                                | 1645002736007        |
 | - commentThreadRootId      | 线程根评论 Id                                          | 1645002736006        |
 | - commentThreadDepth       | 回复深度，从 0 开始                                    | 0                    |
-| - commentAuthorName        | 回复作者用户名                                         | adlered              |
+| - commentAuthorName        | 回复作者用户名                                         | example_user |
 | - commentAuthorId          | 回复作者 Id                                            | 1630512345670        |
-| - commentAuthorNickName    | 回复作者昵称                                           | 阿达                 |
-| - commentAuthorThumbnailURL | 回复作者头像                                           | `https://...`        |
+| - commentAuthorNickName    | 回复作者昵称                                           | 示例用户 |
+| - commentAuthorThumbnailURL | 回复作者头像                                           | https://example.com/avatar.png |
 | - commenter                 | 回复者公开信息，仅包含 `userName/userNickname/userUAStatus` | `{...}`              |
 | - commentIsArticleAuthor   | 回复作者是否为楼主                                     | false                |
 | - commentIsCurrentUser     | 回复作者是否为当前用户                                 | true                 |
 | - commentOriginalCommentId | 被回复的评论 Id                                        | 1645002736006        |
 | - commentOriginalAuthorName | 被回复评论作者用户名                                   | adlered              |
-| - commentOriginalAuthorNickName | 被回复评论作者昵称                                | 阿达                 |
+| - commentOriginalAuthorNickName | 被回复评论作者昵称                                | 示例用户 |
 | - commentContent           | 回复内容，格式为 HTML                                  | `牛蛙牛蛙`           |
 | - commentVisible           | 可见范围                                               | 0                    |
 | - commentRevisionCount     | 回复历史版本数量                                       | 2                    |
@@ -11272,7 +11239,7 @@ curl --request POST 'https://fishpi.cn/comment' \
 | code | 0 表示成功 |
 | msg | 操作提示；失败时说明原因 |
 
-> 正文、积分、回复通知已读状态和自动订阅随发布结果一并处理；保存失败会撤销本次数据库变更。积分规则及自动订阅偏好保持不变。
+> 发布成功后，积分、通知状态和自动订阅按账号设置及相应规则更新。
 
 ### 长篇段评
 
@@ -11297,7 +11264,7 @@ curl --request POST 'https://fishpi.cn/comment' \
 ```bash
 curl -X POST "https://fishpi.cn/comment/paragraph" \
   -H "Content-Type: application/json" \
-  -d '{"apiKey":"你的 apiKey","articleId":"1645002736006","paragraphId":"64 位小写 SHA-256","commentContent":"这一段写得很好","commentAnonymous":false,"commentVisible":false}'
+  -d '{"apiKey":"YOUR_API_KEY","articleId":"1645002736006","paragraphId":"64 位小写 SHA-256","commentContent":"这一段写得很好","commentAnonymous":false,"commentVisible":false}'
 ```
 
 响应：
@@ -11811,7 +11778,7 @@ curl --location --request POST 'https://fishpi.cn/breezemoon' \
 | -------- | ---------------------------------------------------------------------------------- | ------- |
 | p        | 页码（第几页）                                                                     | 1       |
 | size     | 每页显示多少条结果（可能由于部分用户权限设置，最终显示条数低于该结果，属正常情况） | 20      |
-| userName | 用户名（本参数为URL参数，请注意）                                                  | adlered |
+| userName | 用户名（本参数为URL参数，请注意）                                                  | example_user |
 
 ## 私信
 
@@ -11832,7 +11799,7 @@ curl --location --request POST 'https://fishpi.cn/breezemoon' \
 | Key       | 说明                         | 示例                |
 | --------- | ---------------------------- | ------------------- |
 | userId    | 用户 ID，路径参数            | 1471298152875       |
-| csrfToken | CSRF 令牌，通过请求头传入     | a1B2c3D4e5F6        |
+| csrfToken | CSRF 令牌，通过请求头传入     | CSRF_TOKEN |
 
 请求示例：
 
@@ -11864,7 +11831,7 @@ curl -X POST 'https://fishpi.cn/admin/user/1471298152875/deactivate' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+| apiKey | 通用密钥，页面登录态可省略 | YOUR_API_KEY |
 
 请求示例：
 
@@ -11895,7 +11862,7 @@ curl --location 'https://fishpi.cn/api/profession/me?apiKey=YOUR_API_KEY'
 | --- | --- | --- |
 | professionId | 职业 ID，路径参数 | `1760000000000000000` |
 | dark | 是否读取深色展示样式，默认 `false` | `true` |
-| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+| apiKey | 通用密钥，页面登录态可省略 | YOUR_API_KEY |
 
 请求示例：
 
@@ -11928,7 +11895,7 @@ curl --location 'https://fishpi.cn/api/profession/me/1760000000000000000/detail?
 | beforeOccurredAt | 下一页游标中的发生时间，首次请求省略 | `1760000000000` |
 | beforeEffectId | 下一页游标中的记录 ID，首次请求省略 | `1760000000000000001` |
 | limit | 返回数量，`1` 至 `100`，默认 `30` | `30` |
-| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+| apiKey | 通用密钥，页面登录态可省略 | YOUR_API_KEY |
 
 请求示例：
 
@@ -12023,7 +11990,7 @@ curl --request POST 'https://fishpi.cn/api/profession/me/privacy' \
 | userName | 用户名 | `adlered` |
 | position | 展示位置：`homeProfile`、`userCard`、`professionPage`、`ranking`、`compactMobile`，默认 `homeProfile` | `professionPage` |
 | dark | 是否读取深色展示样式，默认 `false` | `true` |
-| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+| apiKey | 通用密钥，页面登录态可省略 | YOUR_API_KEY |
 
 请求示例：
 
@@ -12060,7 +12027,7 @@ curl --location 'https://fishpi.cn/api/user/adlered/profession?position=professi
 | --- | --- | --- |
 | professionId | 已发布职业 ID；省略时返回首个已发布职业 | `1760000000000000000` |
 | dark | 是否读取深色展示样式，默认 `false` | `true` |
-| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+| apiKey | 通用密钥，页面登录态可省略 | YOUR_API_KEY |
 
 请求示例：
 
@@ -12115,7 +12082,7 @@ curl --location 'https://fishpi.cn/api/profession/admin/automation/metadata' \
 
 > 内置触发器包含长篇阅读结算、发布帖子、发表评论、发布清风明月、发布复读机内容和聊天室发言。聊天室发言仅采集普通文本消息，条件字段为 `messageId`、`authorUserId`、`messageType`、`contentLength`、`sentAt`；不会写入消息正文、聊天室标识、IP、UA 或原始请求载荷。撤回消息后会同步回退关联效果。
 
-> `actions` 现包含“增加职业经验”“记录贡献”和“发送系统通知”。“记录贡献”会累计职业贡献次数，不改变经验和等级；撤销来源内容后会同步回退。系统通知执行器使用 `notificationContent` 配置正文，支持 `{职业}`、`{等级}`、`{经验}`、`{变化}`、`{奖励}`；`notificationWhen` 可选 `ALWAYS` 或 `LEVEL_UP`。通知跟随职业效果事务发送，不会写入职业经验或奖励记录。
+> `actions` 现包含“增加职业经验”“记录贡献”和“发送系统通知”。“记录贡献”会累计职业贡献次数，不改变经验和等级；撤销来源内容后会同步回退。系统通知执行器使用 `notificationContent` 配置正文，支持 `{职业}`、`{等级}`、`{经验}`、`{变化}`、`{奖励}`；`notificationWhen` 可选 `ALWAYS` 或 `LEVEL_UP`。职业效果生效后发送通知，不会写入职业经验或奖励记录。
 
 > 此接口仅管理员可访问，不提供职业管理写入能力给金手指或第三方应用。
 
@@ -12267,7 +12234,7 @@ curl --location 'https://fishpi.cn/api/profession/admin/config/export?profession
 
 `POST /api/profession/admin/config/import`
 
-导入通过职业配置导出接口生成的文件。系统会先校验整份文件，再在同一事务内写入；任一职业代号已存在时整个导入失败，不会覆盖已有职业。
+导入职业配置文件。任一职业代号已存在时整批导入失败，已有职业保持原样。
 
 请求：
 
@@ -12850,7 +12817,7 @@ curl --location --request POST 'https://fishpi.cn/api/gold-finger/profession/que
 
 请求示例：
 
-<pre node="[object Object]"><div class="CodeBlockWrapper-gyXzFg FcwJh code-block"><div class="CodeHeader-kOSpft jgkqBC"><BASH></div><div class="StickyWrapper-eCgLUr cqxvZD"><div class="Box-hYgUQy Stack-cgmguR HStack-dsNZQB ToolbarWrapper-bbbaaS ennsCW kMXibF iUMlyp cVIYwQ code-toolbar"></div></div><div class="SplitViewWrapper-beRizf kNYYkF split-view-wrapper"><div class="shiki houston code-viewer source-view shiki-dark" tabindex="0"><div class="ScrollContainer-kgAkoh lfEYGP shiki-scroller"><div class="shiki-list"><div><div data-index="0"><div class="line"><span class="line-content"><span>curl</span><span> </span><span>--location</span><span> </span><span>--request</span><span> </span><span>POST</span><span> </span><span>'https://fishpi.cn/api/medal/admin/list'</span><span> \</span></span></div></div><div data-index="1"><div class="line"><span class="line-content"><span>--header </span><span>'Content-Type: application/json'</span><span> \</span></span></div></div><div data-index="2"><div class="line"><span class="line-content"><span>--header </span><span>'User-Agent: Mozilla/5.0 ... Chrome/69.0.3497.100 Safari/537.36'</span><span> \</span></span></div></div><div data-index="3"><div class="line"><span class="line-content"><span>--data-raw </span><span>'{</span></span></div></div><div data-index="4"><div class="line"><span class="line-content"><span>  "apiKey":"<Key>",</span></span></div></div><div data-index="5"><div class="line"><span class="line-content"><span>  "page":1,</span></span></div></div><div data-index="6"><div class="line"><span class="line-content"><span>  "pageSize":20</span></span></div></div><div data-index="7"><div class="line"><span class="line-content"><span>}'</span></span></div></div></div></div></div></div></div></div></pre>
+<pre node="[object Object]"><div class="CodeBlockWrapper-gyXzFg FcwJh code-block"><div class="CodeHeader-kOSpft jgkqBC"><BASH></div><div class="StickyWrapper-eCgLUr cqxvZD"><div class="Box-hYgUQy Stack-cgmguR HStack-dsNZQB ToolbarWrapper-bbbaaS ennsCW kMXibF iUMlyp cVIYwQ code-toolbar"></div></div><div class="SplitViewWrapper-beRizf kNYYkF split-view-wrapper"><div class="shiki houston code-viewer source-view shiki-dark" tabindex="0"><div class="ScrollContainer-kgAkoh lfEYGP shiki-scroller"><div class="shiki-list"><div><div data-index="0"><div class="line"><span class="line-content"><span>curl</span><span> </span><span>--location</span><span> </span><span>--request</span><span> </span><span>POST</span><span> </span><span>'https://fishpi.cn/api/medal/admin/list'</span><span> \</span></span></div></div><div data-index="1"><div class="line"><span class="line-content"><span>--header </span><span>'Content-Type: application/json'</span><span> \</span></span></div></div><div data-index="2"><div class="line"><span class="line-content"><span>--header </span><span>'User-Agent: Mozilla/5.0 ... Chrome/69.0.3497.100 Safari/537.36'</span><span> \</span></span></div></div><div data-index="3"><div class="line"><span class="line-content"><span>--data-raw </span><span>'{</span></span></div></div><div data-index="4"><div class="line"><span class="line-content"><span>  "apiKey":"YOUR_API_KEY",</span></span></div></div><div data-index="5"><div class="line"><span class="line-content"><span>  "page":1,</span></span></div></div><div data-index="6"><div class="line"><span class="line-content"><span>  "pageSize":20</span></span></div></div><div data-index="7"><div class="line"><span class="line-content"><span>}'</span></span></div></div></div></div></div></div></div></div></pre>
 
 响应：
 
@@ -13004,7 +12971,7 @@ curl --location --request POST 'https://fishpi.cn/api/gold-finger/profession/que
 curl --location --request POST 'https://fishpi.cn/api/medal/admin/holds' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-  "apiKey":"<Key>",
+  "apiKey":"YOUR_API_KEY",
   "userIds":["1630512345670","1630512345671"],
   "medalId":"0"
 }'
@@ -13030,7 +12997,7 @@ curl --location --request POST 'https://fishpi.cn/api/medal/admin/holds' \
 
 `POST /api/medal/admin/grant-batch`
 
-说明：`userId` 适用于单个用户，`userIds` 适用于用户列表；两个字段可以同时传入，重复用户 ID 会去重。单次最多处理 100 个用户。全部用户在同一事务中写入；勋章不存在、任一用户不存在或任一写入失败时，整批操作失败。用户已经持有该勋章时更新 `expireTime` 和 `data`。
+说明：`userId` 适用于单个用户，`userIds` 适用于用户列表；两个字段可以同时传入，重复用户 ID 会去重。单次最多处理 100 个用户。勋章不存在、任一用户不存在或任一写入失败时，整批操作失败。用户已经持有该勋章时更新 `expireTime` 和 `data`。
 
 请求：
 
@@ -13049,7 +13016,7 @@ curl --location --request POST 'https://fishpi.cn/api/medal/admin/holds' \
 curl --location --request POST 'https://fishpi.cn/api/medal/admin/grant-batch' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-  "apiKey":"<Key>",
+  "apiKey":"YOUR_API_KEY",
   "userIds":["1630512345670","1630512345671"],
   "medalId":"0",
   "expireTime":0,
@@ -13184,7 +13151,7 @@ curl --location --request POST 'https://fishpi.cn/api/medal/admin/grant-batch' \
 | userDetails   | 点过该表情的用户详情列表     | **[{...}]**                    |
 | - userName    | 用户名                       | **adlered**                    |
 | - displayName | 显示名                       | **阿达 (adlered)**             |
-| - avatarURL   | 头像地址                     | **https://file.fishpi.cn/...** |
+| - avatarURL   | 头像地址                     | **https://example.com/image.png |
 
 **currentUserReaction** 表示当前登录用户自己选中的表情值，没有则为空字符串 **""**。
 
@@ -13664,7 +13631,6 @@ curl --location --request GET 'https://fishpi.cn/api/city/%E5%8C%97%E4%BA%AC?p=1
 
 返回站点统计：`statisticMemberCount`（用户数）、`statisticArticleCount`（帖子数）、`statisticCmtCount`（评论数）、`statisticDomainCount`、`statisticTagCount`、`statisticLinkCount`、`statisticMaxOnlineVisitorCount`（历史最高在线）、`onlineVisitorCnt`（当前在线访客）、`onlineMemberCnt`（当前在线会员）等。可携带 `apiKey`（可选）。
 
-
 ## API v3 文章热度
 
 ### 读取文章当前热度
@@ -13762,7 +13728,6 @@ curl 'https://fishpi.cn/api/v3/chat/red-packet-types' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | 可选请求头，Bearer accessToken，需要content.read | Bearer YOUR_ACCESS_TOKEN |
-| apiKey | 通用密钥（可选） | YOUR_API_KEY |
 | type | 可选，joke段子、kfc疯狂星期四、fish鱼类科普；省略查询全部类型 | joke |
 | size | 返回条数，默认12，最大50 | 12 |
 
@@ -13803,7 +13768,6 @@ curl 'https://fishpi.cn/api/v3/repeater/items?type=joke&size=12' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | 可选请求头，Bearer accessToken，需要content.read | Bearer YOUR_ACCESS_TOKEN |
-| apiKey | 通用密钥（可选） | YOUR_API_KEY |
 | type | 可选，joke/kfc/fish；省略查询全部类型 | joke |
 | excludeId | 可选，排除的内容ID，1–32位数字 | 123 |
 
@@ -13915,7 +13879,6 @@ curl -X DELETE 'https://fishpi.cn/api/v3/repeater/items/1790000000000/like' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | YOUR_API_KEY |
 | Authorization | 请求头，Bearer accessToken（可选）；提供时需要 profile.read | Bearer YOUR_ACCESS_TOKEN |
 | p | 页码，默认 1 | 1 |
 | size | 每页条数，默认 20，最大 50 | 20 |
@@ -14250,7 +14213,7 @@ curl 'https://fishpi.cn/api/v3/professions/10/guides' \
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/professions/10/ranking?p=1&size=20' \
+curl 'https://fishpi.cn/api/v3/professions/10/ranking?p=1&size=20' \
   -H 'Authorization: Bearer YOUR_ACCESS_TOKEN'
 ```
 
@@ -14284,13 +14247,12 @@ curl 'http://localhost:8080/api/v3/professions/10/ranking?p=1&size=20' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | userName | 路径参数，用户名 | Alice |
-| apiKey | 通用密钥（可选） | YOUR_API_KEY |
 | Authorization | 请求头，Bearer accessToken（可选）；提供时需要 profile.read | Bearer YOUR_ACCESS_TOKEN |
 
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/users/Alice/professions'
+curl 'https://fishpi.cn/api/v3/users/Alice/professions'
 ```
 
 响应：
@@ -14399,7 +14361,6 @@ curl 'https://fishpi.cn/api/v3/me/medals?p=1&size=20' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | YOUR_API_KEY |
 | Authorization | 请求头，Bearer accessToken（可选）；提供时需要 profile.read | Bearer YOUR_ACCESS_TOKEN |
 | userName | 路径参数，用户名 | fishpi |
 | p | 页码，默认 1 | 1 |
@@ -14576,7 +14537,6 @@ curl 'https://fishpi.cn/api/v3/me/membership' \
 
 > 未开通或已过期返回 active=false、空 levelCode、expiresAt=0 和空 config。未识别或格式不合法的可选权益字段不返回。
 
-
 ### 全量会员昵称样式快照
 
 `GET /api/v3/membership/styles`
@@ -14603,9 +14563,9 @@ curl --get 'https://fishpi.cn/api/v3/membership/styles' \
 
 `configJson="{}"` 表示没有可展示字段；`null` 不能解释为非会员。color 为 `#RRGGBB`，有效 VIP4 另外支持八种效果；只投影档位支持且本人设置有效的字段，不补默认值。不返回原始配置中的自动签到等其他权益、会员档位、到期时间或后台字段。过期/停用用户不进入正常名单；异常到期数据无法判断时保留 ID，配置为 null。
 
-服务端单节点共享快照最长30秒，同节点会员缓存变更或档位修改后失效，自然到期会提前失效；其他节点/直接 SQL 更新由 TTL 兜底。缓存命中与 unchanged 均重新验证当前账号，HTTP仍为 `Cache-Control: no-store`；客户端仅内存缓存。没有新增匿名豁免或 Cookie/apiKey 回退。
+接口返回 `Cache-Control: no-store`，客户端仅在内存中保存快照。
 
-单次输入候选（含重复关联行）最多10000条、原始配置/档位输入与规范化输出各最多2000000字节；超预算503，不以截断结果冒充完整名单。单个损坏配置为null，不拖垮其余用户；数据库不可用仍为503。参数污染、旧userIds、非法版本返回422。
+服务暂不可用时返回 503，请保留已有快照并稍后重试。参数重复、使用旧参数 `userIds` 或版本无效时返回 422。
 
 ### 设置本人会员展示
 
@@ -14808,7 +14768,6 @@ curl --request POST 'https://fishpi.cn/api/v3/admin/oauth/clients' \
 >
 > 普通用户或第三方应用令牌不能管理客户端。相同幂等键和请求恢复原登记结果，不重复创建；同键更换内容返回 HTTP 409。响应中断后请使用原键和原请求重试。
 
-
 ### 修改第三方客户端
 
 `PUT /api/v3/admin/oauth/clients/{clientId}`
@@ -14900,7 +14859,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/admin/oauth/clients/app_YOUR_CLI
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | 请求头，Bearer accessToken | Bearer YOUR_ACCESS_TOKEN |
-| code | 邀请码，去除首尾空白后16位字母或数字 | AbCdEf0123456789 |
+| code | 邀请码，去除首尾空白后16位字母或数字 | INVITE_CODE |
 
 请求示例：
 
@@ -14908,7 +14867,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/admin/oauth/clients/app_YOUR_CLI
 curl --request POST 'https://fishpi.cn/api/v3/invitation-codes/status' \
   --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
   --header 'Content-Type: application/json' \
-  --data '{"code":"AbCdEf0123456789"}'
+  --data '{"code":"INVITE_CODE"}'
 ```
 
 响应：
@@ -14920,7 +14879,6 @@ curl --request POST 'https://fishpi.cn/api/v3/invitation-codes/status' \
 | - status | 存储状态：unused 未使用、used 已使用、stopped 停用 | unused |
 
 > 请求体最多1024字节。unused 不保证当前可用于注册，是否可用以注册接口结果为准。不存在返回 HTTP 404，非法参数返回 422。
-
 
 ### 购买邀请码
 
@@ -14952,7 +14910,7 @@ curl -X POST 'https://fishpi.cn/api/v3/me/invitation-codes' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | data | 购买结果 | object |
-| - code | 本次购买的16位邀请码 | AbCdEf0123456789 |
+| - code | 本次购买的16位邀请码 | INVITE_CODE |
 | - expiresAt | 到期时间，Unix毫秒 | 1792900000000 |
 | - paidPoints | 实付积分 | 100 |
 
@@ -15036,7 +14994,6 @@ curl 'https://fishpi.cn/api/v3/me/anonymous-comments?p=1&size=20' \
 
 > 讨论帖按当前阅读权限筛选。已删除或当前无权阅读的目标不列出；评论正文请使用评论详情接口读取。暂时无法完成查询时返回 HTTP 503。
 
-
 ## API v3 举报
 
 ### 举报分类
@@ -15054,7 +15011,7 @@ curl 'https://fishpi.cn/api/v3/me/anonymous-comments?p=1&size=20' \
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/report/options' -H 'Authorization: Bearer ACCESS_TOKEN'
+curl 'https://fishpi.cn/api/v3/report/options' -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
@@ -15088,7 +15045,7 @@ curl 'http://localhost:8080/api/v3/report/options' -H 'Authorization: Bearer ACC
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/reports' -X POST -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: report-001' -H 'Content-Type: application/json' --data '{"targetType":0,"targetId":"1636516552191","reason":49,"memo":"需要核实"}'
+curl 'https://fishpi.cn/api/v3/reports' -X POST -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: report-001' -H 'Content-Type: application/json' --data '{"targetType":0,"targetId":"1636516552191","reason":49,"memo":"需要核实"}'
 ```
 
 响应：
@@ -15120,7 +15077,7 @@ curl 'http://localhost:8080/api/v3/reports' -X POST -H 'Authorization: Bearer AC
 请求示例：
 
 ```bash
-curl -X POST 'http://localhost:8080/api/v3/me/point-transfers' \
+curl -X POST 'https://fishpi.cn/api/v3/me/point-transfers' \
   -H 'Authorization: Bearer ACCESS_TOKEN' \
   -H 'Idempotency-Key: points-transfer-001' \
   -H 'Content-Type: application/json' \
@@ -15149,7 +15106,6 @@ curl -X POST 'http://localhost:8080/api/v3/me/point-transfers' \
 
 > 接收者同时是手续费收款账号时，会分别收到主款和手续费；receivedPoints仅表示主款。备注处理后过长或格式不合法返回422。
 
-
 ## API v3 文章与评论历史
 
 ### 文章历史列表
@@ -15170,7 +15126,7 @@ curl -X POST 'http://localhost:8080/api/v3/me/point-transfers' \
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/articles/1636516552191/revisions?p=1&size=20' -H 'Authorization: Bearer ACCESS_TOKEN'
+curl 'https://fishpi.cn/api/v3/articles/1636516552191/revisions?p=1&size=20' -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
@@ -15207,7 +15163,7 @@ curl 'http://localhost:8080/api/v3/articles/1636516552191/revisions?p=1&size=20'
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/articles/1636516552191/revisions/1761000000000' -H 'Authorization: Bearer ACCESS_TOKEN'
+curl 'https://fishpi.cn/api/v3/articles/1636516552191/revisions/1761000000000' -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
@@ -15241,7 +15197,7 @@ curl 'http://localhost:8080/api/v3/articles/1636516552191/revisions/176100000000
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/comments/1761000000100/revisions?p=1&size=20' -H 'Authorization: Bearer ACCESS_TOKEN'
+curl 'https://fishpi.cn/api/v3/comments/1761000000100/revisions?p=1&size=20' -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
@@ -15274,7 +15230,7 @@ curl 'http://localhost:8080/api/v3/comments/1761000000100/revisions?p=1&size=20'
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/comments/1761000000100/revisions/current' -H 'Authorization: Bearer ACCESS_TOKEN'
+curl 'https://fishpi.cn/api/v3/comments/1761000000100/revisions/current' -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
@@ -15288,7 +15244,6 @@ curl 'http://localhost:8080/api/v3/comments/1761000000100/revisions/current' -H 
 | data.content | 沿旧历史格式清洗后的正文，保留换行，并非原始Markdown | 评论正文 |
 
 > current仅在列表确有该条目时存在，否则404；不返回修订者真实ID或其他内部字段。
-
 
 ## API v3 图片表情分组管理
 
@@ -15392,7 +15347,6 @@ curl -X DELETE 'https://fishpi.cn/api/v3/me/settings/emoji-groups/1790000000000'
 | - deleted | 已删除 | true |
 
 > 全部分组不能删除，返回409。不会删除其他分组中的同图片，也不会删除已有分享快照。同键重试返回原成功结果；新键删除不存在的组返回404。
-
 
 ## API v3 图片表情成员管理
 
@@ -15539,7 +15493,6 @@ curl -X DELETE 'https://fishpi.cn/api/v3/me/settings/emoji-groups/1790000000000/
 
 > 从自定义分组移出仅影响该组；从全部分组移出会同步移出本人所有分组。不会删除其他用户成员或已有分享。同键重试返回原结果；新键操作不存在成员返回404。
 
-
 ## API v3 鱼游投稿与编辑
 
 ### 投稿鱼游
@@ -15622,7 +15575,6 @@ curl -X PUT 'https://fishpi.cn/api/v3/fish-games/1760000000000' \
 | - editPending | 已提交待审核编辑 | true |
 
 > 申请期间公开内容保持原样；批准后才生效，拒绝后保留原公开内容。非本人或不存在返回404；未审核作品或已有待审核编辑返回409。
-
 
 ## API v3 图片表情分享与迁移
 
@@ -15719,7 +15671,6 @@ curl -X POST 'https://fishpi.cn/api/v3/me/settings/emoji-migrations' \
 
 > 已有成员保留名称和排序。相同键重试返回原结果；使用新键再次迁移时，已存在成员不重复增加。无历史数据或空数组返回409；任一历史项无效则整批422，不部分迁移。
 
-
 ## API v3 账号安全设置
 
 ### MFA状态
@@ -15737,7 +15688,7 @@ curl -X POST 'https://fishpi.cn/api/v3/me/settings/emoji-migrations' \
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/me/security/mfa' -H 'Authorization: Bearer ACCESS_TOKEN'
+curl 'https://fishpi.cn/api/v3/me/security/mfa' -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
@@ -15759,12 +15710,12 @@ curl 'http://localhost:8080/api/v3/me/security/mfa' -H 'Authorization: Bearer AC
 | Authorization | Bearer Token | Bearer ACCESS_TOKEN |
 | currentPassword | 当前密码的小写32位MD5摘要 | 32位小写十六进制 |
 | newPassword | 新密码的小写32位MD5摘要 | 32位小写十六进制 |
-| currentTotp | 已启用MFA时必填，当前6位验证码字符串 | 123456 |
+| currentTotp | 已启用MFA时必填，当前6位验证码字符串 | VERIFICATION_CODE |
 
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/me/settings/password' -X PUT -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"currentPassword":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","newPassword":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","currentTotp":"123456"}'
+curl 'https://fishpi.cn/api/v3/me/settings/password' -X PUT -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"currentPassword":"CURRENT_PASSWORD_MD5","newPassword":"NEW_PASSWORD_MD5","currentTotp":"VERIFICATION_CODE"}'
 ```
 
 响应：
@@ -15778,7 +15729,6 @@ curl 'http://localhost:8080/api/v3/me/settings/password' -X PUT -H 'Authorizatio
 >
 > 网站客户端的新密码输入为6至128个UTF-16字符，保留首尾空白、允许Unicode，不接受控制字符或无效代理字符；当前密码不截断或规范化。接口仍使用上述32位小写MD5摘要字段。
 
-
 ## API v3 MFA准备与设置
 
 ### 准备绑定 MFA
@@ -15791,15 +15741,15 @@ curl 'http://localhost:8080/api/v3/me/settings/password' -X PUT -H 'Authorizatio
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| currentPassword | 当前密码的小写32位MD5摘要 | 0123456789abcdef0123456789abcdef |
-| currentTotp | 已启用MFA时需要当前6位验证码字符串 | 012345 |
+| currentPassword | 当前密码的小写32位MD5摘要 | PASSWORD_MD5 |
+| currentTotp | 已启用MFA时需要当前6位验证码字符串 | VERIFICATION_CODE |
 
 请求示例：
 
 ```bash
 curl -X POST 'https://fishpi.cn/api/v3/me/security/mfa/preparations' \
   -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' \
-  -d '{"currentPassword":"0123456789abcdef0123456789abcdef"}'
+  -d '{"currentPassword":"PASSWORD_MD5"}'
 ```
 
 响应：
@@ -15824,10 +15774,10 @@ curl -X POST 'https://fishpi.cn/api/v3/me/security/mfa/preparations' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| currentPassword | 当前密码的小写32位MD5摘要 | 0123456789abcdef0123456789abcdef |
-| currentTotp | 当前已启用MFA时需要的6位字符串 | 012345 |
+| currentPassword | 当前密码的小写32位MD5摘要 | PASSWORD_MD5 |
+| currentTotp | 当前已启用MFA时需要的6位字符串 | VERIFICATION_CODE |
 | preparationId | 最近一次未过期准备标识 | PREPARATION_ID |
-| newTotp | 新绑定认证器的6位验证码字符串 | 012345 |
+| newTotp | 新绑定认证器的6位验证码字符串 | VERIFICATION_CODE |
 
 请求示例：
 
@@ -15835,7 +15785,7 @@ curl -X POST 'https://fishpi.cn/api/v3/me/security/mfa/preparations' \
 curl -X PUT 'https://fishpi.cn/api/v3/me/security/mfa' \
   -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: mfa-enable-001' \
   -H 'Content-Type: application/json' \
-  -d '{"currentPassword":"0123456789abcdef0123456789abcdef","preparationId":"PREPARATION_ID","newTotp":"012345"}'
+  -d '{"currentPassword":"PASSWORD_MD5","preparationId":"PREPARATION_ID","newTotp":"VERIFICATION_CODE"}'
 ```
 
 响应：
@@ -15857,8 +15807,8 @@ curl -X PUT 'https://fishpi.cn/api/v3/me/security/mfa' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| currentPassword | 当前密码的小写32位MD5摘要 | 0123456789abcdef0123456789abcdef |
-| currentTotp | 已启用MFA时需要当前6位验证码字符串 | 012345 |
+| currentPassword | 当前密码的小写32位MD5摘要 | PASSWORD_MD5 |
+| currentTotp | 已启用MFA时需要当前6位验证码字符串 | VERIFICATION_CODE |
 
 请求示例：
 
@@ -15866,7 +15816,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/me/security/mfa' \
 curl -X DELETE 'https://fishpi.cn/api/v3/me/security/mfa' \
   -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: mfa-disable-001' \
   -H 'Content-Type: application/json' \
-  -d '{"currentPassword":"0123456789abcdef0123456789abcdef","currentTotp":"012345"}'
+  -d '{"currentPassword":"PASSWORD_MD5","currentTotp":"VERIFICATION_CODE"}'
 ```
 
 响应：
@@ -15877,7 +15827,6 @@ curl -X DELETE 'https://fishpi.cn/api/v3/me/security/mfa' \
 | - enabled | 已停用 | false |
 
 > 成功会使已有登录凭据失效，请重新登录；尚未启用时也需要当前密码，完成后已有凭据同样失效。相同键重试返回原结果，但仍需当前认证与安全证明。
-
 
 ## API v3 联系方式验证与修改
 
@@ -15892,15 +15841,15 @@ curl -X DELETE 'https://fishpi.cn/api/v3/me/security/mfa' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | Bearer Token | Bearer ACCESS_TOKEN |
-| target | 新手机号，11位大陆手机号 | 13900000001 |
+| target | 新手机号，11位大陆手机号 | PHONE_NUMBER |
 | currentPassword | 当前密码的小写32位MD5摘要 | 32位小写十六进制 |
-| currentTotp | 已启用MFA时必填，6位字符串 | 123456 |
+| currentTotp | 已启用MFA时必填，6位字符串 | VERIFICATION_CODE |
 | captcha | 极验结果JSON字符串，lot_number/captcha_output/pass_token/gen_time四字段 | 组件返回值 |
 
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/me/settings/phone/verification' -X POST -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"13900000001","currentPassword":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","currentTotp":"123456","captcha":"{\"lot_number\":\"LOT\",\"captcha_output\":\"OUTPUT\",\"pass_token\":\"PASS\",\"gen_time\":\"TIME\"}"}'
+curl 'https://fishpi.cn/api/v3/me/settings/phone/verification' -X POST -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"PHONE_NUMBER","currentPassword":"PASSWORD_MD5","currentTotp":"VERIFICATION_CODE","captcha":"{\"lot_number\":\"LOT\",\"captcha_output\":\"OUTPUT\",\"pass_token\":\"PASS\",\"gen_time\":\"TIME\"}"}'
 ```
 
 响应：
@@ -15922,15 +15871,15 @@ curl 'http://localhost:8080/api/v3/me/settings/phone/verification' -X POST -H 'A
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | Bearer Token | Bearer ACCESS_TOKEN |
-| target | 申请验证码时的新手机号 | 13900000001 |
+| target | 申请验证码时的新手机号 | PHONE_NUMBER |
 | currentPassword | 当前密码的小写32位MD5摘要 | 32位小写十六进制 |
-| currentTotp | 已启用MFA时必填，6位字符串 | 123456 |
-| code | 收到的6位验证码字符串 | 654321 |
+| currentTotp | 已启用MFA时必填，6位字符串 | VERIFICATION_CODE |
+| code | 收到的6位验证码字符串 | VERIFICATION_CODE |
 
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/me/settings/phone' -X PUT -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"13900000001","currentPassword":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","currentTotp":"123456","code":"654321"}'
+curl 'https://fishpi.cn/api/v3/me/settings/phone' -X PUT -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"PHONE_NUMBER","currentPassword":"PASSWORD_MD5","currentTotp":"VERIFICATION_CODE","code":"VERIFICATION_CODE"}'
 ```
 
 响应：
@@ -15955,13 +15904,13 @@ curl 'http://localhost:8080/api/v3/me/settings/phone' -X PUT -H 'Authorization: 
 | Authorization | Bearer Token | Bearer ACCESS_TOKEN |
 | target | 新邮箱，去首尾空白后转小写，最多255字符 | new@example.com |
 | currentPassword | 当前密码的小写32位MD5摘要 | 32位小写十六进制 |
-| currentTotp | 已启用MFA时必填，6位字符串 | 123456 |
+| currentTotp | 已启用MFA时必填，6位字符串 | VERIFICATION_CODE |
 | captcha | 极验结果JSON字符串，字段同手机验证码申请 | 组件返回值 |
 
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/me/settings/email/verification' -X POST -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"new@example.com","currentPassword":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","currentTotp":"123456","captcha":"{\"lot_number\":\"LOT\",\"captcha_output\":\"OUTPUT\",\"pass_token\":\"PASS\",\"gen_time\":\"TIME\"}"}'
+curl 'https://fishpi.cn/api/v3/me/settings/email/verification' -X POST -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"new@example.com","currentPassword":"PASSWORD_MD5","currentTotp":"VERIFICATION_CODE","captcha":"{\"lot_number\":\"LOT\",\"captcha_output\":\"OUTPUT\",\"pass_token\":\"PASS\",\"gen_time\":\"TIME\"}"}'
 ```
 
 响应：
@@ -15985,13 +15934,13 @@ curl 'http://localhost:8080/api/v3/me/settings/email/verification' -X POST -H 'A
 | Authorization | Bearer Token | Bearer ACCESS_TOKEN |
 | target | 申请验证码时的新邮箱 | new@example.com |
 | currentPassword | 当前密码的小写32位MD5摘要 | 32位小写十六进制 |
-| currentTotp | 已启用MFA时必填，6位字符串 | 123456 |
-| code | 收到的6位验证码字符串 | 654321 |
+| currentTotp | 已启用MFA时必填，6位字符串 | VERIFICATION_CODE |
+| code | 收到的6位验证码字符串 | VERIFICATION_CODE |
 
 请求示例：
 
 ```bash
-curl 'http://localhost:8080/api/v3/me/settings/email' -X PUT -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"new@example.com","currentPassword":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","currentTotp":"123456","code":"654321"}'
+curl 'https://fishpi.cn/api/v3/me/settings/email' -X PUT -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Content-Type: application/json' --data '{"target":"new@example.com","currentPassword":"PASSWORD_MD5","currentTotp":"VERIFICATION_CODE","code":"VERIFICATION_CODE"}'
 ```
 
 响应：
@@ -16048,8 +15997,8 @@ curl 'https://fishpi.cn/api/v3/payments/donation-page' \
 | --- | --- | --- |
 | Authorization | 请求头，第一方 Bearer accessToken | Bearer YOUR_ACCESS_TOKEN |
 | Idempotency-Key | 请求头，同一次导出重试保持不变 | posts-export-001 |
-| currentPassword | 当前密码的32位小写MD5摘要 | 0123456789abcdef0123456789abcdef |
-| currentTotp | 已启用两步验证时必填，当前6位验证码 | 123456 |
+| currentPassword | 当前密码的32位小写MD5摘要 | PASSWORD_MD5 |
+| currentTotp | 已启用两步验证时必填，当前6位验证码 | VERIFICATION_CODE |
 
 请求示例：
 
@@ -16058,7 +16007,7 @@ curl --request POST 'https://fishpi.cn/api/v3/me/exports/posts' \
   --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
   --header 'Idempotency-Key: posts-export-001' \
   --header 'Content-Type: application/json' \
-  --data '{"currentPassword":"0123456789abcdef0123456789abcdef","currentTotp":"123456"}'
+  --data '{"currentPassword":"PASSWORD_MD5","currentTotp":"VERIFICATION_CODE"}'
 ```
 
 响应：
@@ -16316,7 +16265,6 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/red-packets/1782119519493/cla
 
 > 每人对同一红包只能领取一次，重复操作返回原领取结果，不重复入账。同键换红包或换出拳返回409；猜拳本人已经领取后，换新键也不能改变出拳，返回409；红包领完返回409，非专属接收人领取返回403。领取金额、领取状态及消息更新一起提交，失败不消费份额或部分入账。旧领取接口兼容省略 riskAccepted，并可传 viewOnly=true 只看详情。v3 领取接口仍要求心跳与猜拳显式传 riskAccepted=true。猜拳发送者停用但账号仍存在时继续结算返还；账号已删除返回409，不扣领取者积分或占份额。旧历史红包的原领取规则保持。
 
-
 ## API v3 官方 APP 扫码登录
 
 已登录网页生成短期二维码，未登录APP扫码并核对账号后确认，网页再明确批准，APP才能一次换取独立v3令牌。有效期为创建后两分钟，后续操作不会续期。任一端拒绝后不可恢复。
@@ -16564,7 +16512,7 @@ curl -X POST 'https://fishpi.cn/api/v3/auth/app-login/exchange' \
 
 `GET /api/v3/game-save-options`
 
-获取当前支持云存档的游戏，需要 apiKey（v3 Bearer Access Token，activity.read）。首批仅支持 Evolve，每人每游戏一个槽。
+获取当前支持云存档的游戏，需要 Bearer 访问令牌及 `activity.read`。首批仅支持 Evolve，每人每游戏一个槽。
 
 请求：
 
@@ -16598,7 +16546,7 @@ curl 'https://fishpi.cn/api/v3/game-save-options' \
 
 `GET /api/v3/me/game-saves/{gameId}`
 
-读取本人的当前存档，需要 apiKey（v3 Bearer Access Token，activity.read）。
+读取本人的当前存档，需要 Bearer 访问令牌及 `activity.read`。
 
 请求：
 
@@ -16632,7 +16580,7 @@ curl 'https://fishpi.cn/api/v3/me/game-saves/evolve-save' \
 
 `PUT /api/v3/me/game-saves/{gameId}`
 
-保存或覆盖当前存档，需要 apiKey（v3 Bearer Access Token，activity.write）。
+保存或覆盖当前存档，需要 Bearer 访问令牌及 `activity.write`。
 
 请求：
 
@@ -16672,7 +16620,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/game-saves/evolve-save' \
 
 `POST /api/v3/me/game-saves/{gameId}/migrations`
 
-将本人唯一的一份旧存档复制到尚未建立的新槽，需要 apiKey（v3 Bearer Access Token，activity.write）。
+将本人唯一的一份旧存档复制到尚未建立的新槽，需要 Bearer 访问令牌及 `activity.write`。
 
 请求：
 
@@ -16714,7 +16662,7 @@ curl --request POST 'https://fishpi.cn/api/v3/me/game-saves/evolve-save/migratio
 
 `GET /api/v3/me/follows/users/{targetId}`
 
-读取当前账号是否关注目标用户，需要 apiKey（v3 Bearer Access Token，profile.read）。
+读取当前账号是否关注目标用户，需要 Bearer 访问令牌及 `profile.read`。
 
 请求：
 
@@ -16746,7 +16694,7 @@ curl 'https://fishpi.cn/api/v3/me/follows/users/1770000000000' \
 
 `GET /api/v3/me/follows/tags/{targetId}`
 
-读取本人对指定标签的当前状态，需要 apiKey（v3 Bearer Access Token，content.read）。
+读取本人对指定标签的当前状态，需要 Bearer 访问令牌及 `content.read`。
 
 请求：
 
@@ -16776,7 +16724,7 @@ curl 'https://fishpi.cn/api/v3/me/follows/tags/1770000000000' \
 
 `GET /api/v3/me/collections/{targetId}`
 
-读取本人对指定文章的当前状态，需要 apiKey（v3 Bearer Access Token，content.read）。
+读取本人对指定文章的当前状态，需要 Bearer 访问令牌及 `content.read`。
 
 请求：
 
@@ -16806,7 +16754,7 @@ curl 'https://fishpi.cn/api/v3/me/collections/1770000000000' \
 
 `GET /api/v3/me/subscriptions/{targetId}`
 
-读取本人对指定文章的当前状态，需要 apiKey（v3 Bearer Access Token，content.read）。
+读取本人对指定文章的当前状态，需要 Bearer 访问令牌及 `content.read`。
 
 请求：
 
@@ -16832,7 +16780,6 @@ curl 'https://fishpi.cn/api/v3/me/subscriptions/1770000000000' \
 
 > 目标不存在、失效或当前不可读返回404，无效ID返回422。设置或取消继续使用同路径PUT/DELETE及follows.write；写入重试回执不一定代表最新状态，可在成功后重新GET。
 
-
 ## v3 发现与公开操作记录
 
 ### 读取最近注册用户
@@ -16845,7 +16792,6 @@ curl 'https://fishpi.cn/api/v3/me/subscriptions/1770000000000' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | |
 | Authorization | 可选，v3 Bearer Access Token，需profile.read | Bearer ACCESS_TOKEN |
 
 请求示例：
@@ -16877,7 +16823,6 @@ curl 'https://fishpi.cn/api/v3/recent-members'
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥（可选） | |
 | Authorization | 可选，v3 Bearer Access Token，需content.read | Bearer ACCESS_TOKEN |
 | size | 条数，默认8，1至20 | 8 |
 | excludeId | 可选，要排除的一个文章ID，1至32位数字 | 1770000000000 |
@@ -16921,7 +16866,7 @@ curl 'https://fishpi.cn/api/v3/articles/random?size=8&excludeId=1770000000000'
 
 `GET /api/v3/logs`
 
-读取公开操作的时间与类别，需要 apiKey（v3 Bearer Access Token，activity.read）。
+读取公开操作的时间与类别，需要 Bearer 访问令牌及 `activity.read`。
 
 请求：
 
@@ -16954,14 +16899,13 @@ curl 'https://fishpi.cn/api/v3/logs?p=1&size=20' \
 
 > 首批类别：增加积分、扣除积分、发送系统通知、调整用户背包、移除勋章、移除勋章(使用UserId)、添加勋章、解封IP、封禁IP、发放工资、上传摸鱼大闯关数据、上传摸鱼小闯关数据、发送弹幕、发帖并标记为有奖励积分、应用发放积分、应用扣除积分。不返回操作正文、备注或操作对象；读取暂不可用返回503。
 
-
 ## v3 勋章图片
 
 ### 读取本人持有的勋章图片
 
 `GET /api/v3/me/medals/image`
 
-读取本人当前有效持有的勋章图片，包含隐藏勋章，需要 apiKey（v3 Bearer Access Token，profile.read）。
+读取本人当前有效持有的勋章图片，包含隐藏勋章，需要 Bearer 访问令牌及 `profile.read`。
 
 请求：
 
@@ -16991,13 +16935,13 @@ curl 'https://fishpi.cn/api/v3/me/medals/image?medalId=7&size=full' \
 
 `GET /api/v3/users/{userName}/medals/image`
 
-读取指定用户当前公开展示且有效的勋章图片，需要 apiKey（v3 Bearer Access Token，profile.read）。
+读取用户公开展示且有效的勋章图片。游客可读，携带 Bearer 令牌时需要 `profile.read`。
 
 请求：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| Authorization | 请求头 | Bearer ACCESS_TOKEN |
+| Authorization | 可选请求头 | Bearer ACCESS_TOKEN |
 | userName | 路径参数，用户名，1至64位英文字母、数字、下划线或连字符 | FishPi |
 | medalId | 查询参数，沿公开勋章列表的定义ID，最多128字符，URL编码 | 7 |
 | size | full或mini，默认full | mini |
@@ -17016,7 +16960,7 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 | Content-Type | 成功响应类型 | image/svg+xml; charset=UTF-8 |
 | body | SVG图片二进制 | medal-mini.svg |
 
-> 用户、勋章不存在或当前未公开展示返回404。当前用户也不能通过此路径读取自己的隐藏勋章，请改用本人路径。公开勋章列表仍可按原接口读取；图片需要profile.read，游客客户端可继续展示名称和描述。
+> 用户、勋章不存在或未公开展示时返回 404。查看本人的隐藏勋章请使用本人接口。
 
 ### 后台宠物管理
 
@@ -17025,8 +16969,6 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 `PUT /api/v3/admin/pets/{petId}/moderate-name` 需要第一方管理员、`settings.write` 及 `Idempotency-Key`。提交 `{expectedName}`，服务端将该昵称改成「违规昵称」加宠物 ID 末六位，并记录审计。当前名字与请求不一致时返回 409（`pet_name_changed`）。已替换为系统名的记录返回同一处理结果，不重复写审计。回执为 `{petId,moderatedName}`。
 
 ### 宠物咖啡（第一方）
-
-执行 `sql/20261118_api_v3_pet_coffee.sql` 后可用。
 
 - `GET /api/v3/me/pet/coffee` 需要 `profile.read`，返回 `{product,enabled,price,version,today,dailyLimit,remaining,energy,balance}`。`product` 为 `coffee`，`price` 和 `balance` 单位为站点积分，`today` 是北京时间日期。默认售价 64 积分，每个账号每天三次。
 - `POST /api/v3/me/pet/coffee` 需要 `settings.write` 和 `Idempotency-Key`。提交 `{petId,expectedDate,version}`，使用上次读取的日期和商品版本。购买立即恢复至多 30 精力（上限 100），需当前宠物空闲且精力未满。成功回执为 `{operation:"coffee",petId,committedAt}`。扣积分、恢复精力、扣当日次数、积分流水及活动日志一并提交。同键同内容重放返回原回执，客户端成功后重新读取当前状态和咖啡信息。
@@ -17050,9 +16992,7 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 
 停车每账号限同时出停一辆，按开始时的小时费率计满整数，最多累计八小时。两种结束方式都只向车主入账，独立于宠物兼职每日额度。回执包含 action、amount，有停车记录时包含 sessionId。结果未知时用原动作、原输入及原键恢复，确认后重读当前状态。停车要求人机验证时返回 `parking_verification_required`，使用既有宠物验证接口、操作名 `parking-start` 与原键，验证后继续原请求。
 
-启用前在游园币迁移之后执行 `sql/20261118_api_v3_parking.sql`。运营可用 `tools/parking-analytics.sql` 查看最近七天的结算及重复续停情况。
-
-第二阶段在第一阶段迁移之后执行 `sql/20261118_api_v3_parking_social.sql`。车位列表可传 `scope=following` 只看自己关注的鱼友，或传 `host`（用户 ID）查看指定车位及空闲标记 `free`。未开放的车位返回空列表。车型的 `enabled` 为在售状态；已购车辆下架后仍可出停。出车时冻结费率、当前装备的有效座驾外观及便签。便签值为 `hello`（来串个门）、`thanks`（谢谢你的车位）、`coffee`（请你喝杯咖啡）。本人车位与出停车记录附带 `mountStyle`、`note`、`pardoned`。
+车位列表可传 `scope=following` 只看自己关注的鱼友，或传 `host`（用户 ID）查看指定车位及空闲标记 `free`。未开放的车位返回空列表。车型的 `enabled` 为在售状态；已购车辆下架后仍可出停。出车时冻结费率、当前装备的有效座驾外观及便签。便签值为 `hello`（来串个门）、`thanks`（谢谢你的车位）、`coffee`（请你喝杯咖啡）。本人车位与出停车记录附带 `mountStyle`、`note`、`pardoned`。
 
 ### 停车周榜
 
@@ -17105,7 +17045,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 ### 宠物副驾和近七日停车指标
 
-第三阶段先执行 `sql/20261118_api_v3_parking_insights.sql`。读取本人车库时，`availablePet` 表示可选的副驾，值为 `{"id":"宠物编号","speciesId":"hexiaotun"}` 或 `null`。出车可选传 `petId`，例如 `{"car":"punch","hostId":"123","petId":"456"}`。服务端检验宠物仍属于本人，选择失效返回 HTTP 409 和 `passenger_changed`。同键恢复须原样保留请求体。
+读取本人车库时，`availablePet` 表示可选的副驾，值为 `{"id":"宠物编号","speciesId":"hexiaotun"}` 或 `null`。出车可选传 `petId`，例如 `{"car":"punch","hostId":"123","petId":"456"}`。服务端检验宠物仍属于本人，选择失效返回 HTTP 409 和 `passenger_changed`。同键恢复须原样保留请求体。
 
 车主的 `driving` 和车位主人的 `occupant` 包含可空的 `passengerSpecies`。显示出发时的物种，不公开宠物昵称或编号。未携带副驾和旧停车单均为 `null`。副驾只作展示。
 
@@ -17121,14 +17061,11 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 除互停订单外，观测从启用本版起累计，不补写历史估算值。
 
-
 ### 游园币钱包（宠物目录 v4）
 
 `GET /api/v3/me/pet` 的 `catalogVersion=4` 与 `GET /api/v3/pets/catalog` 的 `version=4`、`activityVersion=6` 配套。以下各批记录中的旧金额按 1 宠物币兑 10 游园币换算。接口直接返回游园币整数，客户端原样显示。本人聚合沿用 `wallet.coins`、`income.{date,earned,remaining,limit}`；活动成本、预期和实际收益、操作日志的金额采用相同单位。未领养的用户也能读到自己的已有游戏余额。
 
 首次领养奖励 1,000，基础口粮 50，兼职计划薪酬 120，每账号每日活动收益上限 600，重新领养 5,120。消费不会增加当日可赚额度。跨日兼职按出发时冻结的薪酬和领取当日剩余额度结算。已用额度及已领取记录一起换算，重放已确认命令仍返回原回执。积分商品仍用站点积分计价。
-
-迁移文件为 `sql/20261118_api_v3_game_wallet.sql`。备份并停止所有旧实例写入后执行，成功再启动新版。余额、当日额度、活动快照、历史实际成果与货币日志在同一事务内换算，重复执行跳过已完成的版本。旧版服务不能继续写入已换算的库。
 
 ### 宠物家园（第一批）
 
@@ -17145,7 +17082,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 领养、重新领养和改名都会审核填写的名字。审核未通过返回 HTTP 422（`content_rejected`），审核暂不可用返回 HTTP 503；这两种情况均不保存宠物变更或扣费。已提交的原键回执可直接恢复。
 
-写回执只包含 `{operation,petId,committedAt}`，客户端再读取聚合状态，不把旧回执当当前余额。未知结果使用原内容和原键恢复，不自动创建另一笔消费。协议、试运行参数、迁移与人工验收见 [宠物第一批说明](docs/api-v3-pets-phase-one.md)。
+写回执只包含 `{operation,petId,committedAt}`，客户端再读取聚合状态，不把旧回执当当前余额。未知结果使用原内容和原键恢复，不自动创建另一笔消费。
 
 ### 宠物外出与学校（第二批）
 
@@ -17154,14 +17091,13 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 - `POST /api/v3/me/pet/activities`：`{petId,kind:"outing"|"course",entryId,activityVersion}`，开始三地点或六课程之一，费用/时长/成果由服务端冻结。
 - `POST /api/v3/me/pet/activities/claim`：`{petId,activityId}`，服务器计时到期后领取冻结成果。正在活动及待领取都占用唯一活动槽，不允许照顾/休息覆盖。
 
-目录新增独立 `activityVersion`、六项 `skills`、`places`、`courses`。本人聚合增加 `pet.skills`，新活动包含 `id/kind/entryId/name/startedAt/endsAt/status/cost/rewards`，status 为 `running/claimable`。读取不发奖。写回执为 `{operation,petId,activityId,committedAt}`，operation 为 `activity-start/activity-claim`。成本、成果、状态、迁移顺序与防重复领取约定见 [第二批协议](docs/api-v3-pets-phase-two.md)。
+目录新增独立 `activityVersion`、六项 `skills`、`places`、`courses`。本人聚合增加 `pet.skills`，新活动包含 `id/kind/entryId/name/startedAt/endsAt/status/cost/rewards`，status 为 `running/claimable`。读取不发奖。写回执为 `{operation,petId,activityId,committedAt}`，operation 为 `activity-start/activity-claim`。
 
 ### 宠物见习工作与活动日志（第三批）
 
 - `GET /api/v3/me/pet/activities`：第一方本人 `profile.read`。`kind=all|outing|course|work`，`p=1..10000`，`size=1..50`（缺省10），按开始时间/ID倒序，返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。日志分别提供冻结 `rewards` 与 `actualRewards`，旧记录实际成果未知为 null。
 
-原活动开始接口新增 kind=work，继续原幂等与领取协议。目录 activityVersion 升2，新增六工作及技能解锁条件、incomeRules；本人状态新增 income 与 pet.jobs。六工作均20分钟、对应技能经验10解锁，计划薪酬12宠物币/熟练度10。账号每日工作产币上限60，按上海领取日实际剩余额度结算。迁移、完整字段与兼容见 [第三批协议](docs/api-v3-pets-phase-three.md)。
-
+原活动开始接口新增 kind=work，继续原幂等与领取协议。目录 activityVersion 升2，新增六工作及技能解锁条件、incomeRules；本人状态新增 income 与 pet.jobs。六工作均20分钟、对应技能经验10解锁，计划薪酬12宠物币/熟练度10。账号每日工作产币上限60，按上海领取日实际剩余额度结算。
 
 ### 宠物进阶探索、配方与统一日志（第四批）
 
@@ -17169,15 +17105,14 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 - `GET /api/v3/pets/catalog`：新增三个进阶地点、`recipes`、永久 `collections` 与扩展 `items`。活动目录统一 `requirements:[{skillId,experience}]`；工作仍保留原 `requirement`。所有 `rewards` 新增 `items:[{itemId,quantity}]`。
 - `GET /api/v3/me/pet`：库存投影全部已知物品，未持有为 0；新增账号永久收藏 `collections:[{id,unlockedAt}]`。
-- `POST /api/v3/me/pet/actions`：`feed` 可传食品 `itemId`；`water` 不传 `itemId` 仍免费饮水，传 `spring-water` 消费饮料。材料不能当食品或饮料使用。六种日常照顾均与状态同事务记入日志。
+- `POST /api/v3/me/pet/actions`：`feed` 可传食品 `itemId`；`water` 不传 `itemId` 仍免费饮水，传 `spring-water` 消费饮料。材料不能当食品或饮料使用。六种日常照顾均记入照顾日志。
 - `POST /api/v3/me/pet/purchases`：仍为 `{petId,itemId,quantity,catalogVersion}`，数量 1～20；只有目录 `price` 非 null 的物品可购买，服务端核价及扣宠物币。
 - `POST /api/v3/me/pet/crafts`：`{petId,recipeId,catalogVersion}`。空闲且技能达标后，原子扣材料与宠物币、解锁永久收藏；同收藏每账号仅一次。写回执继续为 `{operation:"craft",petId,committedAt}`，客户端确认后读取聚合状态。
-- `GET /api/v3/me/pet/journal?kind=all&p=1&size=10`：统一本人计时活动和照顾/制作/购买事件。`kind=all|outing|course|work|care|craft|purchase`，`p=1..10000`、`size=1..50`；返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。按事件时间/ID 倒序进行数据库真实分页，旧 `/activities` 仍保留计时活动列表。
+- `GET /api/v3/me/pet/journal?kind=all&p=1&size=10`：统一本人计时活动和照顾/制作/购买事件。`kind=all|outing|course|work|care|craft|purchase`，`p=1..10000`、`size=1..50`；返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。按事件时间/ID 倒序分页，旧 `/activities` 仍保留计时活动列表。
 
 日志条目是联合类型：`recordType:"activity"` 保留原活动历史字段；`recordType:"event"` 包含 `{id,petId,kind,action,name,occurredAt,itemChanges:[{itemId,quantity}],coinsDelta,effects:{hunger,water,mood,energy,experience,friendship},collectionId}`。`quantity` 与 `coinsDelta` 为有符号实际变化；前四个效果允许小数且在 -100～100，经验与亲密度为非负整数。效果在离线结算之后计算，只记录本次操作净变化；非制作事件 `collectionId=null`。不回填此前未记录的照顾行为。
 
-新增冲突包括 `409 skill_required`、`collection_owned`、`not_enough_items`；沿用 `catalog_changed`、`pet_resting`、`pet_busy`、`not_enough_coins` 等原语义。未知物品/配方或错误使用类别为 422，坏存储快照为 503，均不自动二次消费。完整目录、迁移和验收见 [第四批协议](docs/api-v3-pets-phase-four.md)。
-
+新增冲突包括 `409 skill_required`、`collection_owned`、`not_enough_items`；沿用 `catalog_changed`、`pet_resting`、`pet_busy`、`not_enough_coins` 等原语义。未知物品/配方或错误使用类别为 422，服务暂不可用为 503，均不自动二次消费。
 
 ### 宠物进阶课程、事件链与重新领养（第五批）
 
@@ -17189,7 +17124,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 - `POST /api/v3/me/pet/readoption`：`{petId,speciesId,name,catalogVersion,resetAccepted:true}`。空闲且余额充足后扣 512 宠物币，原宠物归档、新 ID 从初始状态开始，不发首奖；回执 `{operation:"readoption",petId:"新ID",previousPetId:"旧ID",committedAt}`。账号钱包、背包、收藏、补给、每日成长次数、收入预算、事件进度及原互动冷却保留，旧成长和活动记录不删。
 - `GET /api/v3/me/pet/journal` 新增 kind=story/readoption。事件奖励为正向物品、零币；重新领养为负 512 币、无物品变化，effects 均为零，不伪造成长增减。旧日志字段不变。
 
-两新增写接口沿本人第一方 `settings.write`、`Idempotency-Key`、原命令恢复与同用户行锁。事件进度和触发它的业务动作同事务，领奖和换宠也完整原子提交。原成功键在当前 petId 或目录变化后仍只重放旧回执，客户端随后重读聚合状态。迁移、完整数值、事件步骤与人工验收见 [第五批协议](docs/api-v3-pets-phase-five.md)。
+领奖和重新领养均需要第一方本人 `settings.write` 和 `Idempotency-Key`。使用原键和原内容重试会返回原回执，随后请重新读取当前状态。
 
 ### 宠物成长规则与活动数值（第六批）
 
@@ -17211,15 +17146,13 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 > 客户端兼容旧后端时，可以将 `growthRules` 作为可选字段；缺少时不应猜测下一级进度。开始新活动应使用当前返回的 `activityVersion`，原成功命令仍使用原请求和原幂等键恢复。
 
-## v3 宠物账号保护（本地待人工验收）
+## v3 宠物账号保护
 
-本节三个接口仅接受当前本人第一方 V3 Bearer，均要求 `settings.write`；不接受页面 Cookie、旧 apiKey 或第三方令牌。不新增 IP 封禁，也不修改全站防火墙、宠物币、照顾收益或活动数值。
+本节三个接口仅接受当前本人第一方 V3 Bearer，均要求 `settings.write`；不接受页面 Cookie、旧 apiKey 或第三方令牌。
 
-宠物写入按账号执行持久化保护：十秒内最多 12 个新命令、每分钟最多 30 个新命令；超限返回 `429 pet_rate_limited`，响应头提供 `Retry-After: 60` 并通过 `Access-Control-Expose-Headers` 暴露给浏览器。五分钟内 8 个不同命令的明确业务拒绝会要求验证；同键重试、通信或数据库故障不重复累计该判断。不同幂等键仍视为不同命令。
+写请求返回 `429 pet_rate_limited` 时，按 `Retry-After` 等待。返回 `403 pet_verification_required` 时，请为原操作申请验证。
 
-已成功的相同操作、内容及幂等键优先恢复原回执，不受宠物业务冷却、验证码要求或全站共享写额度阻断；另有每账号每分钟 240 次写请求传输保护，包含同键回放，超限同样返回 429，但不据此认定作弊。状态与挑战读取共用每分钟 60 次额度，验证提交每分钟最多 10 次。客户端应遵守冷却并由用户继续，不循环重试。
-
-> 使用前需执行 `sql/20261113_api_v3_pet_risk.sql`，按实际 `jdbc.tablePrefix` 调整表前缀，创建风险状态、审计和证明使用记录三张表。审计仅记录账号、操作类别、摘要、原因和时间，每账号保留最近 200 条；不记录原请求正文、密码、Bearer 或验证码证明。原有宠物迁移仍需先完成。
+验证后由用户继续原操作，重试沿用原请求体及原 `Idempotency-Key`。
 
 ### 读取本人宠物操作保护状态
 
@@ -17282,15 +17215,15 @@ curl 'https://fishpi.cn/api/v3/me/pet/risk/challenge' \
 | - operation | 原命令类别 | purchase |
 | - idempotencyKey | 原业务幂等键 | pet-buy-001 |
 | - serverNow | 服务端当前毫秒时间戳 | 1794528000000 |
-| - challengeId | 挑战标识，与当前账号及原命令绑定 | 00000000-0000-4000-8000-000000000000 |
+| - challengeId | 挑战标识，与当前账号及原命令绑定 | CHALLENGE_ID |
 | - expiresAt | 未验证时为挑战到期时间，已验证时为原命令授权到期时间 | 1794528300000 |
 | - verified | 该原命令是否已经验证成功，用于恢复丢失的验证回执 | false |
 | - provider | 验证提供方 | geetest4 |
 | - captchaId | 极验公开组件 ID，不是服务端密钥 | CAPTCHA_ID |
 
-> `operation` 可为 `adoption/readoption/story-claim/name/action/supplies/purchase/craft/activity-start/activity-claim`，对应原宠物写接口的操作，不使用复数 URL 片段作为操作名。服务端绑定首次登记的正文摘要，不接受客户端另传作者、正文摘要或恢复标志。
+> `operation` 可为 `adoption/readoption/story-claim/name/action/supplies/purchase/craft/activity-start/activity-claim`，对应原宠物写接口的操作，不使用复数 URL 片段作为操作名。
 
-> 挑战有效期为 5 分钟；同一挑战最多 5 次验证失败，达到次数或到期后可显式重新申请。未登记或不需要验证返回 `409 pet_challenge_unavailable`，仍处于冷却返回 429，组件配置或存储不可用返回 503。若 `verified=true`，可以直接让用户继续原操作，无需再次完成验证码。
+> 原操作无需验证或无法申请时返回 `409 pet_challenge_unavailable`。收到 429 时请等待，503 时稍后重试。返回 `verified=true` 时可继续原操作。
 
 ### 提交宠物操作验证证明
 
@@ -17303,7 +17236,7 @@ curl 'https://fishpi.cn/api/v3/me/pet/risk/challenge' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | 第一方 Bearer，需 settings.write | Bearer ACCESS_TOKEN |
-| challengeId | 上一步返回的挑战标识 | 00000000-0000-4000-8000-000000000000 |
+| challengeId | 上一步返回的挑战标识 | CHALLENGE_ID |
 | captcha | JSON 字符串，仅含下述四个字符串字段，总计不超过 4096 UTF-8 字节 | JSON 字符串 |
 | - lot_number | 极验批次号，同批次不能用于别的账号或挑战 | LOT_NUMBER |
 | - captcha_output | 极验返回的验证结果 | CAPTCHA_OUTPUT |
@@ -17316,7 +17249,7 @@ curl 'https://fishpi.cn/api/v3/me/pet/risk/challenge' \
 curl 'https://fishpi.cn/api/v3/me/pet/risk/verify' \
   --header 'Authorization: Bearer ACCESS_TOKEN' \
   --header 'Content-Type: application/json' \
-  --data '{"challengeId":"00000000-0000-4000-8000-000000000000","captcha":"{\"lot_number\":\"LOT_NUMBER\",\"captcha_output\":\"CAPTCHA_OUTPUT\",\"pass_token\":\"PASS_TOKEN\",\"gen_time\":\"1794528000\"}"}'
+  --data '{"challengeId":"CHALLENGE_ID","captcha":"{\"lot_number\":\"LOT_NUMBER\",\"captcha_output\":\"CAPTCHA_OUTPUT\",\"pass_token\":\"PASS_TOKEN\",\"gen_time\":\"1794528000\"}"}'
 ```
 
 响应：
@@ -17328,11 +17261,11 @@ curl 'https://fishpi.cn/api/v3/me/pet/risk/verify' \
 | - idempotencyKey | 原业务幂等键 | pet-buy-001 |
 | - verified | 验证是否成功，成功为 true | true |
 | - serverNow | 服务端当前毫秒时间戳 | 1794528000000 |
-| - expiresAt | 原命令授权到期时间，成功后有效 15 分钟 | 1794528900000 |
+| - expiresAt | 原命令验证授权的到期时间（毫秒时间戳） | 1794528900000 |
 
-> 证明格式错误返回 `422 invalid_request`；证明时间不合法、批次已使用或供应商判定失败返回 `422 invalid_captcha`。挑战不存在、跨账号或过期返回 `409 pet_challenge_expired`，验证超频返回 429，供应商通信故障返回 503。通信故障不累计验证码失败次数，原业务命令仍保留；重新获取有效证明后再验证，不记录或持久化证明。
+> 证明格式有误返回 `422 invalid_request`，验证失败返回 `422 invalid_captcha`。挑战失效返回 `409 pet_challenge_expired`，请重新申请。请求过频返回 429，验证服务暂不可用返回 503。
 
-> 验证回执丢失时，先为同一原命令重新申请挑战；服务端可返回 `verified=true` 恢复结果。用户确认继续时，使用原操作、原内容、原 Idempotency-Key 再调用原写接口。授权仅在原命令成功提交的同一事务内消费并恢复账号状态；业务失败回滚授权消费。成功写回执后只重读当前聚合状态，不能将旧回执当成当前余额，也不能因读取失败再次创建消费。未知结果仍保留原内容和原键。
+> 验证回执丢失时，为同一原命令重新申请挑战并查看 `verified`。用户继续时沿用原操作、请求体及幂等键。写入成功后重新读取当前状态。
 
 ### 读取普通喂食与饮水的可核对时间
 
@@ -17365,8 +17298,6 @@ curl 'https://fishpi.cn/api/v3/me/pet' \
 | --- water | 免费饮水达到有效操作阈值的毫秒时间戳 | 1794529200000 |
 
 > 时间小于或等于 `serverNow` 表示已达到对应状态阈值，不保证库存、活动、休息、账号保护等其他条件也满足。客户端到点合并一次状态读取，不能直接衰减或改写权威快照，不进行轮询；旧后端缺少该字段时保持兼容。扩展食品、饮料仍按实际物品效果和原写接口判断。
-
-> 本批仍为本地待人工验收：隔离测试不能替代真实极验成功、失败、回执丢失与换号流程，也不能替代 MySQL/InnoDB 多进程并发、同键恢复和事务回滚验证。完成迁移并重新编译服务端后，再按实际部署环境进行 PC/移动端人工测试；未完成前不视为可发布。
 
 ### 聊天消息宠物状态
 
@@ -18353,7 +18284,7 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 #### IP 管理、站点设置、安全监控与索引维护
 
 - `GET /api/v3/admin/ips`：查询防火墙与验证码盾运行状态摘要（需 `ipManage`）
-- `POST /api/v3/admin/ips`：批量封禁或解封 IP（`action=ban|unban`，保留验证码盾调用顺序并写日志，需 `ipManage`）
+- `POST /api/v3/admin/ips`：批量封禁或解封 IP（`action=ban|unban`，需 `ipManage`）
 - `GET /api/v3/admin/settings`：读取站点杂项配置列表（需 `menuAdminMisc`）
 - `PUT /api/v3/admin/settings`：更新站点杂项配置并记录审计日志。除了后台入口和 `menuAdminMisc`，还需要对应配置项权限。GET 每项的 `writable`、`allowedValues` 指明可编辑性和允许值。PUT 仅提交要修改的值，值采用枚举字符串，非法字段或值返回 422，逐项权限不足返回 403。
 - `GET /api/v3/admin/security/monitor`：查询安全监控、爬虫统计、近期事件与当前开关状态（仅管理员分组）。事件的 `ip` 是来源；`userStatus` 可标注匹配租约的账号，但不代表访客本人已认证。
@@ -18853,24 +18784,24 @@ curl --get 'https://fishpi.cn/admin/pet-logs/export' \
 
 ### 抢搭子
 
-第一方 Bearer。游园币共用账号钱包，搭子收入按北京时间独立计算。启用前在钱包迁移之后执行 `sql/20261119_api_v3_partners.sql`。
+第一方 Bearer。游园币共用账号钱包，搭子收入按北京时间独立计算。
 
 - `GET /api/v3/me/partners` 使用 `profile.read`，自动结清本人的营业收入。返回 `joined/revision/coins/today/holderName/slots/list/next`。每个已购位置含 `peer/name（有搭子时）/rate/today/usedMs`。零点重置位置的八小时额度。页内最多二十张其他已加入用户的名片，下一页传 `after=next`。
 - `POST /api/v3/me/partners/{action}` 使用 `settings.write` 和 `Idempotency-Key`。加入 `join` 传空对象；开位 `unlock`、退出 `leave` 传本人最近读取的整数 `revision`；请人 `hire` 传目标用户 ID `peer` 与目标名片的 `revision`；放手 `release` 传 `peer` 与本人 `revision`。成功回执仅含 `action`，随后重读。名片变化返回 409，需要查看最新标价；未知结果使用原命令原键。
 - 首签 100，每次转手加 20，成交 200 后本轮满价。转手退上任成交本金并另给 14，搭子分 4，回收 2。放手或退出只退 100。退出结束双向所有关系，保留已购位置及当日计时。默认营业收入按实际成交价每小时 40 至 50，本人搭班另计每小时 2。跨日离线按日累计，在打开玩法或相关交易时自动入账。
 
-- 搭子接口暂时无法取得数据库连接，或鉴权时数据库读取失败，返回 HTTP 503，`code=partner_busy`。读取可稍后重试。写入请保留原操作、原请求体和 `Idempotency-Key`，使用同一编号核对结果。无效或已撤销的令牌返回 401，权限不足返回 403。
+- 服务暂不可用时返回 HTTP 503（`partner_busy`）。读取可稍后重试，写入请用原操作、请求体和 `Idempotency-Key` 核对结果。无效或已撤销的令牌返回 401，权限不足返回 403。
 
 #### 搭子名片和本人动态
 
 - 会员页 `GET /api/v3/me/partners/card/{用户ID}` 使用第一方 Bearer 和 `profile.read`。只读开放、账号正常的名片，当前未开放返回 `{"card":null}`。名片与大厅共用展示身价、请人费用、满价、本人关系及版本字段，点击入口后按新的名片版本确认。
 - 大厅可传 `sort=following` 优先返回本人关注的鱼友，名片的 `following` 标记只在此排序下有意义。后续页将服务端的 `next` 原样作为 `after` 并保留排序参数。省略排序沿用原编号游标。传 `peer=用户ID` 只查看这一位其他鱼友，不与翻页组合。
 - `GET /api/v3/me/partners/activity?kind=events|wallet` 使用相同鉴权，仅按当前访问者读取，每页最近 20 条，后续页可传 `before=next`。返回 `list/next`，记录含 `oId/createdAt/amount`。动态另含纯文本 `summary` 和成交价 `price`（解约为 0）；钱包记录另含原流水类型 `operation`。动态的金额是本人本次关系变更的现金收支，另行结算的按时营业收入见钱包。
-- 先执行 `sql/20261119_api_v3_partner_social.sql`。参与者动态和交易同时提交；幂等重放继续返回原回执。升级前的金额只在本人收支中展示，不补造交易参与人。
+- 参与者动态和交易同时提交；幂等重放继续返回原回执。升级前的金额只在本人收支中展示，不补造交易参与人。
 
 #### 搭子运营与营业费率
 
-第二批迁移完成后执行 `sql/20261119_api_v3_partner_operations.sql`。默认基础时薪 40 币，成交价每增加 20 币，时薪增加 2 币。名片新增 `rate`（本次成交时薪）和 `rateVersion`。请人时原样传入 `rateVersion`，版本过期会返回 409，需刷新报价再确认。旧客户端省略版本时，仅在其显示的默认时薪仍准确时成交。已成交的位置按原时薪结算。
+默认基础时薪 40 币，成交价每增加 20 币，时薪增加 2 币。名片新增 `rate`（本次成交时薪）和 `rateVersion`。请人时原样传入 `rateVersion`，版本过期会返回 409，需刷新报价再确认。旧客户端省略版本时，仅在其显示的默认时薪仍准确时成交。已成交的位置按原时薪结算。
 
 以下接口要求管理员身份。两个 GET 使用 `profile.read`，PUT 使用 `settings.write` 和 `Idempotency-Key`。
 
@@ -18878,7 +18809,6 @@ curl --get 'https://fishpi.cn/admin/pet-logs/export' \
 - `GET /api/v3/admin/partners/ledger` 可组合 `userId`、`referenceId`，使用原钱包的带符号金额、交易单号和标准 `p/size` 分页，包含升级前的流水。
 - `PUT /api/v3/admin/partners/rate` 提交整数 `baseRate`（1～1000）、`stepRate`（0～100）和当前 `version`。同版本并发修改只有一次成功。未知结果用原键、原请求核对，成功后重新读取报表。
 
-
 #### 搭子展示身价
 
-大厅名片和单张名片返回 `displayValue`（十进制整数字符串），大厅顶层也返回当前账号的展示身价，尚未加入过的账号省略该字段。身价为 10000 ×（有效转手次数 + 1）的平方。使用已记录的成交，排除首次请人，同一买家与同一搭子在北京时间同一天只计一次。放手或退出保留记录。请人费用仍取 `price`，营业时薪取 `rate`。运营迁移之后执行 `sql/20261119_api_v3_partner_value.sql` 添加查询索引。
+大厅名片和单张名片返回 `displayValue`（十进制整数字符串），大厅顶层也返回当前账号的展示身价，尚未加入过的账号省略该字段。身价为 10000 ×（有效转手次数 + 1）的平方。使用已记录的成交，排除首次请人，同一买家与同一搭子在北京时间同一天只计一次。放手或退出保留记录。请人费用仍取 `price`，营业时薪取 `rate`。
