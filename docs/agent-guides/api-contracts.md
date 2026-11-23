@@ -23,6 +23,12 @@
 
 - v3完整清单与后续分工见`docs/api-v3-progress.md`，当前跨仓库路由对照见`docs/api-v3-current-completion-audit.md`（动态候选/转发不是运行通过）；以总register可达的METHOD+path计数，源码/隔离测试/运行验收分列，用户侧职业/勋章/会员不可按后台整体排除。
 
+## Scalar 开发文档
+
+- `ApiDocumentationProcessor` 提供 `/api-docs` 页面、两版 OpenAPI 及完整中文说明，入口统一使用 `LoginCheckMidware`。v1 的编号只用于文档分组，接口路径沿用旧版。
+- Maven 在 `generate-resources` 阶段运行 `tools/generate-api-docs.py`，将 `API.md` 的版本分区和路由清单生成到构建输出。构建机需 Python 3.9 或更高版本，若 Python 命令名不同，可传 `-Dapi-docs.python=python`。IDEA 直接启动时先执行该阶段再重启。生成文件不提交。
+- 修改接口时同步维护 `API.md` 的中文参数、响应和事件说明。v3 的路由缺少说明时生成会失败。v1 按文档里明确列出的旧版和兼容接口生成。仍在 Markdown 正文中定义的字段和实时事件可点开完整说明查看。
+
 ## 写入幂等
 
 - v3 写入幂等由 `ApiV3IdempotencyMgmtService` + `api_v3_request` 在同一事务内提交业务与结果；回调必须调用 `*InCurrentTransaction`，不得自行提交、嵌套事务或直接发送外部事件。草稿写入走 `ApiV3DraftProcessor` + `ApiV3DraftMgmtService`，复用 `ArticleDraftMgmtService` 的现有规则。

@@ -6,6 +6,8 @@
 - [旧版及兼容 API](#旧版及兼容-api)
   - [接入与鉴权](#接入与鉴权) · [帖子与专栏](#帖子与专栏) · [消息与聊天室](#消息与聊天室) · [用户与社区](#用户与社区) · [鱼游与工具](#鱼游与工具)
 
+网页登录后可打开 [Scalar API 开发文档](/api-docs)。在页面上切换 **v3（当前接口）** 和 **v1（旧版及兼容接口）**，或下载对应的 OpenAPI 文件。旧版接口沿用正文中的原始地址。
+
 ## API v3
 
 `/api/v3` 提供版本化 Web API，也支持已登记的第三方应用通过 OAuth 授权接入。除下文 OAuth 授权接口外，响应使用统一信封：
@@ -16265,6 +16267,8 @@ curl --location --request POST 'https://fishpi.cn/breezemoon' \
 | actorReaction | 该用户本次操作后最终选中的表情值，没有则为空字符串 | **fire**          |
 
 ##### 帖子页 **/article-channel** 新增消息类型
+
+`WSS /article-channel`
 
 如果客户端已经接入文章页 WebSocket 频道 **/article-channel**，还需要额外处理以下两种增量消息。
 

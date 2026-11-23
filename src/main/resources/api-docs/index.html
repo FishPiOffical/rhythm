@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>摸鱼派 API 开发文档</title>
+    <link rel="icon" type="image/png" href="./images/favicon.png">
+    <style>
+      body { margin: 0; }
+      .api-docs-header {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .5rem 1rem;
+        padding: .5rem 1rem;
+        background: #fff;
+        color: #222;
+        border-block-end: 1px solid #d6dbe0;
+        font: 600 .875rem system-ui, sans-serif;
+      }
+      .api-docs-header nav { display: flex; gap: .5rem; }
+      .api-docs-header a {
+        display: grid;
+        align-items: center;
+        min-block-size: 2.75rem;
+        padding-inline: .625rem;
+        color: inherit;
+      }
+      .api-docs-header a[aria-current="page"] {
+        text-decoration: underline;
+        text-decoration-thickness: .15em;
+        text-underline-offset: .3em;
+      }
+    </style>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.83.0/dist/browser/standalone.js"
+      integrity="sha384-Z2Wz4L/5mCSEGTCpHPw3JIN6+eRxpIwq2sE2QfGtP+hmmwcgJKNVK9zBbfnbjlKN"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+      defer
+    ></script>
+    <script src="./api-docs/bootstrap" defer></script>
+  </head>
+  <body>
+    <header class="api-docs-header">
+      <img src="./images/favicon.png" width="24" height="24" alt="摸鱼派">
+      <nav aria-label="API 版本">
+        <a href="?version=v3" data-version="v3" aria-current="page">v3 当前 API</a>
+        <a href="?version=v1" data-version="v1">v1 旧版 API</a>
+      </nav>
+    </header>
+    <main id="api-reference"></main>
+    <p id="reference-fallback">
+      <a href="./api-docs/v3-reference">v3 中文说明</a>
+      · <a href="./api-docs/v1-reference">v1 中文说明</a>
+      · <a href="./api-docs/v3">v3 OpenAPI</a>
+      · <a href="./api-docs/v1">v1 OpenAPI</a>
+    </p>
+  </body>
+</html>

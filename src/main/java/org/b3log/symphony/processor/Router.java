@@ -84,6 +84,7 @@ public final class Router {
         RhypicProcessor.register();
         // Versioned third-party Web API
         ApiV3Processor.register();
+        ApiDocumentationProcessor.register();
         // 帖子
         ArticleProcessor.register();
         // 帖子草稿

@@ -21,6 +21,7 @@
     <inceptionYear>2012</inceptionYear>
 
     <properties>
+        <api-docs.python>python3</api-docs.python>
         <latke.version>3.4.30</latke.version>
 
         <jsoup.version>1.21.1</jsoup.version>
@@ -327,6 +328,29 @@
         </resources>
 
         <plugins>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-api-docs</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${api-docs.python}</executable>
+                            <arguments>
+                                <argument>${project.basedir}/tools/generate-api-docs.py</argument>
+                                <argument>${project.basedir}</argument>
+                                <argument>${project.build.outputDirectory}/api-docs</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
