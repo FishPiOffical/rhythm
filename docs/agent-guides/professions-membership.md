@@ -29,7 +29,7 @@
 - 勋章管理页：`/admin/medal`
 - 个人主页勋章由 `settings.js` 的 `Settings.initHome` 动态调用公开只读接口 `GET /user/{userName}/medal`，再渲染到 PC/移动端 `home-side.ftl` 的 `#metal`；不要依赖可选游戏组件的 `window.onload`，也不要改回 FTL 服务端渲染。
 - 后端：`src/main/java/org/b3log/symphony/processor/MedalProcessor.java`（`showAdminMedal`、`register`）
-- 前端：`src/main/resources/js/medal.js`
+- 前端：`src/main/resources/js/medal.js` 与 `src/main/resources/scss/medal.scss`。PC/移动端共用勋章列表；上下分页同步，列表每页 20 条并保留固定高度。列表接口不返回总页数，空页跳转保留当前页；搜索结果按原接口返回的集合在前端分页。长属性只在详情中展开，新建与编辑表单直接显示属性输入框，原有管理接口与字段不变。
 - 模板：`src/main/resources/skins/classic/pc/admin/medal.ftl`、`src/main/resources/skins/classic/mobile/admin/medal.ftl`
 - 管理 API：`/api/medal/admin/list`、`/api/medal/admin/search`、`/api/medal/admin/grant`、`/api/medal/admin/grant-batch`、`/api/medal/admin/revoke`、`/api/medal/admin/owners`、`/api/medal/admin/holds`
 - 会员状态 API：`GET /api/membership/{userId}`（`MembershipProcessor#getUserMembershipStatus`）
