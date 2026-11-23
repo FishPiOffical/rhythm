@@ -7,7 +7,7 @@
     <title>摸鱼派 API 开发文档</title>
     <link rel="icon" type="image/png" href="./images/favicon.png">
     <style>
-      body { margin: 0; }
+      body { margin: 0; color: #222; font-family: system-ui, sans-serif; }
       .api-docs-header {
         display: flex;
         align-items: center;
@@ -17,7 +17,7 @@
         background: #fff;
         color: #222;
         border-block-end: 1px solid #d6dbe0;
-        font: 600 .875rem system-ui, sans-serif;
+        font-size: .875rem;
       }
       .api-docs-header nav { display: flex; gap: .5rem; }
       .api-docs-header a {
@@ -32,15 +32,40 @@
         text-decoration-thickness: .15em;
         text-underline-offset: .3em;
       }
+      .api-docs-loading {
+        display: grid;
+        place-items: center;
+        min-height: 18rem;
+        padding: 2rem 1rem;
+        text-align: center;
+      }
+      .api-docs-loading[hidden], #api-reference[hidden], #reference-fallback[hidden] { display: none; }
+      .api-docs-loading-card { width: min(100%, 26rem); }
+      .api-docs-loading-title { margin: 0; font-size: 1.125rem; font-weight: 650; }
+      .api-docs-loading-detail { margin: .75rem 0 0; color: #667085; font-size: .875rem; }
+      .api-docs-loading progress { width: 100%; height: .5rem; margin-top: 1.25rem; accent-color: #1677ff; }
+      .api-docs-loading-indicator {
+        height: .5rem;
+        margin-top: 1.25rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5e7eb;
+      }
+      .api-docs-loading-indicator::after {
+        display: block;
+        width: 38%;
+        height: 100%;
+        border-radius: inherit;
+        background: #1677ff;
+        content: "";
+        animation: api-docs-loading 1.2s ease-in-out infinite;
+      }
+      .api-docs-loading-error { color: #b42318; }
+      .api-docs-loading button { margin-top: 1rem; padding: .5rem .875rem; border: 1px solid #98a2b3; border-radius: .375rem; background: #fff; cursor: pointer; }
+      @keyframes api-docs-loading { from { transform: translateX(-110%); } to { transform: translateX(280%); } }
+      @media (prefers-reduced-motion: reduce) { .api-docs-loading-indicator::after { animation: none; transform: translateX(80%); } }
     </style>
-    <script
-      src="https://file.fishpi.cn/ada/js/scalar.js"
-      integrity="sha384-HTJ7ZQTyv05dHftmZM3gmG4vCOJDhlxPbUZBPwFgB7hsyBLAM8mmqY5a9ncfdKvc"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-      defer
-    ></script>
-    <script src="./api-docs/bootstrap" defer></script>
+    <script id="api-docs-bootstrap" src="./api-docs/bootstrap" defer></script>
   </head>
   <body>
     <header class="api-docs-header">
@@ -50,8 +75,16 @@
         <a href="?version=v1" data-version="v1">v1 旧版 API</a>
       </nav>
     </header>
-    <main id="api-reference"></main>
-    <p id="reference-fallback">
+    <section class="api-docs-loading" id="api-docs-loading" role="status" aria-live="polite">
+      <div class="api-docs-loading-card">
+        <p class="api-docs-loading-title" id="api-docs-loading-title">正在加载 API 文档</p>
+        <progress id="api-docs-loading-progress" max="100" value="0" hidden></progress>
+        <div class="api-docs-loading-indicator" id="api-docs-loading-indicator"></div>
+        <p class="api-docs-loading-detail" id="api-docs-loading-detail">正在连接文档组件…</p>
+      </div>
+    </section>
+    <main id="api-reference" hidden></main>
+    <p id="reference-fallback" hidden>
       <a href="./api-docs/v3-reference">v3 中文说明</a>
       · <a href="./api-docs/v1-reference">v1 中文说明</a>
       · <a href="./api-docs/v3">v3 OpenAPI</a>
