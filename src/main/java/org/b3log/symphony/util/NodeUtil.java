@@ -33,14 +33,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.b3log.latke.Latkes;
-import org.b3log.latke.ioc.BeanManager;
-import org.b3log.latke.model.User;
-import org.b3log.symphony.model.Common;
-import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
-import org.b3log.symphony.service.AvatarQueryService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -250,44 +244,9 @@ public class NodeUtil {
         wsOnline.putAll(tmp_wsOnline);
         remoteUserPerNode.putAll(tmp_remoteUserPerNode);
 
-        // 推送在线信息给子节点
-        final BeanManager beanManager = BeanManager.getInstance();
-        final AvatarQueryService avatarQueryService = beanManager.getReference(AvatarQueryService.class);
-
-        Map<String, JSONObject> filteredOnlineUsers = new HashMap<>();
-        for (JSONObject object : ChatroomChannel.onlineUsers.values()) {
-            String name = object.optString(User.USER_NAME);
-            filteredOnlineUsers.put(name, object);
-        }
-
-        for (int i = 0; i < NodeUtil.remoteUsers.length(); i++) {
-            try {
-                JSONObject temp = NodeUtil.remoteUsers.getJSONObject(i);
-                filteredOnlineUsers.put(temp.optString(User.USER_NAME), temp);
-            } catch (Exception ignored) {
-            }
-        }
-
-        JSONArray onlineArray = new JSONArray();
-        for (String user : filteredOnlineUsers.keySet()) {
-            JSONObject object = filteredOnlineUsers.get(user);
-
-            String avatar = object.optString(UserExt.USER_AVATAR_URL);
-            String homePage = Latkes.getStaticServePath() + "/member/" + user;
-
-            JSONObject generated = new JSONObject();
-            generated.put(User.USER_NAME, user);
-            generated.put(UserExt.USER_AVATAR_URL, avatar);
-            avatarQueryService.fillUserAvatarURL(generated);
-            generated.put("homePage", homePage);
-            onlineArray.put(generated);
-        }
-
-        JSONObject result = new JSONObject();
-        result.put(Common.ONLINE_CHAT_CNT, filteredOnlineUsers.size());
-        result.put(Common.TYPE, "online");
-        result.put("users", onlineArray);
-        result.put("discussing", ChatroomChannel.discussing);
+        if (uriNodes.isEmpty()) return;
+        final var onlineMessage = ChatroomChannel.publicOnlineMessage();
+        if (onlineMessage.isEmpty()) return;
 
         for (String i : uriNodes) {
             try {
@@ -299,7 +258,7 @@ public class NodeUtil {
                 WebSocket webSocket = connection.webSocket();
                 CompletableFuture<String> responseFuture = connection.responseFuture();
 
-                String message = Symphonys.get("chatroom.node.adminKey") + ":::push " + result;
+                String message = Symphonys.get("chatroom.node.adminKey") + ":::push " + onlineMessage.get();
                 webSocket.sendText(message, true);
 
                 try {

@@ -37,8 +37,11 @@ import org.b3log.symphony.processor.AdminProcessor;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.service.AvatarQueryService;
+import org.b3log.symphony.service.ChatOnlineQueryService;
 import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.UserQueryService;
+import org.b3log.symphony.util.AccountCredentialVersions;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.NodeUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -47,6 +50,7 @@ import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Chatroom channel.
@@ -115,10 +119,11 @@ public class ChatroomChannel implements WebSocketChannel {
             onlineUsers.put(session, user);
             SESSIONS.add(session);
             // 单独发送在线信息
-            final String msgStr = getOnline().toString();
-            sendText(session, msgStr);
-            NodeUtil.sendTell(userName, msgStr);
-            AdminProcessor.manager.onMessageSent(4, msgStr.length());
+            publicOnlineMessage().ifPresent(message -> {
+                sendText(session, message);
+                NodeUtil.sendTell(userName, message);
+                AdminProcessor.manager.onMessageSent(4, message.length());
+            });
             // 保存 Active 信息
             userActive.put(user.optString("userName"), System.currentTimeMillis());
         } else {
@@ -441,10 +446,10 @@ public class ChatroomChannel implements WebSocketChannel {
     }
 
     /**
-     * 获得聊天室在线人数和在线成员信息
+     * 获取旧在线接口及指定红包使用的候选名单。
      * @return
      */
-    public static JSONObject getOnline() {
+    public static JSONObject getLegacyOnlineCandidates() {
         final BeanManager beanManager = BeanManager.getInstance();
         final AvatarQueryService avatarQueryService = beanManager.getReference(AvatarQueryService.class);
         try {
@@ -491,28 +496,46 @@ public class ChatroomChannel implements WebSocketChannel {
         return new JSONObject().put(Common.ONLINE_CHAT_CNT, 99999).put(Common.TYPE, "online").put("users", new JSONArray());
     }
 
-    // 发送在线信息
-    private static boolean onlineMsgLock = false;
+    public static Optional<String> publicOnlineMessage() {
+        final boolean release = !AccountCredentialVersions.isHttp() && !AccountCredentialVersions.hasActiveTransaction();
+        try {
+            final var query = BeanManager.getInstance().getReference(ChatOnlineQueryService.class);
+            return Optional.of(query.classicBroadcast(discussing).toString());
+        } catch (final Exception e) {
+            LOGGER.error("Failed to build classic chat online broadcast", e);
+            return Optional.empty();
+        } finally {
+            if (release) ApiV3Transactions.releaseThreadResources();
+        }
+    }
+
+    private static final AtomicBoolean ONLINE_MSG_LOCK = new AtomicBoolean();
+
     public static void sendOnlineMsg() {
-        if (!onlineMsgLock) {
-            onlineMsgLock = true;
-            final String msgStr = getOnline().toString();
+        if (!ONLINE_MSG_LOCK.compareAndSet(false, true)) return;
+        boolean scheduled = false;
+        try {
+            final var message = publicOnlineMessage();
+            if (message.isEmpty()) return;
+            final String msgStr = message.get();
             NodeUtil.sendSlow(msgStr);
             Thread.startVirtualThread(() -> {
-                int i = 0;
-                for (WebSocketSession s : SESSIONS) {
-                    i++;
-                    if (i % 1 == 0) {
-                        try {
-                            Thread.sleep(500);
-                        } catch (Exception ignored) {
-                        }
+                try {
+                    for (WebSocketSession session : SESSIONS) {
+                        Thread.sleep(500);
+                        sendText(session, msgStr);
+                        AdminProcessor.manager.onMessageSent(4, msgStr.length());
                     }
-                    sendText(s, msgStr);
-                    AdminProcessor.manager.onMessageSent(4, msgStr.length());
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.warn("Classic chat online broadcast interrupted", e);
+                } finally {
+                    ONLINE_MSG_LOCK.set(false);
                 }
-                onlineMsgLock = false;
             });
+            scheduled = true;
+        } finally {
+            if (!scheduled) ONLINE_MSG_LOCK.set(false);
         }
     }
 

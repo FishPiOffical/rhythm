@@ -29,9 +29,9 @@ import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3ChatPublicationService;
 import org.b3log.symphony.service.ApiV3ChatQueryService;
 import org.b3log.symphony.service.ApiV3RankingQueryService;
-import org.b3log.symphony.service.ApiV3ChatOnlineQueryService;
 import org.b3log.symphony.service.ChatGameStatusService;
 import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
+import org.b3log.symphony.service.ChatOnlineQueryService;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.ApiV3ChatTopicService;
 import org.b3log.symphony.service.ApiV3ChatBarrageService;
@@ -50,7 +50,7 @@ public class ApiV3ChatProcessor {
     @Inject
     private ApiV3RankingQueryService rankings;
     @Inject
-    private ApiV3ChatOnlineQueryService onlineQuery;
+    private ChatOnlineQueryService onlineQuery;
     @Inject
     private ChatGameStatusService gameStatus;
     @Inject

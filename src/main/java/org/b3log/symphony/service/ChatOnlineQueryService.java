@@ -19,10 +19,12 @@
 package org.b3log.symphony.service;
 
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
 import org.b3log.symphony.repository.UserRepository;
@@ -35,16 +37,22 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 /**
  * 合并当前本地连接与配置节点的最近采样，按当前账号资料投影名单。
  */
 @Service
-public class ApiV3ChatOnlineQueryService {
+public class ChatOnlineQueryService {
+    private static final Pattern CLASSIC_USER_NAME = Pattern.compile("[A-Za-z0-9_-]+");
+
     @Inject
     private UserRepository users;
     @Inject
     private ApiV3RealtimeService realtime;
+    @Inject
+    private AvatarQueryService avatars;
 
     protected ChatOnlineSnapshot.Sample remote() {
         return ChatOnlineSnapshot.current();
@@ -75,20 +83,46 @@ public class ApiV3ChatOnlineQueryService {
         }
     }
 
+    private List<JSONObject> visibleMembers(final ChatOnlineSnapshot.Sample sample, final Predicate<JSONObject> visibility)
+            throws RepositoryException {
+        final Map<String, JSONObject> current = new HashMap<>();
+        // 将节点用户名和本机连接 ID 解析成当前账号记录，按账号 ID 合并去重。
+        load("userName", sample.names(), current);
+        load("oId", localIds(), current);
+        return current.values().stream()
+                .filter(user -> user.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID)
+                .filter(visibility)
+                .sorted(Comparator.comparing((JSONObject user) -> user.getString(User.USER_NAME)).thenComparing(user -> user.getString(Keys.OBJECT_ID)))
+                .toList();
+    }
+
+    public JSONObject classicBroadcast(final String topic) throws RepositoryException {
+        final var members = new JSONArray();
+        final var visible = visibleMembers(remote(), user ->
+                user.optInt(UserExt.USER_ONLINE_STATUS, -1) == UserExt.USER_XXX_STATUS_C_ENABLED);
+        for (final var user : visible) {
+            final String name = user.getString(User.USER_NAME);
+            if (!CLASSIC_USER_NAME.matcher(name).matches()) {
+                throw new IllegalStateException("Invalid classic online username for account " + user.getString(Keys.OBJECT_ID));
+            }
+            final var member = new JSONObject()
+                    .put(User.USER_NAME, name)
+                    .put(UserExt.USER_AVATAR_URL, ApiV3CommunityDto.safeUrl(user.optString(UserExt.USER_AVATAR_URL)))
+                    .put("homePage", Latkes.getStaticServePath() + "/member/" + name);
+            avatars.fillUserAvatarURL(member);
+            members.put(member);
+        }
+        return new JSONObject().put(Common.TYPE, "online").put(Common.ONLINE_CHAT_CNT, members.length())
+                .put("users", members).put("discussing", topic);
+    }
+
     public JSONObject list(final JSONObject viewer, final int page, final int size) throws RepositoryException {
         if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50) {
             throw new ApiV3Exception(422, "invalid_parameter", "请求参数不合法");
         }
         final var sample = remote();
-        final Map<String, JSONObject> current = new HashMap<>();
-        // 将节点用户名和本机连接 ID 解析成当前账号记录，按账号 ID 合并去重。
-        load("userName", sample.names(), current);
-        load("oId", localIds(), current);
-        final var visible = current.values().stream()
-                .filter(user -> user.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID)
-                .filter(user -> ApiV3ContentUtil.canViewUserList(user, viewer, UserExt.USER_ONLINE_STATUS))
-                .sorted(Comparator.comparing((JSONObject user) -> user.getString(User.USER_NAME)).thenComparing(user -> user.getString(Keys.OBJECT_ID)))
-                .toList();
+        final var visible = visibleMembers(sample, user ->
+                ApiV3ContentUtil.canViewUserList(user, viewer, UserExt.USER_ONLINE_STATUS));
         final int start = Math.min((page - 1) * size, visible.size());
         final var list = new JSONArray();
         for (final var user : visible.subList(start, Math.min(start + size, visible.size()))) {

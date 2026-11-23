@@ -843,7 +843,7 @@ public class ChatroomProcessor {
      * @param context
      */
     public void getChatRoomUsers(final RequestContext context) {
-        final JSONObject online = chatroomChannel.getOnline();
+        final JSONObject online = ChatroomChannel.getLegacyOnlineCandidates();
         JSONObject ret = new JSONObject();
         ret.put(Keys.CODE, StatusCodes.SUCC);
         ret.put(Keys.MSG, "");

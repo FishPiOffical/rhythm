@@ -9370,8 +9370,8 @@ curl --location --request GET 'https://fishpi.cn/notifications/all-read?apiKey=Y
 | ------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | type                      | all             | 消息类型online(在线) / discussChanged(话题变更) / revoke(撤回) / msg(聊天) / redPacketStatus(红包领取) | msg                                               |
 | 在线消息                  |                 |                                                                                                        |                                                   |
-| onlineChatCnt             | online          | 在线人数                                                                                               | 35                                                |
-| users                     | online          | 在线用户列表                                                                                           | `[ ... ]`                                         |
+| onlineChatCnt             | online          | 本次广播的公开在线账号数，按账号去重，包含有效的 V3 聊天订阅                                              | 35                                                |
+| users                     | online          | 本次广播的公开在线用户列表；不含隐藏在线状态或无效的账号                                                   | `[ ... ]`                                         |
 | - homePage                | online          | 用户首页                                                                                               | https://fishpi.cn/member/...                      |
 | - userAvatarURL           | online          | 用户头像                                                                                               | https://...                                       |
 | - userName                | online          | 用户名                                                                                                 | adlered                                           |
