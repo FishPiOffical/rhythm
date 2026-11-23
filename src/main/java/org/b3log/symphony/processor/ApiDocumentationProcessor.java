@@ -22,6 +22,7 @@ import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 
 import java.io.IOException;
@@ -33,8 +34,9 @@ public class ApiDocumentationProcessor {
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var page = beans.getReference(ApiDocumentationProcessor.class);
+        final var anonymous = beans.getReference(AnonymousViewCheckMidware.class);
         final var login = beans.getReference(LoginCheckMidware.class);
-        Dispatcher.get("/api-docs", page::index, login::handle);
+        Dispatcher.get("/api-docs", page::index, anonymous::handle, login::handle);
         Dispatcher.get("/api-docs/bootstrap", page::bootstrap, login::handle);
         Dispatcher.get("/api-docs/v2", page::v2, login::handle);
         Dispatcher.get("/api-docs/v3", page::v3, login::handle);

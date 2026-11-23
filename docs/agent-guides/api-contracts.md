@@ -25,7 +25,7 @@
 
 ## Scalar 开发文档
 
-- `ApiDocumentationProcessor` 提供 `/api-docs` 页面、两版 OpenAPI 及完整中文说明，入口统一使用 `LoginCheckMidware`。旧版及兼容接口使用 v2，当前版本化接口使用 v3。旧版文档入口为 `/api-docs?version=v2`、`/api-docs/v2` 和 `/api-docs/v2-reference`，生成文件为 `v2.json`、`v2.md`；原 v1 文档入口已移除。接口路径沿用旧版。
+- `ApiDocumentationProcessor` 提供 `/api-docs` 页面、两版 OpenAPI 及完整中文说明。页面入口先执行匿名访问校验，再执行 `LoginCheckMidware`；bootstrap、OpenAPI 和中文说明资源继续仅执行登录校验。旧版及兼容接口使用 v2，当前版本化接口使用 v3。旧版文档入口为 `/api-docs?version=v2`、`/api-docs/v2` 和 `/api-docs/v2-reference`，生成文件为 `v2.json`、`v2.md`；原 v1 文档入口已移除。接口路径沿用旧版。
 - Maven 在 `generate-resources` 阶段运行 `tools/generate-api-docs.py`，将 `API.md` 的版本分区和路由清单生成到构建输出。构建机需 Python 3.9 或更高版本，若 Python 命令名不同，可传 `-Dapi-docs.python=python`。IDEA 直接启动时先执行该阶段再重启。生成文件不提交。
 - Scalar 渲染脚本和字体由项目 CDN 提供，页面先通过站内 bootstrap 流式下载、显示进度并校验 SRI，再执行脚本；失败时显示重试入口。只改 `API.md` 不需要更新 CDN，文档数据继续由 Rhythm 按登录状态提供。更新 Scalar 脚本或字体时，使用新 URL 避免旧缓存，同时更新完整性哈希、CSP 和页面加载器，并验证 CDN 的跨域响应。
 - 修改接口时同步维护 `API.md` 的中文参数、响应和事件说明。v3 的路由缺少说明时生成会失败。v2 按文档里明确列出的旧版和兼容接口生成。仍在 Markdown 正文中定义的字段和实时事件可点开完整说明查看。
