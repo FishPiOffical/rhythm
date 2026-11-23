@@ -3915,7 +3915,7 @@ curl 'https://fishpi.cn/api/v3/me/settings/privacy' \
 | - followingTags | 关注标签公开 | true |
 | - followingArticles | 文章收藏公开 | true |
 | - watchingArticles | 文章订阅公开 | true |
-| - online | 在线状态公开 | true |
+| - online | 是否公开资料在线状态，不影响聊天室在线名单 | true |
 | - userAgent | 设备信息公开 | true |
 | - joinPointRank | 参加积分榜 | true |
 | - joinUsedPointRank | 参加消费积分榜 | true |
@@ -3941,7 +3941,7 @@ curl 'https://fishpi.cn/api/v3/me/settings/privacy' \
 | followingTags | 关注标签公开 | true |
 | followingArticles | 文章收藏公开 | true |
 | watchingArticles | 文章订阅公开 | true |
-| online | 在线状态公开 | true |
+| online | 是否公开资料在线状态，不影响聊天室在线名单 | true |
 | userAgent | 设备信息公开 | true |
 | joinPointRank | 参加积分榜 | true |
 | joinUsedPointRank | 参加消费积分榜 | true |
@@ -4979,7 +4979,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/barrager/price' \
 
 `GET /api/v3/chat/online-users`
 
-查询当前可见的聊天室在线用户，需要 content.read。按用户名升序排列，同一用户的多个连接只返回一次。
+查询当前统计范围内的聊天室在线用户，需要 content.read。按用户名升序排列，同一用户的多个连接只返回一次。
 
 请求：
 
@@ -5015,9 +5015,9 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/online-users?p=1&size=20' \
 | - nodesSampledAt | 最近一次节点采样时间，尚未采样为0 | 1792304100000 |
 | - nodesComplete | 该次采样是否包含全部配置节点 | true |
 
-> 结果合并当前服务实例的聊天室连接及最近一次节点名单；v3 连接只有完成聊天室订阅认证才计入，通知或文章订阅不计入。其他服务实例独立建立的 v3 连接不在此统计范围内。人数为该范围内可见用户数，不代表全站实时总人数。
+> 结果合并当前服务实例的聊天室连接及最近一次节点名单；v3 连接只有完成聊天室订阅认证才计入，通知或文章订阅不计入。其他服务实例独立建立的 v3 连接不在此统计范围内。人数为该范围内有效在线账号数，不代表全站实时总人数。
 >
-> 名单遵循在线状态公开设置；本人和管理员可查看对应用户的在线状态，停用或无效用户不展示。节点名单是采样值，nodesComplete 只描述该次采样是否完整，不保证当前仍在线；请结合 nodesSampledAt 判断时间，连接变化时分页结果可能改变。
+> 名单不受资料在线状态设置或查看者角色影响，停用或无效用户不展示。节点名单是采样值，nodesComplete 只描述该次采样是否完整，不保证当前仍在线；请结合 nodesSampledAt 判断时间，连接变化时分页结果可能改变。
 
 ### 查询思过崖
 
@@ -5333,7 +5333,7 @@ JS
 | `chat.red_packet.claimed` | `id`、`createdAt`、`actor`、`sender`、`packetId`、`got`、`count` | V3 结算服务首次成功提交一笔领取，包括经过该服务的经典站领取 |
 | `chat.presence.changed` | `id`、`createdAt`、`actor`、`kind`（`join` 或 `leave`）、`text` | 配置了对应提示或装备有效座驾的用户在本实例建立第一个 V3 聊天订阅，或关闭最后一个；合并短暂重连 |
 
-进出场文案复用经典站管理员配置，进场时有效座驾优先于文案，并附带 `mount`（`id`、`version`）和 `avatarURL`。缺少对应方向的文案且没有适用座驾时不发事件。`text` 为完成变量替换后的纯文本，文案最多 512 个 Unicode 字符。进出提示和座驾不受“公开在线状态”设置影响，在线名单仍遵守该设置。
+进出场文案复用经典站管理员配置，进场时有效座驾优先于文案，并附带 `mount`（`id`、`version`）和 `avatarURL`。缺少对应方向的文案且没有适用座驾时不发事件。`text` 为完成变量替换后的纯文本，文案最多 512 个 Unicode 字符。进出提示、座驾和聊天室在线名单均不受资料在线状态设置影响。
 
 `actor` 和 `sender` 只包含 `id`、`userName`、`userNickname`。红包事件不包含积分、出拳结果或指定领取名单。`createdAt` 为毫秒时间戳，`id` 用于客户端去重。事件不写入聊天历史，断线后不补播。进出场状态按实例计数，经典站连接及其他节点不纳入。
 
@@ -9370,8 +9370,8 @@ curl --location --request GET 'https://fishpi.cn/notifications/all-read?apiKey=Y
 | ------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | type                      | all             | 消息类型online(在线) / discussChanged(话题变更) / revoke(撤回) / msg(聊天) / redPacketStatus(红包领取) | msg                                               |
 | 在线消息                  |                 |                                                                                                        |                                                   |
-| onlineChatCnt             | online          | 本次广播的公开在线账号数，按账号去重，包含有效的 V3 聊天订阅                                              | 35                                                |
-| users                     | online          | 本次广播的公开在线用户列表；不含隐藏在线状态或无效的账号                                                   | `[ ... ]`                                         |
+| onlineChatCnt             | online          | 本次广播的有效在线账号数，按账号去重，包含有效的 V3 聊天订阅                                                 | 35                                                |
+| users                     | online          | 本次广播的在线用户列表，不受资料在线状态设置影响                                                           | `[ ... ]`                                         |
 | - homePage                | online          | 用户首页                                                                                               | https://fishpi.cn/member/...                      |
 | - userAvatarURL           | online          | 用户头像                                                                                               | https://...                                       |
 | - userName                | online          | 用户名                                                                                                 | adlered                                           |
@@ -10834,7 +10834,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | userPointStatus               | 是否公开积分列表， 0 = 公开，1 = 不公开   | 0             |
 | userFollowerStatus            | 是否公开关注者列表， 0 = 公开，1 = 不公开 | 0             |
 | userCommentStatus             | 是否公开回帖列表， 0 = 公开，1 = 不公开   | 0             |
-| userOnlineStatus              | 是否公开在线状态， 0 = 公开，1 = 不公开   | 0             |
+| userOnlineStatus              | 是否公开资料在线状态（不影响聊天室名单），0 = 公开，1 = 不公开 | 0             |
 | userUAStatus                  | 是否公开 UA 信息， 0 = 公开，1 = 不公开   | 0             |
 | userWatchingArticleStatus     | 是否公开关注帖子列表                      | 0             |
 | userFollowingTagStatus        | 是否公开关注标签列表                      | 0             |

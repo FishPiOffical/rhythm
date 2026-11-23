@@ -117,7 +117,7 @@ public class ApiV3ChatProcessor {
     }
 
     public void online(final RequestContext c) {
-        ApiV3Requests.read(c, () -> onlineQuery.list(ApiV3Requests.viewer(c), ApiV3Requests.page(c), ApiV3Requests.size(c)));
+        ApiV3Requests.read(c, () -> onlineQuery.list(ApiV3Requests.page(c), ApiV3Requests.size(c)));
     }
 
     public void gameStatus(final RequestContext c) {

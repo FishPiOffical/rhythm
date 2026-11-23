@@ -29,7 +29,6 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3CommunityDto;
-import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ChatOnlineSnapshot;
@@ -37,7 +36,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
@@ -70,7 +68,7 @@ public class ChatOnlineQueryService {
     protected List<JSONObject> lookup(final String column, final List<String> values) throws RepositoryException {
         if (!Set.of("oId", "userName").contains(column))
             throw new IllegalArgumentException("invalid membership column");
-        return users.select("SELECT oId,userName,userAvatarURL,userOnlineStatus,userStatus FROM `" + users.getName()
+        return users.select("SELECT oId,userName,userAvatarURL,userStatus FROM `" + users.getName()
                 + "` WHERE " + column + " IN (" + String.join(",", Collections.nCopies(values.size(), "?")) + ")", values.toArray());
     }
 
@@ -83,24 +81,20 @@ public class ChatOnlineQueryService {
         }
     }
 
-    private List<JSONObject> visibleMembers(final ChatOnlineSnapshot.Sample sample, final Predicate<JSONObject> visibility)
-            throws RepositoryException {
+    private List<JSONObject> onlineMembers(final ChatOnlineSnapshot.Sample sample) throws RepositoryException {
         final Map<String, JSONObject> current = new HashMap<>();
         // 将节点用户名和本机连接 ID 解析成当前账号记录，按账号 ID 合并去重。
         load("userName", sample.names(), current);
         load("oId", localIds(), current);
         return current.values().stream()
                 .filter(user -> user.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID)
-                .filter(visibility)
                 .sorted(Comparator.comparing((JSONObject user) -> user.getString(User.USER_NAME)).thenComparing(user -> user.getString(Keys.OBJECT_ID)))
                 .toList();
     }
 
     public JSONObject classicBroadcast(final String topic) throws RepositoryException {
         final var members = new JSONArray();
-        final var visible = visibleMembers(remote(), user ->
-                user.optInt(UserExt.USER_ONLINE_STATUS, -1) == UserExt.USER_XXX_STATUS_C_ENABLED);
-        for (final var user : visible) {
+        for (final var user : onlineMembers(remote())) {
             final String name = user.getString(User.USER_NAME);
             if (!CLASSIC_USER_NAME.matcher(name).matches()) {
                 throw new IllegalStateException("Invalid classic online username for account " + user.getString(Keys.OBJECT_ID));
@@ -116,20 +110,19 @@ public class ChatOnlineQueryService {
                 .put("users", members).put("discussing", topic);
     }
 
-    public JSONObject list(final JSONObject viewer, final int page, final int size) throws RepositoryException {
+    public JSONObject list(final int page, final int size) throws RepositoryException {
         if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50) {
             throw new ApiV3Exception(422, "invalid_parameter", "请求参数不合法");
         }
         final var sample = remote();
-        final var visible = visibleMembers(sample, user ->
-                ApiV3ContentUtil.canViewUserList(user, viewer, UserExt.USER_ONLINE_STATUS));
-        final int start = Math.min((page - 1) * size, visible.size());
+        final var members = onlineMembers(sample);
+        final int start = Math.min((page - 1) * size, members.size());
         final var list = new JSONArray();
-        for (final var user : visible.subList(start, Math.min(start + size, visible.size()))) {
+        for (final var user : members.subList(start, Math.min(start + size, members.size()))) {
             list.put(new JSONObject().put("id", user.getString(Keys.OBJECT_ID)).put("userName", user.getString(User.USER_NAME))
                     .put("userAvatarURL", ApiV3CommunityDto.safeUrl(user.optString(UserExt.USER_AVATAR_URL))));
         }
-        return ApiV3Requests.pagination(list, page, size, visible.size())
-                .put("hasMore", start + list.length() < visible.size()).put("nodesSampledAt", sample.sampledAt()).put("nodesComplete", sample.complete());
+        return ApiV3Requests.pagination(list, page, size, members.size())
+                .put("hasMore", start + list.length() < members.size()).put("nodesSampledAt", sample.sampledAt()).put("nodesComplete", sample.complete());
     }
 }

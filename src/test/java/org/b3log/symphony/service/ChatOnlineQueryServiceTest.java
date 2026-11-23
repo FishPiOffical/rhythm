@@ -22,7 +22,6 @@ import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
-import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.ChatOnlineSnapshot;
 import org.json.JSONObject;
@@ -68,36 +67,38 @@ public final class ChatOnlineQueryServiceTest {
     }
 
     @Test
-    public void classicAndV3ShareMembershipWithoutSharingViewerExceptions() throws Exception {
+    public void classicAndV3IncludeMembersWithHiddenProfileStatus() throws Exception {
         final var query = fixture();
         final var frame = query.classicBroadcast("当前话题");
         Assert.assertEquals(frame.keySet(), Set.of("type", "onlineChatCnt", "users", "discussing"));
         Assert.assertEquals(frame.getString("type"), "online");
         Assert.assertEquals(frame.getString("discussing"), "当前话题");
         final var members = frame.getJSONArray("users");
-        Assert.assertEquals(frame.getInt("onlineChatCnt"), 3);
-        Assert.assertEquals(members.length(), 3);
+        Assert.assertEquals(frame.getInt("onlineChatCnt"), 4);
+        Assert.assertEquals(members.length(), 4);
         Assert.assertEquals(members.getJSONObject(0).getString("userName"), "classic-local");
         Assert.assertEquals(members.getJSONObject(1).getString("userName"), "classic-node");
-        final var v3Only = members.getJSONObject(2);
+        Assert.assertEquals(members.getJSONObject(2).getString("userName"), "hidden");
+        final var v3Only = members.getJSONObject(3);
         Assert.assertEquals(v3Only.getString("userName"), "v3-only");
         Assert.assertTrue(v3Only.getString("homePage").endsWith("/member/v3-only"));
         Assert.assertEquals(v3Only.keySet(), Set.of("userName", "homePage", "userAvatarURL", "userAvatarURL20",
                 "userAvatarURL48", "userAvatarURL210"));
 
-        final var publicPage = query.list(new JSONObject().put(Keys.OBJECT_ID, "9"), 1, 2);
-        Assert.assertEquals(publicPage.getJSONObject("pagination").getInt("total"), 3);
-        Assert.assertEquals(publicPage.getJSONArray("list").length(), 2);
-        Assert.assertTrue(publicPage.getBoolean("hasMore"));
-        Assert.assertEquals(publicPage.getLong("nodesSampledAt"), 42);
-        Assert.assertFalse(publicPage.getBoolean("nodesComplete"));
-        Assert.assertEquals(query.list(new JSONObject().put(Keys.OBJECT_ID, "4"), 1, 20)
-                .getJSONObject("pagination").getInt("total"), 4);
-        Assert.assertEquals(query.list(new JSONObject().put(User.USER_ROLE, Role.ROLE_ID_C_ADMIN), 1, 20)
-                .getJSONObject("pagination").getInt("total"), 4);
+        final var firstPage = query.list(1, 2);
+        Assert.assertEquals(firstPage.getJSONObject("pagination").getInt("total"), frame.getInt("onlineChatCnt"));
+        Assert.assertEquals(firstPage.getJSONArray("list").length(), 2);
+        Assert.assertTrue(firstPage.getBoolean("hasMore"));
+        Assert.assertEquals(firstPage.getLong("nodesSampledAt"), 42);
+        Assert.assertFalse(firstPage.getBoolean("nodesComplete"));
+        final var secondPage = query.list(2, 2);
+        final var hiddenMember = secondPage.getJSONArray("list").getJSONObject(0);
+        Assert.assertEquals(hiddenMember.getString("userName"), "hidden");
+        Assert.assertEquals(hiddenMember.keySet(), Set.of("id", "userName", "userAvatarURL"));
+        Assert.assertFalse(secondPage.getBoolean("hasMore"));
 
         query.ids = Set.of("1", "2");
-        Assert.assertEquals(query.classicBroadcast("当前话题").getInt("onlineChatCnt"), 2);
+        Assert.assertEquals(query.classicBroadcast("当前话题").getInt("onlineChatCnt"), 3);
     }
 
     @Test
@@ -114,15 +115,15 @@ public final class ChatOnlineQueryServiceTest {
     }
 
     @Test
-    public void classicBroadcastRequiresExplicitPublicVisibilityAndSanitizesAvatarUrls() throws Exception {
+    public void classicBroadcastIgnoresMissingProfileStatusAndSanitizesAvatarUrls() throws Exception {
         final var query = fixture();
         query.records.get(0).remove(UserExt.USER_ONLINE_STATUS);
         query.records.get(2).put(UserExt.USER_AVATAR_URL, "data:text/plain,invalid-avatar");
         final var frame = query.classicBroadcast("当前话题");
         final var members = frame.getJSONArray("users");
-        Assert.assertEquals(frame.getInt("onlineChatCnt"), 2);
-        Assert.assertEquals(members.getJSONObject(0).getString("userName"), "classic-node");
-        final var v3Only = members.getJSONObject(1);
+        Assert.assertEquals(frame.getInt("onlineChatCnt"), 4);
+        Assert.assertEquals(members.getJSONObject(0).getString("userName"), "classic-local");
+        final var v3Only = members.getJSONObject(3);
         Assert.assertEquals(v3Only.getString("userName"), "v3-only");
         Assert.assertEquals(v3Only.getString(UserExt.USER_AVATAR_URL), "");
         Assert.assertFalse(v3Only.getString("userAvatarURL48").startsWith("data:"));
