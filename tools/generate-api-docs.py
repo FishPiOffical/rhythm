@@ -1,4 +1,4 @@
-"""从 API.md 与 Java 路由生成 Rhythm 的 v1、v3 OpenAPI。"""
+"""从 API.md 与 Java 路由生成 Rhythm 的 v2、v3 OpenAPI。"""
 
 import argparse
 import json
@@ -217,7 +217,7 @@ def references(lines, version):
             fence = not fence
         elif not fence:
             adjusted = line
-            if version == 'v1':
+            if version == 'v2':
                 adjusted = re.sub(r'(?<=`)wss?://[^/\s`]+(/[^\s`]+)', r'WSS \1', adjusted)
             adjusted = re.sub(r'\|\s*(' + METHOD + r')\s*\|\s*`', r' \1 ', adjusted)
             pattern = REFERENCE if version == 'v3' else LEGACY_REFERENCE
@@ -267,7 +267,7 @@ def compile_spec(rhythm, version):
                 excerpt = [line]
             indexed[key].append((group, title, line, excerpt, len(refs), lines))
 
-    if version == 'v1':
+    if version == 'v2':
         # 旧版包含非 /api 路径和历史协议，以文档明确声明的接口为边界。
         inventory = {}
         for group, title, lines in sections(markdown):
@@ -330,7 +330,7 @@ def compile_spec(rhythm, version):
                 if hint:
                     s.setdefault('type', hint)
                 if mode == 'response':
-                    put(response, fp if version == 'v1' or fp[0] in ('data', 'code', 'msg') else ('data', *fp), s)
+                    put(response, fp if version == 'v2' or fp[0] in ('data', 'code', 'msg') else ('data', *fp), s)
                 elif field in pd or '路径参数' in desc:
                     if field in pd:
                         params['path', field] = make_param(field, 'path', desc, 'string')
@@ -405,14 +405,14 @@ def compile_spec(rhythm, version):
         'info': {'title': f'摸鱼派 API {version} 开发文档', 'version': version,
                  'description': (
                      '旧版及兼容接口。请根据各接口说明传入 apiKey、网页登录凭据或应用授权。'
-                     if version == 'v1' else '当前版本化接口。请按各接口的要求使用 Bearer 令牌与权限范围。'
+                     if version == 'v2' else '当前版本化接口。请按各接口的要求使用 Bearer 令牌与权限范围。'
                  ) + f'\n\n[完整中文说明与示例](./api-docs/{version}-reference)'},
         'servers': [{'url': 'https://fishpi.cn', 'description': '摸鱼派正式环境'}],
         'tags': [{'name': group, 'description': description} for group, description in groups.items()],
         'paths': paths,
         'components': {'securitySchemes': {'Bearer': {'type': 'http', 'scheme': 'bearer', 'description': '在 Authorization 请求头使用 Bearer 访问令牌。'}}},
     }
-    if version == 'v1':
+    if version == 'v2':
         del spec['components']
     return spec, markdown, count, stats
 
@@ -426,7 +426,7 @@ def main():
     parser.add_argument('output', type=Path, help='生成资源所在的目录')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    for version in ('v1', 'v3'):
+    for version in ('v2', 'v3'):
         spec, markdown, count, stats = compile_spec(args.rhythm, version)
         (args.output / f'{version}.json').write_text(
             json.dumps(spec, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

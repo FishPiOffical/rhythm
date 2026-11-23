@@ -36,9 +36,9 @@ public class ApiDocumentationProcessor {
         final var login = beans.getReference(LoginCheckMidware.class);
         Dispatcher.get("/api-docs", page::index, login::handle);
         Dispatcher.get("/api-docs/bootstrap", page::bootstrap, login::handle);
-        Dispatcher.get("/api-docs/v1", page::v1, login::handle);
+        Dispatcher.get("/api-docs/v2", page::v2, login::handle);
         Dispatcher.get("/api-docs/v3", page::v3, login::handle);
-        Dispatcher.get("/api-docs/v1-reference", page::v1Reference, login::handle);
+        Dispatcher.get("/api-docs/v2-reference", page::v2Reference, login::handle);
         Dispatcher.get("/api-docs/v3-reference", page::v3Reference, login::handle);
     }
 
@@ -50,16 +50,16 @@ public class ApiDocumentationProcessor {
         send(context, "reference.js", "text/javascript");
     }
 
-    public void v1(final RequestContext context) {
-        send(context, "v1.json", "application/json");
+    public void v2(final RequestContext context) {
+        send(context, "v2.json", "application/json");
     }
 
     public void v3(final RequestContext context) {
         send(context, "v3.json", "application/json");
     }
 
-    public void v1Reference(final RequestContext context) {
-        send(context, "v1.md", "text/plain");
+    public void v2Reference(final RequestContext context) {
+        send(context, "v2.md", "text/plain");
     }
 
     public void v3Reference(final RequestContext context) {

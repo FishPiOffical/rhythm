@@ -1,4 +1,4 @@
-const version = new URLSearchParams(window.location.search).get('version') === 'v1' ? 'v1' : 'v3'
+const version = new URLSearchParams(window.location.search).get('version') === 'v2' ? 'v2' : 'v3'
 const scalarUrl = 'https://file.fishpi.cn/ada/js/scalar-v2.js'
 const scalarIntegrity = 'sha384-oalkqIG8teEqGhwdk1ccsl7WVVQ8kr9YXtfIBN7DBLU9wRBR2Nt0T4N2XWO1kMmK'
 const loading = document.querySelector('#api-docs-loading')
