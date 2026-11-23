@@ -6,7 +6,7 @@ const loadingTitle = document.querySelector('#api-docs-loading-title')
 const loadingDetail = document.querySelector('#api-docs-loading-detail')
 const loadingProgress = document.querySelector('#api-docs-loading-progress')
 const loadingIndicator = document.querySelector('#api-docs-loading-indicator')
-const reference = document.querySelector('#api-reference')
+const reference = document.querySelector('#api-reference-mount')
 const fallback = document.querySelector('#reference-fallback')
 
 for (const link of document.querySelectorAll('[data-version]')) {
@@ -82,6 +82,7 @@ async function loadScalar() {
       }
       try {
         const base = new URL('./api-docs/', window.location.href)
+        reference.id = 'api-reference'
         window.Scalar.createApiReference('#api-reference', {
           url: new URL(version, base).href,
           persistAuth: false,
