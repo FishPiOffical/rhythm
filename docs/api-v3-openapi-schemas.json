@@ -695,6 +695,40 @@
         }
       }
     },
+    "AdminFishGameInput": {
+      "type": "object",
+      "properties": {
+        "fishGameName": {
+          "type": "string"
+        },
+        "fishGameUrl": {
+          "type": "string"
+        },
+        "fishGameTag": {
+          "type": "string"
+        },
+        "fishGameDescription": {
+          "type": "string"
+        },
+        "fishGameIcon": {
+          "type": "string",
+          "description": "当前请求入口允许的图标字段名，后续鱼游表单校验读取 fishGameIconUrl。"
+        },
+        "fishGameStatus": {
+          "type": "integer"
+        },
+        "fishGameOrder": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fishGameName",
+        "fishGameUrl",
+        "fishGameDescription"
+      ],
+      "description": "当前版本的图标字段存在校验冲突，通过本接口提交新增或编辑可能失败。"
+    },
     "AdminHeldMedal": {
       "type": "object",
       "properties": {
@@ -758,6 +792,29 @@
           "type": "string"
         }
       }
+    },
+    "AdminMedalDefinitionInput": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "attr": {
+          "type": "string",
+          "description": "JSON 文本，以字符串发送。"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ]
     },
     "AdminMilestone": {
       "type": "object",
@@ -857,6 +914,28 @@
           "type": "string"
         }
       }
+    },
+    "AdminPointOperationInput": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "point": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "point"
+      ]
     },
     "AdminSecurityEvent": {
       "type": "object",
@@ -3890,7 +3969,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/admin/domains/{domainId}": {
       "data": {
@@ -3903,7 +3983,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/admin/domains/{domainId}/tags/{tagId}": {
       "data": {
@@ -3919,7 +4000,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/admin/medals/{medalId}": {
       "data": {
@@ -3932,7 +4014,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/admin/milestones/{milestoneId}": {
       "data": {
@@ -3945,7 +4028,11 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/admin/oauth/clients/{clientId}": {
+      "idempotencyKey": true
     },
     "DELETE /api/v3/admin/roles/{roleId}": {
       "data": {
@@ -3958,7 +4045,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/admin/vip/levels/{levelId}": {
       "data": {
@@ -3971,7 +4059,11 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/articles/{articleId}": {
+      "idempotencyKey": true
     },
     "DELETE /api/v3/articles/{articleId}/vote": {
       "fields": {
@@ -3980,7 +4072,8 @@
             "type": "null"
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/articles/{targetId}/reactions": {
       "fields": {
@@ -3992,7 +4085,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/breezemoons/{breezemoonId}": {
       "fields": {
@@ -4001,7 +4095,8 @@
             "$ref": "#/components/schemas/EmptyJsonObject"
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/chat/messages/{targetId}/reactions": {
       "fields": {
@@ -4013,7 +4108,14 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/columns/{columnId}": {
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/comments/{commentId}": {
+      "idempotencyKey": true
     },
     "DELETE /api/v3/comments/{commentId}/vote": {
       "fields": {
@@ -4022,7 +4124,8 @@
             "type": "null"
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "DELETE /api/v3/comments/{targetId}/reactions": {
       "fields": {
@@ -4034,7 +4137,14 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/fish-games/{gameId}/vote": {
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/me/collections/{targetId}": {
+      "idempotencyKey": true
     },
     "DELETE /api/v3/me/drafts/{draftId}": {
       "fields": {
@@ -4043,7 +4153,20 @@
             "$ref": "#/components/schemas/EmptyJsonObject"
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/me/follows/tags/{targetId}": {
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/me/follows/users/{targetId}": {
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/me/notifications/{notificationId}": {
+      "idempotencyKey": true
+    },
+    "DELETE /api/v3/me/subscriptions/{targetId}": {
+      "idempotencyKey": true
     },
     "DELETE /api/v3/repeater/items/{itemId}/like": {
       "data": {
@@ -4064,7 +4187,8 @@
           "liked",
           "likeCount"
         ]
-      }
+      },
+      "idempotencyKey": true
     },
     "GET /api/v3/admin/ads": {
       "data": {
@@ -8431,7 +8555,37 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "item": {
+            "type": "string",
+            "minLength": 1
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -100000,
+            "maximum": 100000
+          },
+          "maxTake": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "item",
+          "number"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/coupons": {
       "data": {
@@ -8441,7 +8595,39 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "couponCode": {
+            "type": "string"
+          },
+          "couponType": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "discount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "times": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 1000000
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "couponType",
+          "discount",
+          "times"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/domains": {
       "data": {
@@ -8451,7 +8637,51 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "domainTitle": {
+            "type": "string"
+          },
+          "domainURI": {
+            "type": "string"
+          },
+          "domainDescription": {
+            "type": "string"
+          },
+          "domainIconPath": {
+            "type": "string"
+          },
+          "domainCSS": {
+            "type": "string"
+          },
+          "domainType": {
+            "type": "string"
+          },
+          "domainSort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "domainStatus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "domainNav": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "domainTitle",
+          "domainURI"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/domains/{domainId}/tags": {
       "data": {
@@ -8467,17 +8697,71 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "tagTitle": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "tagTitle"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/fish-games": {
       "data": {
         "$ref": "#/components/schemas/AdminFishGame"
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminFishGameInput"
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/fish-games/{gameId}/review": {
       "data": {
         "$ref": "#/components/schemas/AdminFishGame"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "fishGameName": {
+            "type": "string"
+          },
+          "fishGameUrl": {
+            "type": "string"
+          },
+          "fishGameTag": {
+            "type": "string"
+          },
+          "fishGameDescription": {
+            "type": "string"
+          },
+          "fishGameIcon": {
+            "type": "string"
+          },
+          "fishGameRejectReason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/invitecodes/generate": {
       "data": {
@@ -8493,12 +8777,57 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "memo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "quantity"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/ips": {
       "data": {
         "$ref": "#/components/schemas/AdminTaskAcceptance"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "ban",
+              "unban"
+            ]
+          },
+          "ipList": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "maxItems": 500
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "ipList"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/medals": {
       "data": {
@@ -8508,7 +8837,11 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminMedalDefinitionInput"
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/medals/batch-grant": {
       "data": {
@@ -8547,7 +8880,38 @@
             }
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "medalId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expireTime": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "targets",
+          "medalId"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/medals/grant": {
       "data": {
@@ -8572,7 +8936,34 @@
             "type": "boolean"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "medalId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expireTime": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "medalId"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/medals/hold-check": {
       "data": {
@@ -8602,6 +8993,28 @@
             }
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "medalId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "medalId",
+          "targets"
+        ]
       }
     },
     "POST /api/v3/admin/medals/revoke": {
@@ -8621,7 +9034,26 @@
             "const": true
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "medalId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "medalId"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/medals/sponsor/reorder": {
       "data": {
@@ -8631,7 +9063,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/oauth/clients": {
       "fields": {
@@ -8651,7 +9084,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/points/charge": {
       "data": {
@@ -8676,7 +9110,37 @@
             "type": "boolean"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "sponsor",
+              "direct"
+            ]
+          },
+          "memo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "amount"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/points/deduct": {
       "data": {
@@ -8701,7 +9165,11 @@
             "type": "boolean"
           }
         }
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminPointOperationInput"
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/points/exchange": {
       "data": {
@@ -8720,7 +9188,11 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminPointOperationInput"
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/points/init": {
       "data": {
@@ -8745,7 +9217,11 @@
             "type": "boolean"
           }
         }
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminPointOperationInput"
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/professions/automation/copy": {
       "data": {
@@ -8755,6 +9231,18 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "revisionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/automation/draft": {
@@ -8765,6 +9253,27 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionId": {
+            "type": "string"
+          },
+          "automationCode": {
+            "type": "string"
+          },
+          "configurationJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionId",
+          "automationCode",
+          "configurationJson"
+        ]
       }
     },
     "POST /api/v3/admin/professions/automation/publish": {
@@ -8775,6 +9284,18 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "revisionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/automation/retire": {
@@ -8785,6 +9306,18 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "automationId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "automationId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/automation/rollback": {
@@ -8795,6 +9328,22 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "automationId": {
+            "type": "string"
+          },
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "automationId",
+          "revisionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/automation/test": {
@@ -8831,6 +9380,24 @@
             }
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "configurationJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          },
+          "payloadJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "configurationJson",
+          "payloadJson"
+        ]
       }
     },
     "POST /api/v3/admin/professions/catalog/order": {
@@ -8841,6 +9408,23 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$"
+            },
+            "maxItems": 1000
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionIds"
+        ]
       }
     },
     "POST /api/v3/admin/professions/config/import": {
@@ -8851,6 +9435,19 @@
             "type": "integer"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "configJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "configJson"
+        ]
       }
     },
     "POST /api/v3/admin/professions/config/precheck": {
@@ -8892,6 +9489,19 @@
             }
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "configJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "configJson"
+        ]
       }
     },
     "POST /api/v3/admin/professions/definition/copy": {
@@ -8902,6 +9512,18 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "revisionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/definition/draft": {
@@ -8912,6 +9534,32 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionCode": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "defaultPresentationJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionCode",
+          "displayName"
+        ]
       }
     },
     "POST /api/v3/admin/professions/definition/publish": {
@@ -8922,6 +9570,18 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "revisionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/definition/retire": {
@@ -8932,6 +9592,18 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/definition/rollback": {
@@ -8942,6 +9614,22 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionId": {
+            "type": "string"
+          },
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionId",
+          "revisionId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/scheme/copy": {
@@ -8952,6 +9640,18 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "schemeId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "schemeId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/scheme/draft": {
@@ -8962,6 +9662,127 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionId": {
+            "type": "string"
+          },
+          "professionRevisionId": {
+            "type": "string"
+          },
+          "migrationPolicy": {
+            "type": "string"
+          },
+          "rewardMigrationPolicy": {
+            "type": "string"
+          },
+          "migrationConfigJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "levelCode": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "shortName": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "achievementDescription": {
+                  "type": "string"
+                },
+                "sortOrder": {
+                  "type": "integer"
+                },
+                "requiredTotalExperience": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "isTopLevel": {
+                  "type": "boolean"
+                },
+                "presentations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "positionCode": {
+                        "type": "string"
+                      },
+                      "lightConfigJson": {
+                        "type": "string",
+                        "description": "JSON 文本，以字符串发送。"
+                      },
+                      "darkConfigJson": {
+                        "type": "string",
+                        "description": "JSON 文本，以字符串发送。"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "positionCode"
+                    ]
+                  }
+                },
+                "rewards": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rewardCode": {
+                        "type": "string"
+                      },
+                      "rewardType": {
+                        "type": "string"
+                      },
+                      "grantPolicy": {
+                        "type": "string"
+                      },
+                      "downgradePolicy": {
+                        "type": "string"
+                      },
+                      "rewardConfigJson": {
+                        "type": "string",
+                        "description": "JSON 文本，以字符串发送。"
+                      },
+                      "sortOrder": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "rewardCode",
+                      "rewardType"
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "levelCode",
+                "displayName"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionId",
+          "professionRevisionId",
+          "levels"
+        ]
       }
     },
     "POST /api/v3/admin/professions/scheme/publish": {
@@ -8972,6 +9793,18 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "schemeId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "schemeId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/scheme/retire": {
@@ -8982,6 +9815,18 @@
             "const": true
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "schemeId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "schemeId"
+        ]
       }
     },
     "POST /api/v3/admin/professions/scheme/rollback": {
@@ -8992,6 +9837,22 @@
             "type": "string"
           }
         }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "professionId": {
+            "type": "string"
+          },
+          "schemeId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "professionId",
+          "schemeId"
+        ]
       }
     },
     "POST /api/v3/admin/repeater/{id}/remove": {
@@ -9065,7 +9926,21 @@
             "const": true
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "word"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/reserved-words/remove": {
       "data": {
@@ -9078,7 +9953,21 @@
             "const": true
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "word"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/roles": {
       "data": {
@@ -9094,7 +9983,24 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roleDescription": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "roleName"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/salary/pay": {
       "data": {
@@ -9142,12 +10048,75 @@
             }
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000
+                },
+                "memo": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "target",
+                "amount"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/security/switches": {
       "data": {
         "$ref": "#/components/schemas/AdminTaskAcceptance"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "firewallEnabled": {
+            "type": "boolean"
+          },
+          "verificationEnabled": {
+            "type": "boolean"
+          },
+          "firstVisitCaptchaEnabled": {
+            "type": "boolean"
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "firewallEnabled",
+          "verificationEnabled",
+          "firstVisitCaptchaEnabled",
+          "threshold"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/tags": {
       "data": {
@@ -9160,7 +10129,21 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "tagTitle": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "tagTitle"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/tags/remove-unused": {
       "data": {
@@ -9170,7 +10153,8 @@
             "const": true
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/users/{userId}/deactivate": {
       "fields": {
@@ -9236,7 +10220,37 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "lvCode": {
+            "type": "string"
+          },
+          "lvName": {
+            "type": "string"
+          },
+          "durationType": {
+            "type": "string"
+          },
+          "benefits": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          },
+          "price": {
+            "type": "integer"
+          },
+          "durationValue": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "lvCode",
+          "durationType"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/vip/users": {
       "data": {
@@ -9266,7 +10280,30 @@
             "type": "boolean"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "levelOId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "levelOId"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/vip/users/{userId}/extend": {
       "data": {
@@ -9299,7 +10336,22 @@
             }
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "days"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/admin/vip/users/{userId}/refund": {
       "data": {
@@ -9332,7 +10384,23 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/articles": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/articles/{articleId}/comments": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/articles/{articleId}/reward": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/articles/{articleId}/stick": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/articles/{articleId}/thanks": {
+      "idempotencyKey": true
     },
     "POST /api/v3/auth/app-login/app-status": {
       "fields": {
@@ -9429,7 +10497,8 @@
             "$ref": "#/components/schemas/PublicAuthor"
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/breezemoons/realtime-ticket": {
       "data": {
@@ -9466,7 +10535,17 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/chat/red-packets/{id}/claims": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/comments/{commentId}/accept": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/comments/{commentId}/thanks": {
+      "idempotencyKey": true
     },
     "POST /api/v3/fish-games/{gameId}/comments": {
       "fields": {
@@ -9475,7 +10554,11 @@
             "$ref": "#/components/schemas/PublicAuthor"
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/activity/yesterday-reward": {
+      "idempotencyKey": true
     },
     "POST /api/v3/me/appearance-purchases": {
       "data": {
@@ -9500,7 +10583,35 @@
           "paidPoints",
           "expiresAt"
         ]
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "days": {
+            "type": "integer",
+            "enum": [
+              7,
+              30
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "days",
+          "revision"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/bag/checkin1day/use": {
       "fields": {
@@ -9520,7 +10631,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/bag/checkin2days/use": {
       "fields": {
@@ -9545,7 +10657,14 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/bag/nameCard/use": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/bag/patchCheckinCard/use": {
+      "idempotencyKey": true
     },
     "POST /api/v3/me/drafts": {
       "request": {
@@ -9558,6 +10677,41 @@
           }
         }
       }
+    },
+    "POST /api/v3/me/game-saves/{gameId}/migrations": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/identity-applications/enterprise": {
+      "requestBody": {
+        "required": true,
+        "content": {
+          "image/jpeg": {
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "image/png": {
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/invitation-codes": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/medals/{medalId}/move": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/membership": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/notifications/{notificationId}/read": {
+      "idempotencyKey": true
     },
     "POST /api/v3/me/parking/{action}": {
       "data": {
@@ -9577,7 +10731,74 @@
           "action",
           "amount"
         ]
-      }
+      },
+      "request": {
+        "description": "根据路径 action 选择对应字段；starter 与 buy 可以只传 car。",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "car": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expectedPrice": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "car"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "car": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hostId": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$"
+              },
+              "note": {
+                "type": "string",
+                "enum": [
+                  "hello",
+                  "thanks",
+                  "coffee"
+                ]
+              },
+              "petId": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "car",
+              "hostId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sessionId": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "sessionId"
+            ]
+          }
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/partners/{action}": {
       "data": {
@@ -9590,12 +10811,60 @@
         "required": [
           "action"
         ]
-      }
+      },
+      "request": {
+        "description": "join 传空对象；unlock、leave 传 revision；hire、release 传 peer 和 revision，只有 hire 支持 rateVersion。",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EmptyJsonObject"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "revision"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "peer": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "rateVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "peer",
+              "revision"
+            ]
+          }
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/actions": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/activities": {
       "data": {
@@ -9615,7 +10884,41 @@
             ]
           }
         ]
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "outing",
+              "course",
+              "work"
+            ]
+          },
+          "entryId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,47}$"
+          },
+          "activityVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "kind",
+          "entryId",
+          "activityVersion"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/activities/claim": {
       "data": {
@@ -9635,12 +10938,85 @@
             ]
           }
         ]
-      }
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/adoption": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/pet/brawl/invitations": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/pet/brawl/invitations/{id}/decision": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/pet/brawl/matches": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "weapon": {
+            "type": "string",
+            "enum": [
+              "SPOON",
+              "GUARD",
+              "FAN",
+              "PEBBLE",
+              "SHELL",
+              "LEAF",
+              "LOTUS",
+              "CLAW",
+              "SLING",
+              "FIN",
+              "BUBBLE"
+            ]
+          },
+          "skill": {
+            "type": "string",
+            "enum": [
+              "SPLASH",
+              "CURL",
+              "BREATHE",
+              "COUNTER",
+              "DIVE",
+              "SHELTER",
+              "CHEW",
+              "DOUBLE",
+              "RUSH",
+              "SLIDE",
+              "BURST"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "stage": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "practice": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "weapon",
+          "skill",
+          "version",
+          "stage",
+          "practice"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/brawl/orders": {
       "data": {
@@ -9660,7 +11036,67 @@
             ]
           }
         ]
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "weapon": {
+            "type": "string",
+            "enum": [
+              "SPOON",
+              "GUARD",
+              "FAN",
+              "PEBBLE",
+              "SHELL",
+              "LEAF",
+              "LOTUS",
+              "CLAW",
+              "SLING",
+              "FIN",
+              "BUBBLE"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 19
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "materials": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 64
+          },
+          "product": {
+            "type": "string",
+            "enum": [
+              "ARTIFACT",
+              "SLOT",
+              "SOUL_VITAL",
+              "SOUL_EDGE",
+              "RUNE_GUARD",
+              "RUNE_SPARK"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "weapon",
+          "level",
+          "version",
+          "materials"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/brawl/orders/{id}/confirm": {
       "data": {
@@ -9680,7 +11116,21 @@
             ]
           }
         ]
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/brawl/pvp": {
       "data": {
@@ -9700,7 +11150,32 @@
             ]
           }
         ]
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "revision",
+          "version"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/brawl/season/{id}/claim": {
       "data": {
@@ -9733,7 +11208,11 @@
           "claimedAt",
           "committedAt"
         ]
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/EmptyJsonObject"
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/brawl/upgrade": {
       "request": {
@@ -9781,15 +11260,122 @@
         ]
       }
     },
+    "POST /api/v3/me/pet/coffee": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/pet/crafts": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "recipeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "catalogVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "recipeId",
+          "catalogVersion"
+        ]
+      },
+      "idempotencyKey": true
+    },
     "POST /api/v3/me/pet/purchases": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/pet/readoption": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "speciesId": {
+            "type": "string",
+            "enum": [
+              "momota",
+              "hexiaotun",
+              "yubingmiao",
+              "paixiaoyu"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "catalogVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "resetAccepted": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "speciesId",
+          "name",
+          "catalogVersion",
+          "resetAccepted"
+        ]
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/pet/stories/claim": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "storyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "catalogVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "storyId",
+          "catalogVersion"
+        ]
+      },
+      "idempotencyKey": true
     },
     "POST /api/v3/me/pet/supplies": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "idempotencyKey": true
+    },
+    "POST /api/v3/me/point-transfers": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/milestones": {
+      "idempotencyKey": true
     },
     "POST /api/v3/oauth/consent": {
       "responses": {
@@ -9811,6 +11397,44 @@
             }
           }
         }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "request": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proof": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "csrfToken": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "decision": {
+                  "type": "string",
+                  "enum": [
+                    "approve",
+                    "deny"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "request",
+                "proof",
+                "csrfToken",
+                "decision"
+              ]
+            }
+          }
+        }
       }
     },
     "POST /api/v3/oauth/revoke": {
@@ -9825,7 +11449,113 @@
             }
           }
         }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "client_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "token": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "token_type_hint": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "client_id",
+                "token"
+              ]
+            }
+          }
+        }
       }
+    },
+    "POST /api/v3/oauth/token": {
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "client_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "redirect_uri": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "code": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "code_verifier": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "grant_type": {
+                      "type": "string",
+                      "const": "authorization_code"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "client_id",
+                    "redirect_uri",
+                    "code",
+                    "code_verifier",
+                    "grant_type"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "client_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "grant_type": {
+                      "type": "string",
+                      "const": "refresh_token"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "client_id",
+                    "refresh_token",
+                    "grant_type"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/repeater/items": {
+      "idempotencyKey": true
+    },
+    "POST /api/v3/reports": {
+      "idempotencyKey": true
     },
     "POST /api/v3/review/identity-applications/{applicationId}/material/open": {
       "responses": {
@@ -9856,7 +11586,21 @@
             "const": true
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "sideFullAd": {
+            "type": "string"
+          },
+          "headerBanner": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/appearance/bubbles/{bubbleId}": {
       "data": {
@@ -9898,7 +11642,93 @@
             }
           }
         }
-      }
+      },
+      "request": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "save"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483646
+              },
+              "draft": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 48
+                  },
+                  "access": {
+                    "type": "string",
+                    "enum": [
+                      "free",
+                      "vip",
+                      "points"
+                    ]
+                  },
+                  "price7": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "price30": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "style": {
+                    "$ref": "#/components/schemas/ChatBubbleStyle"
+                  }
+                },
+                "required": [
+                  "name",
+                  "access",
+                  "price7",
+                  "price30",
+                  "style"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "action",
+              "revision",
+              "draft"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "publish",
+                  "unpublish"
+                ]
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483646
+              }
+            },
+            "required": [
+              "action",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/articles/{articleId}": {
       "fields": {
@@ -10065,17 +11895,73 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "times": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 1000000
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "times"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/domains/{domainId}": {
       "data": {
         "$ref": "#/components/schemas/AdminDomain"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "domainTitle": {
+            "type": "string"
+          },
+          "domainURI": {
+            "type": "string"
+          },
+          "domainDescription": {
+            "type": "string"
+          },
+          "domainIconPath": {
+            "type": "string"
+          },
+          "domainCSS": {
+            "type": "string"
+          },
+          "domainSort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "domainStatus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "domainNav": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/fish-games/{gameId}": {
       "data": {
         "$ref": "#/components/schemas/AdminFishGame"
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminFishGameInput"
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/invitecodes/{invitecodeId}": {
       "data": {
@@ -10094,7 +11980,25 @@
             "type": "string"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "memo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/medals/{medalId}": {
       "data": {
@@ -10107,12 +12011,41 @@
             "const": true
           }
         }
-      }
+      },
+      "request": {
+        "$ref": "#/components/schemas/AdminMedalDefinitionInput"
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/milestones/{milestoneId}": {
       "data": {
         "$ref": "#/components/schemas/AdminMilestone"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "milestoneTitle": {
+            "type": "string"
+          },
+          "milestoneDate": {
+            "type": "string"
+          },
+          "milestoneEndDate": {
+            "type": "string"
+          },
+          "milestoneContent": {
+            "type": "string"
+          },
+          "milestoneLink": {
+            "type": "string"
+          },
+          "milestoneStatus": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/oauth/clients/{clientId}": {
       "fields": {
@@ -10132,7 +12065,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/parking/models/{model}": {
       "data": {
@@ -10145,7 +12079,37 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "rate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "rate",
+          "price",
+          "version"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/partners/rate": {
       "data": {
@@ -10155,7 +12119,49 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "baseRate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "stepRate": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "baseRate",
+          "stepRate",
+          "version"
+        ]
+      },
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/admin/pets/{petId}/moderate-name": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "expectedName": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "expectedName"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/roles/{roleId}/permissions": {
       "data": {
@@ -10171,7 +12177,24 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "permissionIds"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/settings": {
       "fields": {
@@ -10197,7 +12220,31 @@
     "PUT /api/v3/admin/tags/{tagId}": {
       "data": {
         "$ref": "#/components/schemas/AdminTag"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "tagTitle": {
+            "type": "string"
+          },
+          "tagURI": {
+            "type": "string"
+          },
+          "tagDescription": {
+            "type": "string"
+          },
+          "tagIconPath": {
+            "type": "string"
+          },
+          "tagStatus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/users/{userId}": {
       "request": {
@@ -10290,7 +12337,33 @@
             "const": true
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "lvCode": {
+            "type": "string"
+          },
+          "lvName": {
+            "type": "string"
+          },
+          "durationType": {
+            "type": "string"
+          },
+          "benefits": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          },
+          "price": {
+            "type": "integer"
+          },
+          "durationValue": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/admin/vip/users/{userId}": {
       "data": {
@@ -10303,7 +12376,34 @@
             "$ref": "#/components/schemas/AdminUserVip"
           }
         }
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "lvCode": {
+            "type": "string"
+          },
+          "state": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "configJson": {
+            "type": "string",
+            "description": "JSON 文本，以字符串发送。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/articles/{articleId}": {
+      "idempotencyKey": true
     },
     "PUT /api/v3/articles/{articleId}/vote": {
       "fields": {
@@ -10315,7 +12415,8 @@
             ]
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/articles/{targetId}/reactions": {
       "fields": {
@@ -10327,7 +12428,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/breezemoons/{breezemoonId}": {
       "fields": {
@@ -10336,7 +12438,8 @@
             "$ref": "#/components/schemas/PublicAuthor"
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/chat/messages/{targetId}/reactions": {
       "fields": {
@@ -10348,7 +12451,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/columns/{columnId}/cover": {
       "fields": {
@@ -10357,7 +12461,8 @@
             "$ref": "#/components/schemas/OwnedColumn"
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/columns/{columnId}/title": {
       "fields": {
@@ -10366,7 +12471,11 @@
             "$ref": "#/components/schemas/OwnedColumn"
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/comments/{commentId}": {
+      "idempotencyKey": true
     },
     "PUT /api/v3/comments/{commentId}/vote": {
       "fields": {
@@ -10378,7 +12487,8 @@
             ]
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/comments/{targetId}/reactions": {
       "fields": {
@@ -10390,7 +12500,14 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/fish-games/{gameId}/vote": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/appearance-mount": {
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/chat-appearance": {
       "data": {
@@ -10413,6 +12530,9 @@
         "additionalProperties": false
       }
     },
+    "PUT /api/v3/me/collections/{targetId}": {
+      "idempotencyKey": true
+    },
     "PUT /api/v3/me/columns/order": {
       "fields": {
         "request": {
@@ -10431,7 +12551,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/drafts/{draftId}": {
       "request": {
@@ -10445,20 +12566,168 @@
         }
       }
     },
+    "PUT /api/v3/me/follows/tags/{targetId}": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/follows/users/{targetId}": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/game-saves/{gameId}": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/medals/{medalId}/display": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/membership/config": {
+      "idempotencyKey": true
+    },
     "PUT /api/v3/me/pet/brawl/profile": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "weapon": {
+            "type": "string",
+            "enum": [
+              "SPOON",
+              "GUARD",
+              "FAN",
+              "PEBBLE",
+              "SHELL",
+              "LEAF",
+              "LOTUS",
+              "CLAW",
+              "SLING",
+              "FIN",
+              "BUBBLE"
+            ]
+          },
+          "skill": {
+            "type": "string",
+            "enum": [
+              "SPLASH",
+              "CURL",
+              "BREATHE",
+              "COUNTER",
+              "DIVE",
+              "SHELTER",
+              "CHEW",
+              "DOUBLE",
+              "RUSH",
+              "SLIDE",
+              "BURST"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]{0,18})?$",
+            "description": "首次保存可传空字符串。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "weapon",
+          "skill",
+          "version",
+          "enabled",
+          "revision"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/pet/brawl/socket": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "weapon": {
+            "type": "string",
+            "enum": [
+              "SPOON",
+              "GUARD",
+              "FAN",
+              "PEBBLE",
+              "SHELL",
+              "LEAF",
+              "LOTUS",
+              "CLAW",
+              "SLING",
+              "FIN",
+              "BUBBLE"
+            ]
+          },
+          "slot": {
+            "type": "string",
+            "enum": [
+              "soul",
+              "rune"
+            ]
+          },
+          "item": {
+            "type": "string",
+            "enum": [
+              "",
+              "SOUL_EDGE",
+              "SOUL_VITAL",
+              "RUNE_GUARD",
+              "RUNE_SPARK"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "weapon",
+          "slot",
+          "item",
+          "version",
+          "revision"
+        ]
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/pet/name": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
-      }
+      },
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/professions/onboarding": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/professions/primary": {
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/professions/privacy": {
       "fields": {
@@ -10559,7 +12828,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/settings/card-background": {
       "data": {
@@ -10622,7 +12892,8 @@
             }
           }
         }
-      }
+      },
+      "idempotencyKey": true
     },
     "PUT /api/v3/me/settings/functions": {
       "fields": {
@@ -10669,6 +12940,18 @@
         }
       }
     },
+    "PUT /api/v3/me/settings/qq": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/settings/tags": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/settings/user-name": {
+      "idempotencyKey": true
+    },
+    "PUT /api/v3/me/subscriptions/{targetId}": {
+      "idempotencyKey": true
+    },
     "PUT /api/v3/repeater/items/{itemId}/like": {
       "data": {
         "type": "object",
@@ -10688,7 +12971,8 @@
           "liked",
           "likeCount"
         ]
-      }
+      },
+      "idempotencyKey": true
     }
   }
 }

@@ -13186,6 +13186,8 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/professions/automation/rollback`：回滚自动化规则至历史版本
 - `POST /api/v3/admin/professions/automation/test`：测试/模拟自动化规则配置
 
+职业配置写入使用 JSON 请求体。预检和导入提交 `configJson` 字符串，目录排序提交 `professionIds` 字符串数组。定义与自动化的发布、复制提交 `revisionId`，方案的发布、复制、停用提交 `schemeId`。回滚同时提交所属定义或规则的 ID 及需要恢复的版本或方案 ID。草稿等完整字段见 V3 OpenAPI。
+
 #### 第一方管理后台授权
 
 管理后台通过同一授权页使用内置客户端 `website_v3`，携带 `state`、PKCE S256 和第一方网页登录所用的 scope。生产回调固定为 `https://new.fishpi.cn/manage/oauth/callback`。开发环境仅接受回环 HTTP 来源和同一路径，默认端口 5173，也可使用后端已配置的 `rhythm.dev.websiteOrigin`。

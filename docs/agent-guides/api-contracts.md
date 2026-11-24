@@ -32,7 +32,8 @@
 
 - V3 的结构化文档从接口段落的请求与响应表生成。字段各占一行，提供可判别类型的示例，数组元素用嵌套行描述。合并字段名、空示例及同上引用可能只在中文说明中可见。对于可空、多类型、复用 DTO、缺少机器可读字段表和非 JSON 响应，用 [OpenAPI 结构补充](../api-v3-openapi-schemas.json) 明确记录服务端契约。
 
-- 补充文件的 `schemas` 为共享 OpenAPI 3.1 Schema，`operations` 按 `METHOD /path` 定位 V3 操作。`data` 定义标准成功信封内的业务结构，`request` 定义必传的 JSON 请求体，`null` 则移除生成器从相邻说明误读出的请求体，`responses` 定义实际状态码和媒体类型，`fields.request` 或 `fields.response` 精确替换既有字段结构（例如 `data.list[].time`），保留其中文说明。可选、可空和非 JSON 响应必须按实现核对。复杂结构可先补已确认的字段，勿用封闭对象掩盖尚未覆盖的字段。
+- 补充文件的 `schemas` 为共享 OpenAPI 3.1 Schema，`operations` 按 `METHOD /path` 定位 V3 操作。`data` 定义标准成功信封内的业务结构，`request` 定义必传的 JSON 请求体，`null` 则移除生成器从相邻说明误读出的请求体，`requestBody` 记录表单或二进制等非默认请求体，`idempotencyKey: true` 标注必填的幂等请求头，`responses` 定义实际状态码和媒体类型，`fields.request` 或 `fields.response` 精确替换既有字段结构（例如 `data.list[].time`），保留其中文说明。可选、可空和非 JSON 响应必须按实现核对。复杂结构可先补已确认的字段，勿用封闭对象掩盖尚未覆盖的字段。
+- 核对写操作时，从生成 JSON 的方法和路径回查路由处理器及输入校验，再区分可完全省略的请求、必须发送的空 JSON 对象、带字段的 JSON 与非 JSON 请求体。
 - 生成时会拒绝未知路由、找不到的覆盖字段以及无法解析的共享引用。修改后运行 `python3 tools/test-generate-api-docs.py`，再执行 `python3 tools/generate-api-docs.py . <输出目录>` 检查生成结果。未运行 Maven 或未重启应用时，以本地生成结果为准，不能代替 Scalar 页验收。
 
 ## 写入幂等

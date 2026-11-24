@@ -73,6 +73,57 @@ class OpenApiSchemaTest(unittest.TestCase):
                                 for param in reindex['parameters']), path)
         self.assertFalse(self.operation('me/pet').get('parameters'))
 
+    def test_write_audit_request_bodies_and_headers(self):
+        for method, path, fields, idempotency in (
+            ('post', 'admin/medals/batch-grant', {'medalId', 'targets', 'expireTime', 'data'}, True),
+            ('post', 'admin/medals/hold-check', {'medalId', 'targets'}, False),
+            ('post', 'admin/professions/scheme/draft', {'professionId', 'professionRevisionId',
+                     'migrationPolicy', 'rewardMigrationPolicy', 'migrationConfigJson', 'levels'}, False),
+            ('post', 'me/pet/brawl/orders', {'petId', 'weapon', 'level', 'version', 'materials', 'product'}, True),
+            ('put', 'me/pet/brawl/socket', {'petId', 'weapon', 'version', 'revision', 'slot', 'item'}, True),
+            ('post', 'me/pet/activities', {'petId', 'kind', 'entryId', 'activityVersion'}, True),
+        ):
+            with self.subTest(path=path):
+                operation = self.operation(path, method)
+                body = operation['requestBody']
+                self.assertTrue(body['required'])
+                self.assertEqual(fields, set(body['content']['application/json']['schema']['properties']))
+                headers = [p for p in operation.get('parameters', []) if p['name'] == 'Idempotency-Key']
+                self.assertEqual(idempotency, bool(headers))
+                if headers:
+                    self.assertEqual(1, len(headers))
+                    self.assertTrue(headers[0]['required'])
+
+        claim = self.operation('me/pet/brawl/season/{id}/claim', 'post')['requestBody']
+        self.assertTrue(claim['required'])
+        self.assertEqual('#/components/schemas/EmptyJsonObject', claim['content']['application/json']['schema']['$ref'])
+        self.assertNotIn('requestBody', self.operation('chat/realtime-ticket', 'post'))
+        uncollect = self.operation('me/collections/{targetId}', 'delete')
+        self.assertNotIn('requestBody', uncollect)
+        self.assertTrue(any(p['name'] == 'Idempotency-Key' and p['required']
+                            for p in uncollect['parameters']))
+        bubble = self.operation('admin/appearance/bubbles/{bubbleId}', 'put')['requestBody']
+        save, publish = bubble['content']['application/json']['schema']['oneOf']
+        self.assertIn('draft', save['required'])
+        self.assertNotIn('draft', publish['properties'])
+
+    def test_write_audit_non_json_content(self):
+        for path in ('oauth/token', 'oauth/consent', 'oauth/revoke'):
+            with self.subTest(path=path):
+                body = self.operation(path, 'post')['requestBody']
+                self.assertTrue(body['required'])
+                self.assertEqual({'application/x-www-form-urlencoded'}, set(body['content']))
+        token = self.operation('oauth/token', 'post')['requestBody']['content']
+        code, refresh = token['application/x-www-form-urlencoded']['schema']['oneOf']
+        self.assertIn('code_verifier', code['required'])
+        self.assertIn('refresh_token', refresh['required'])
+        self.assertNotIn('code_verifier', refresh['properties'])
+        image = self.operation('me/identity-applications/enterprise', 'post')['requestBody']
+        self.assertTrue(image['required'])
+        self.assertEqual({'image/png', 'image/jpeg'}, set(image['content']))
+        for media_type in image['content'].values():
+            self.assertEqual('binary', media_type['schema']['format'])
+
     def test_success_media_matches_protocol(self):
         for path, method, media in (
             ('me/exports/posts/{jobId}/download', 'get', {'application/zip'}),

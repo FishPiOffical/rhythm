@@ -253,8 +253,8 @@ def apply_contract(operation, contract, operation_key):
     """补充 Markdown 无法表达的 OpenAPI 结构。"""
     json_media = 'application/json'
     try:
-        unknown = contract.keys() - {'request', 'data', 'responses', 'fields'}
-        if unknown or {'data', 'responses'} <= contract.keys():
+        unknown = contract.keys() - {'request', 'requestBody', 'idempotencyKey', 'data', 'responses', 'fields'}
+        if unknown or {'data', 'responses'} <= contract.keys() or {'request', 'requestBody'} <= contract.keys():
             raise ValueError(f'{operation_key} 的 OpenAPI 补充格式不正确：{sorted(unknown)}')
         if 'request' in contract and contract['request'] is None:
             operation.pop('requestBody', None)
@@ -262,6 +262,17 @@ def apply_contract(operation, contract, operation_key):
             operation['requestBody'] = {'required': True, 'content': {
                 json_media: {'schema': contract['request']},
             }}
+        if 'requestBody' in contract:
+            operation['requestBody'] = contract['requestBody']
+        if contract.get('idempotencyKey'):
+            parameters = operation.setdefault('parameters', [])
+            for parameter in parameters:
+                if parameter['in'] == 'header' and parameter['name'].lower() == 'idempotency-key':
+                    parameter['required'] = True
+                    break
+            else:
+                parameters.append(make_param('Idempotency-Key', 'header',
+                                             '幂等键。同一操作重试应沿用原键和原请求体。', 'string', True))
         if 'responses' in contract:
             operation['responses'] = {
                 **{status: response for status, response in operation['responses'].items()
