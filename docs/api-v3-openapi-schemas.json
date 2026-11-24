@@ -299,19 +299,22 @@
           "type": "object",
           "additionalProperties": {
             "type": "boolean"
-          }
+          },
+          "description": "权限标识到当前可用状态的映射。"
         },
         "menus": {
           "type": "object",
           "additionalProperties": {
             "type": "boolean"
-          }
+          },
+          "description": "菜单标识到当前可用状态的映射。"
         },
         "actions": {
           "type": "object",
           "additionalProperties": {
             "type": "boolean"
-          }
+          },
+          "description": "管理操作标识到当前可用状态的映射。"
         },
         "fetchedAt": {
           "type": "integer"
@@ -451,6 +454,107 @@
         }
       }
     },
+    "AdminCrawlerSummary": {
+      "type": "object",
+      "properties": {
+        "selectedGroup": {
+          "type": "string"
+        },
+        "sourceOmitted": {
+          "type": "integer"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "verified": {
+                "type": "boolean"
+              },
+              "lastSeen": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "omitted": {
+                "type": "integer"
+              },
+              "pathCount": {
+                "type": "integer"
+              },
+              "sourceOmitted": {
+                "type": "integer"
+              },
+              "sourceCount": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "lastSeen": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "cached": {
+                "type": "boolean"
+              },
+              "ip": {
+                "type": "string"
+              },
+              "lastSeen": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "ptr": {
+                "type": "string"
+              },
+              "forward": {
+                "type": "string"
+              },
+              "checkedAt": {
+                "type": "string"
+              },
+              "subsequentStatus": {
+                "type": "string"
+              },
+              "recoveredAt": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "AdminDomain": {
       "type": "object",
       "properties": {
@@ -486,6 +590,64 @@
         },
         "domainTagCnt": {
           "type": "integer"
+        }
+      }
+    },
+    "AdminDomainWithTags": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "domainTitle": {
+          "type": "string"
+        },
+        "domainURI": {
+          "type": "string"
+        },
+        "domainDescription": {
+          "type": "string"
+        },
+        "domainIconPath": {
+          "type": "string"
+        },
+        "domainCSS": {
+          "type": "string"
+        },
+        "domainType": {
+          "type": "string"
+        },
+        "domainSort": {
+          "type": "integer"
+        },
+        "domainStatus": {
+          "type": "integer"
+        },
+        "domainNav": {
+          "type": "integer"
+        },
+        "domainTagCnt": {
+          "type": "integer"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "bindId": {
+                "type": "string"
+              },
+              "tagId": {
+                "type": "string"
+              },
+              "tagTitle": {
+                "type": "string"
+              },
+              "tagURI": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
@@ -530,6 +692,47 @@
         },
         "fishGameUpdatedTime": {
           "type": "integer"
+        }
+      }
+    },
+    "AdminHeldMedal": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "medal_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "attr": {
+          "type": "string"
+        },
+        "user_medal_oId": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "expire_time": {
+          "type": "integer"
+        },
+        "display": {
+          "type": "boolean"
+        },
+        "display_order": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "string"
         }
       }
     },
@@ -625,6 +828,73 @@
         "total",
         "totalPages"
       ]
+    },
+    "AdminPetLogRow": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "userNickname": {
+          "type": "string"
+        },
+        "petId": {
+          "type": "string"
+        },
+        "petName": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "AdminSecurityEvent": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer"
+        },
+        "time": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "userStatus": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "handler": {
+          "type": "string"
+        },
+        "flow": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "result": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
     },
     "AdminTag": {
       "type": "object",
@@ -772,8 +1042,40 @@
         "medals": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/components/schemas/AdminUserDisplayMedal"
           }
+        }
+      }
+    },
+    "AdminUserDisplayMedal": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "attr": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "expireDate": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": "integer"
         }
       }
     },
@@ -856,6 +1158,41 @@
         },
         "configJson": {
           "type": "string"
+        }
+      }
+    },
+    "AdminVipActivation": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "lvCode": {
+          "type": "string"
+        },
+        "price": {
+          "type": "integer"
+        },
+        "durationType": {
+          "type": "string"
+        },
+        "durationValue": {
+          "type": "integer"
+        },
+        "couponCode": {
+          "type": "string"
+        },
+        "configJson": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
         }
       }
     },
@@ -1107,9 +1444,107 @@
           "$ref": "#/components/schemas/ReactionState"
         },
         "card": {
-          "type": "object"
+          "$ref": "#/components/schemas/ChatMessageCard"
         }
       }
+    },
+    "ChatMessageCard": {
+      "oneOf": [
+        {
+          "$ref": "#/components/schemas/EmptyJsonObject"
+        },
+        {
+          "$ref": "#/components/schemas/ChatMusicCard"
+        },
+        {
+          "$ref": "#/components/schemas/ChatWeatherCard"
+        },
+        {
+          "$ref": "#/components/schemas/ChatRedPacketCard"
+        }
+      ],
+      "description": "按消息 type 返回音乐、天气或红包卡片。普通消息和不可用消息返回空对象。"
+    },
+    "ChatMusicCard": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "coverURL": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "source",
+        "coverURL",
+        "from"
+      ]
+    },
+    "ChatRedPacketCard": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "money": {
+          "type": "integer"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "got": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "message",
+        "money",
+        "count",
+        "got"
+      ]
+    },
+    "ChatWeatherCard": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string"
+        },
+        "weatherCode": {
+          "type": "string"
+        },
+        "max": {
+          "type": "string"
+        },
+        "min": {
+          "type": "string"
+        },
+        "t": {
+          "type": "string"
+        },
+        "st": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "weatherCode",
+        "max",
+        "min",
+        "t",
+        "st"
+      ]
     },
     "ColumnCard": {
       "type": "object",
@@ -1247,6 +1682,11 @@
         }
       }
     },
+    "EmptyJsonObject": {
+      "type": "object",
+      "maxProperties": 0,
+      "description": "不含字段的 JSON 对象。"
+    },
     "FishGame": {
       "type": "object",
       "properties": {
@@ -1378,6 +1818,32 @@
         }
       }
     },
+    "MembershipPublicConfig": {
+      "type": "object",
+      "properties": {
+        "bold": {
+          "type": "boolean"
+        },
+        "underline": {
+          "type": "boolean"
+        },
+        "autoCheckin": {
+          "type": "boolean"
+        },
+        "metal": {
+          "type": "boolean"
+        },
+        "jointVip": {
+          "type": "boolean"
+        },
+        "checkinCard": {
+          "type": "integer"
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
     "Milestone": {
       "type": "object",
       "properties": {
@@ -1476,6 +1942,32 @@
         },
         "actor": {
           "$ref": "#/components/schemas/PublicAuthor"
+        }
+      }
+    },
+    "OwnedColumn": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "coverURL": {
+          "type": "string"
+        },
+        "articleCount": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
         }
       }
     },
@@ -1596,6 +2088,47 @@
         }
       }
     },
+    "PetActivityActualReward": {
+      "type": "object",
+      "properties": {
+        "coins": {
+          "type": "integer"
+        },
+        "proficiency": {
+          "type": "integer"
+        },
+        "experience": {
+          "type": "integer"
+        },
+        "food": {
+          "type": "integer"
+        },
+        "mood": {
+          "type": "number"
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "experience": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/PetItemQuantity"
+          }
+        }
+      },
+      "description": "已结算的奖励。实际心情增量可以是小数。"
+    },
     "PetActivityCost": {
       "type": "object",
       "properties": {
@@ -1655,13 +2188,21 @@
                 ]
               },
               "cost": {
-                "type": "object"
+                "$ref": "#/components/schemas/PetActivityCost"
               },
               "rewards": {
-                "type": "object"
+                "$ref": "#/components/schemas/PetActivityReward"
               },
               "actualRewards": {
-                "type": "object"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PetActivityActualReward"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "未领取或早期记录未保存实际结果时为 null。"
               }
             }
           }
@@ -1739,7 +2280,15 @@
           "$ref": "#/components/schemas/PetActivityReward"
         },
         "actualRewards": {
-          "type": "object"
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/PetActivityActualReward"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "未领取或早期记录未保存实际结果时为 null。"
         }
       },
       "required": [
@@ -1880,6 +2429,54 @@
         }
       }
     },
+    "PetCatalogJob": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "durationMs": {
+          "type": "integer"
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skillId": {
+                "type": "string"
+              },
+              "experience": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "cost": {
+          "$ref": "#/components/schemas/PetActivityCost"
+        },
+        "rewards": {
+          "$ref": "#/components/schemas/PetActivityReward"
+        },
+        "requirement": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string"
+            },
+            "experience": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
     "PetEquipmentOption": {
       "type": "object",
       "properties": {
@@ -1894,6 +2491,177 @@
         },
         "exclusive": {
           "type": "boolean"
+        }
+      }
+    },
+    "PetHomeState": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "speciesId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "hunger": {
+          "type": "integer"
+        },
+        "water": {
+          "type": "integer"
+        },
+        "mood": {
+          "type": "integer"
+        },
+        "energy": {
+          "type": "integer"
+        },
+        "experience": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "friendship": {
+          "type": "integer"
+        },
+        "adoptedAt": {
+          "type": "integer"
+        },
+        "autoRestAt": {
+          "type": "integer"
+        },
+        "activity": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "rest"
+                },
+                "startedAt": {
+                  "type": "integer"
+                },
+                "endsAt": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "entryId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "integer"
+                },
+                "endsAt": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "cost": {
+                  "$ref": "#/components/schemas/PetActivityCost"
+                },
+                "rewards": {
+                  "$ref": "#/components/schemas/PetActivityReward"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cooldowns": {
+          "type": "object",
+          "properties": {
+            "pet": {
+              "type": "integer"
+            },
+            "play": {
+              "type": "integer"
+            }
+          }
+        },
+        "careAvailableAt": {
+          "type": "object",
+          "properties": {
+            "feed": {
+              "type": "integer"
+            },
+            "water": {
+              "type": "integer"
+            }
+          }
+        },
+        "growthToday": {
+          "type": "object",
+          "properties": {
+            "used": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            }
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "experience": {
+                "type": "integer"
+              },
+              "level": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "experience": {
+                "type": "integer"
+              },
+              "level": {
+                "type": "integer"
+              },
+              "completed": {
+                "type": "integer"
+              }
+            }
+          }
         }
       }
     },
@@ -3140,8 +3908,7 @@
       "fields": {
         "response": {
           "data": {
-            "type": "object",
-            "maxProperties": 0
+            "$ref": "#/components/schemas/EmptyJsonObject"
           }
         }
       }
@@ -3183,8 +3950,7 @@
       "fields": {
         "response": {
           "data": {
-            "type": "object",
-            "maxProperties": 0
+            "$ref": "#/components/schemas/EmptyJsonObject"
           }
         }
       }
@@ -3519,36 +4285,7 @@
           "items": {
             "type": "array",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/AdminDomain"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "tags": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "bindId": {
-                            "type": "string"
-                          },
-                          "tagId": {
-                            "type": "string"
-                          },
-                          "tagTitle": {
-                            "type": "string"
-                          },
-                          "tagURI": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/AdminDomainWithTags"
             }
           },
           "pagination": {
@@ -3690,34 +4427,7 @@
           "items": {
             "type": "array",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/AdminMedalDefinition"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "user_medal_oId": {
-                      "type": "string"
-                    },
-                    "user_id": {
-                      "type": "string"
-                    },
-                    "expire_time": {
-                      "type": "integer"
-                    },
-                    "display": {
-                      "type": "boolean"
-                    },
-                    "display_order": {
-                      "type": "integer"
-                    },
-                    "data": {
-                      "type": "string"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/AdminHeldMedal"
             }
           }
         }
@@ -4034,7 +4744,8 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "操作筛选值到显示名称的映射。"
           },
           "page": {
             "type": "integer"
@@ -4045,7 +4756,7 @@
           "rows": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminPetLogRow"
             }
           },
           "from": {
@@ -4221,7 +4932,8 @@
               "items": {
                 "type": "string"
               }
-            }
+            },
+            "description": "按展示位置或配置项分组的预设值。"
           }
         }
       }
@@ -4239,7 +4951,8 @@
                 "type": "object",
                 "additionalProperties": {
                   "type": "string"
-                }
+                },
+                "description": "操作者用户 ID 到用户名的映射。"
               }
             }
           }
@@ -4486,16 +5199,17 @@
             "type": "object",
             "additionalProperties": {
               "type": "integer"
-            }
+            },
+            "description": "按事件类型和结果划分的计数。"
           },
           "events": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminSecurityEvent"
             }
           },
           "crawlers": {
-            "type": "object"
+            "$ref": "#/components/schemas/AdminCrawlerSummary"
           },
           "switches": {
             "type": "object",
@@ -4511,6 +5225,41 @@
               },
               "firstVisitCaptchaEnabled": {
                 "type": "boolean"
+              }
+            }
+          },
+          "last10Minutes": {
+            "type": "integer"
+          },
+          "retention": {
+            "type": "string"
+          },
+          "observationDiscarded": {
+            "type": "integer"
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": {
+                  "type": "string"
+                },
+                "ip": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "failure": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -5065,6 +5814,9 @@
           },
           "data.list[].reactions": {
             "$ref": "#/components/schemas/ReactionState"
+          },
+          "data.list[].card": {
+            "$ref": "#/components/schemas/ChatMessageCard"
           }
         }
       }
@@ -5599,6 +6351,15 @@
         }
       }
     },
+    "GET /api/v3/me/membership": {
+      "fields": {
+        "response": {
+          "data.config": {
+            "$ref": "#/components/schemas/MembershipPublicConfig"
+          }
+        }
+      }
+    },
     "GET /api/v3/me/messages/{messageId}": {
       "fields": {
         "response": {
@@ -5646,9 +6407,45 @@
         "response": {
           "data.categories": {
             "type": "object",
+            "properties": {
+              "commented": {
+                "type": "integer"
+              },
+              "reply": {
+                "type": "integer"
+              },
+              "at": {
+                "type": "integer"
+              },
+              "following": {
+                "type": "integer"
+              },
+              "point": {
+                "type": "integer"
+              },
+              "broadcast": {
+                "type": "integer"
+              },
+              "sys-announce": {
+                "type": "integer"
+              },
+              "other": {
+                "type": "integer"
+              }
+            },
             "additionalProperties": {
               "type": "integer"
-            }
+            },
+            "required": [
+              "commented",
+              "reply",
+              "at",
+              "following",
+              "point",
+              "broadcast",
+              "sys-announce",
+              "other"
+            ]
           }
         }
       }
@@ -6070,10 +6867,15 @@
             ]
           },
           "pet": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PetHomeState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "当前宠物状态。未领养时为 null。"
           },
           "inventory": {
             "type": "array",
@@ -6116,7 +6918,8 @@
             "type": "object",
             "additionalProperties": {
               "type": "integer"
-            }
+            },
+            "description": "武器 ID 到当前强化等级的映射。"
           },
           "data.equipmentCatalog": {
             "type": "object",
@@ -6547,6 +7350,9 @@
         "response": {
           "data.pagination": {
             "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list[].benefits": {
+            "$ref": "#/components/schemas/MembershipPublicConfig"
           }
         }
       }
@@ -6816,27 +7622,7 @@
           "jobs": {
             "type": "array",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/PetCatalogActivity"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "requirement": {
-                      "type": "object",
-                      "properties": {
-                        "skillId": {
-                          "type": "string"
-                        },
-                        "experience": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/PetCatalogJob"
             }
           },
           "recipes": {
@@ -8379,7 +9165,7 @@
                 "$ref": "#/components/schemas/AdminUserVip"
               },
               "activation": {
-                "type": "object"
+                "$ref": "#/components/schemas/AdminVipActivation"
               }
             }
           },
@@ -8471,8 +9257,7 @@
       "fields": {
         "response": {
           "data": {
-            "type": "object",
-            "maxProperties": 0
+            "$ref": "#/components/schemas/EmptyJsonObject"
           }
         }
       }
@@ -8901,8 +9686,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "maxProperties": 0
+                "$ref": "#/components/schemas/EmptyJsonObject"
               }
             }
           }
@@ -9270,7 +10054,8 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "配置项标识到待保存值的映射。"
           }
         }
       }
@@ -9376,6 +10161,24 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/columns/{columnId}/cover": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/OwnedColumn"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/columns/{columnId}/title": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/OwnedColumn"
           }
         }
       }

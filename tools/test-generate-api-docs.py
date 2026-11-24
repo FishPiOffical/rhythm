@@ -93,6 +93,46 @@ class OpenApiSchemaTest(unittest.TestCase):
                         or '101' in responses or '303' in responses
                     )
 
+    def test_structured_objects_arrays_and_maps(self):
+        for path, field, component in (
+            ('admin/domains', 'items', 'AdminDomainWithTags'),
+            ('admin/medals/users/{target}', 'items', 'AdminHeldMedal'),
+            ('pets/catalog', 'jobs', 'PetCatalogJob'),
+        ):
+            item = self.response_field(path, f'data.{field}[]')
+            self.assertEqual(f'#/components/schemas/{component}', item['$ref'])
+            self.assertTrue(self.spec['components']['schemas'][component]['properties'])
+        self.assertEqual('integer', self.response_field('admin/security/monitor', 'data.counts')['additionalProperties']['type'])
+        self.assertEqual(4, len(self.spec['components']['schemas']['ChatMessageCard']['oneOf']))
+
+        def check(schema, path):
+            kinds = schema.get('type', [])
+            if isinstance(kinds, str):
+                kinds = [kinds]
+            if 'object' in kinds:
+                self.assertTrue(
+                    schema.get('properties') or 'additionalProperties' in schema or schema.get('maxProperties') == 0,
+                    path,
+                )
+            if 'array' in kinds:
+                self.assertTrue(schema.get('items'), path)
+            for name, child in schema.get('properties', {}).items():
+                check(child, f'{path}.{name}')
+            for keyword in ('items', 'additionalProperties'):
+                if isinstance(schema.get(keyword), dict):
+                    check(schema[keyword], f'{path}.{keyword}')
+            for keyword in ('allOf', 'anyOf', 'oneOf'):
+                for index, child in enumerate(schema.get(keyword, [])):
+                    check(child, f'{path}.{keyword}[{index}]')
+
+        for name, schema in self.spec['components']['schemas'].items():
+            check(schema, name)
+        for path, operations in self.spec['paths'].items():
+            for method, operation in operations.items():
+                for payload in [operation.get('requestBody', {}), *operation['responses'].values()]:
+                    for entry in payload.get('content', {}).values():
+                        check(entry['schema'], f'{method} {path}')
+
     def test_invalid_overlays_fail(self):
         operation = self.operation('articles')
         with self.assertRaisesRegex(ValueError, 'GET /articles'):
