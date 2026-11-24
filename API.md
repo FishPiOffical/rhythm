@@ -285,13 +285,13 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/login' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| data.accessToken | Bearer 访问令牌 |
-| data.tokenType | 固定为 `Bearer` |
-| data.expiresIn | 访问令牌有效秒数 |
-| data.refreshExpiresIn | 刷新登录状态有效秒数 |
-| data.scope | 已授予权限 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.accessToken | Bearer 访问令牌 | 字符串 |
+| data.tokenType | 固定为 `Bearer` | 字符串 |
+| data.expiresIn | 访问令牌有效秒数 | 整数 |
+| data.refreshExpiresIn | 刷新登录状态有效秒数 | 整数 |
+| data.scope | 已授予权限 | 字符串 |
 
 > 启用两步认证的账号首次请求会返回 `mfa_required`，携带 `mfaCode` 后再次登录。
 
@@ -367,11 +367,11 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/refresh'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| data.accessToken | 新的 Bearer 访问令牌 |
-| data.expiresIn | 访问令牌有效秒数 |
-| data.refreshExpiresIn | 刷新登录状态有效秒数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.accessToken | 新的 Bearer 访问令牌 | 字符串 |
+| data.expiresIn | 访问令牌有效秒数 | 整数 |
+| data.refreshExpiresIn | 刷新登录状态有效秒数 | 整数 |
 
 > 可省略正文；提交正文时仅接受 `Content-Type: application/json` 的空对象 `{}`，最多4096字节。非法JSON返回400，非空对象字段返回422，超限413，错误媒体类型415。
 
@@ -399,9 +399,9 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/logout'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| data | 空对象 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 空对象 | {} |
 
 > 服务端完成退出处理后，本次登录下的访问令牌不再可用；其他独立登录不受影响。
 
@@ -427,25 +427,25 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| data.id | 用户 ID |
-| data.userName | 用户名 |
-| data.userNickname | 昵称 |
-| data.userAvatarURL | 头像地址 |
-| data.userIntro | 个人简介 |
-| data.userURL | 个人主页链接 |
-| data.userPoint | 积分 |
-| data.userGuideStep | 新手引导进度 |
-| data.isAdmin | 当前账号为管理员且使用网站第一方访问令牌时为 true |
-| data.capabilities.chatRevokeOthers | 第一方网页账号是否具有旧站聊天室管理撤回权限；管理员、OP、纪律委员为 true |
-| data.capabilities.viewArticleHistory / data.capabilities.viewCommentHistory | 第一方网页账号当前角色是否获授文章 / 评论历史查看权限；作者自己的历史仍由资源接口单独校验 |
-| data.capabilities.canAccessAdmin | 第一方网页账号当前角色是否获授旧后台入口权限 menuAdmin |
-| data.userRole / data.userRoleId | 角色显示名 / 角色 ID，仅供展示与识别 |
-| data.userNo / data.userAppRole | 用户编号 / 社区角色 |
-| data.userCity | 公开城市，位置未公开时为空字符串 |
-| data.userOnlineFlag / data.onlineMinute | 在线标记 / 累计在线分钟数 |
-| data.userLatestLoginTime | 最后登录时间，Unix 毫秒时间戳。仅第一方网站令牌读取本人资料且有登录记录时返回 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.id | 用户 ID | 字符串 |
+| data.userName | 用户名 | 字符串 |
+| data.userNickname | 昵称 | 字符串 |
+| data.userAvatarURL | 头像地址 | 字符串 |
+| data.userIntro | 个人简介 | 字符串 |
+| data.userURL | 个人主页链接 | 字符串 |
+| data.userPoint | 积分 | 整数 |
+| data.userGuideStep | 新手引导进度 | 整数 |
+| data.isAdmin | 当前账号为管理员且使用网站第一方访问令牌时为 true | 布尔值 |
+| data.capabilities.chatRevokeOthers | 第一方网页账号是否具有旧站聊天室管理撤回权限；管理员、OP、纪律委员为 true | 布尔值 |
+| data.capabilities.viewArticleHistory / data.capabilities.viewCommentHistory | 第一方网页账号当前角色是否获授文章 / 评论历史查看权限；作者自己的历史仍由资源接口单独校验 |  |
+| data.capabilities.canAccessAdmin | 第一方网页账号当前角色是否获授旧后台入口权限 menuAdmin | 布尔值 |
+| data.userRole / data.userRoleId | 角色显示名 / 角色 ID，仅供展示与识别 |  |
+| data.userNo / data.userAppRole | 用户编号 / 社区角色 |  |
+| data.userCity | 公开城市，位置未公开时为空字符串 | 字符串 |
+| data.userOnlineFlag / data.onlineMinute | 在线标记 / 累计在线分钟数 |  |
+| data.userLatestLoginTime | 最后登录时间，Unix 毫秒时间戳。仅第一方网站令牌读取本人资料且有登录记录时返回 | 整数 |
 
 > 返回当前账号资料；账号不再有效或已删除时，原访问令牌也会返回 HTTP 401。
 >
@@ -1274,7 +1274,7 @@ curl --request GET 'https://fishpi.cn/api/v3/me/identity-applications?p=1&size=2
 | -- createdAt | 创建毫秒时间戳 | 1792800000000 |
 | -- materialReadAt | 首次读取材料时间，未读为0 | 0 |
 | -- reviewedAt | 结论时间，未处理为0 | 0 |
-| -- note | 审核说明，无说明为空 | |
+| -- note | 审核说明，无说明为空 | 字符串 |
 | - pagination | p、size、total、pageCount | |
 
 > 仅返回状态及时间等申请资料，不返回图片、图片地址或图片内容。读取材料不会自动把申请标记为已完成。
@@ -1308,7 +1308,7 @@ curl --request GET 'https://fishpi.cn/api/v3/me/identity-applications/1792800000
 | data | 与本人申请列表单条记录相同 | |
 | - id / type / status | 申请ID、类型与状态 | 1792800000000 / enterprise / pending |
 | - createdAt / materialReadAt / reviewedAt | 毫秒时间戳，未发生为0 | |
-| - note | 审核说明 | |
+| - note | 审核说明 | 字符串 |
 
 > 不存在或不属于本人的申请返回404。本人也不能通过此接口重新取得已提交的证明图片。
 
@@ -1448,20 +1448,20 @@ curl 'https://fishpi.cn/api/v3/columns?p=1&size=12'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 专栏列表 |
-| -- id / columnId | 专栏ID，两个字段值相同 |
-| -- title / coverURL | 标题 / 封面地址 |
-| -- articleCount | 当前可见章节数量 |
-| -- updatedAt | 可见章节最近更新时间，毫秒时间戳 |
-| -- chapters | 最近两个可见章节 |
-| --- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |
-| --- permalink / createdAt / preview | 文章链接 / 创建时间（毫秒）/ 文本摘要 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 可见专栏数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 专栏列表 |  |
+| -- id / columnId | 专栏ID，两个字段值相同 |  |
+| -- title / coverURL | 标题 / 封面地址 |  |
+| -- articleCount | 当前可见章节数量 | 整数 |
+| -- updatedAt | 可见章节最近更新时间，毫秒时间戳 | 整数 |
+| -- chapters | 最近两个可见章节 | [] |
+| --- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |  |
+| --- permalink / createdAt / preview | 文章链接 / 创建时间（毫秒）/ 文本摘要 |  |
+| - pagination | 分页信息 | {} |
+| -- p / size / total / pageCount | 页码 / 每页数量 / 可见专栏数 / 总页数 |  |
 
 > 仅收录当前可读、可列出的非匿名长文章及有效作者。专栏没有可见章节时不进入列表；数量、最近章节和排序按当前可见范围计算，可能与此前结果不同。游客不包含禁止访客阅读的章节。
 
@@ -1487,12 +1487,12 @@ curl 'https://fishpi.cn/api/v3/columns/hot?p=1&size=12'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果，与最新专栏相同 |
-| - list | 专栏列表，字段同最新专栏 |
-| - pagination | p、size、total、pageCount |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果，与最新专栏相同 |  |
+| - list | 专栏列表，字段同最新专栏 | [] |
+| - pagination | p、size、total、pageCount |  |
 
 > 可见范围、章节数量及最近章节规则与最新专栏相同。
 
@@ -1517,14 +1517,14 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 详情结果 |
-| - column | 专栏资料，字段同最新专栏 |
-| - chapters | 按原章节序号升序排列的可见目录 |
-| -- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |
-| -- permalink / createdAt | 文章链接 / 创建时间（毫秒） |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 详情结果 |  |
+| - column | 专栏资料，字段同最新专栏 | {} |
+| - chapters | 按原章节序号升序排列的可见目录 | [] |
+| -- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |  |
+| -- permalink / createdAt | 文章链接 / 创建时间（毫秒） |  |
 
 > 不存在、不可用或没有当前可见章节时返回HTTP 404。章节被隐藏后原序号可能不连续，不重新编号；articleCount只计算当前可见章节。
 
@@ -1551,15 +1551,15 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001/articles?p=1&size=20'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 目录结果 |
-| - list | 可见章节列表 |
-| -- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |
-| -- permalink / createdAt | 文章链接 / 创建时间（毫秒） |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 可见章节数量 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 目录结果 |  |
+| - list | 可见章节列表 | [] |
+| -- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |  |
+| -- permalink / createdAt | 文章链接 / 创建时间（毫秒） |  |
+| - pagination | 分页信息 | {} |
+| -- p / size / total / pageCount | 页码 / 每页数量 / 可见章节数量 / 总页数 |  |
 
 > 可见范围与专栏详情相同；没有当前可见章节时返回HTTP 404。读取暂不可用时返回503，不能将失败当作空目录。
 
@@ -1584,18 +1584,18 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/column'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 当前章节导航 |
-| - articleId | 请求的文章ID |
-| - column | 专栏摘要；没有可见关联时为null |
-| -- id / title / coverURL | 专栏ID、名称、封面地址 |
-| -- articleCount / updatedAt | 当前可见章节数、更新时间（毫秒） |
-| - chapterNo | 当前原章节号；没有关联时为null |
-| - previous / next | 前一章 / 后一章；不存在时为null |
-| -- id / title / chapterNo | 文章ID、标题、原章节号 |
-| -- permalink / createdAt | 文章链接、创建时间（毫秒） |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 当前章节导航 |  |
+| - articleId | 请求的文章ID | 字符串 |
+| - column | 专栏摘要；没有可见关联时为null |  |
+| -- id / title / coverURL | 专栏ID、名称、封面地址 |  |
+| -- articleCount / updatedAt | 当前可见章节数、更新时间（毫秒） |  |
+| - chapterNo | 当前原章节号；没有关联时为null |  |
+| - previous / next | 前一章 / 后一章；不存在时为null |  |
+| -- id / title / chapterNo | 文章ID、标题、原章节号 |  |
+| -- permalink / createdAt | 文章链接、创建时间（毫秒） |  |
 
 > 不存在或不可读的文章返回HTTP 404。可读但没有可见专栏关联、未列出或非长篇文章返回column=null，chapterNo、previous、next也均为null。只按当前可见章节定位前后章，不重新编号；此响应不包含完整目录或文章正文。读取暂不可用时返回503。
 
@@ -1766,7 +1766,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/columns/20261016001' \
 | statement | 声明，默认 0；0 无、1 AI、2 剧透、3 虚构 | 0 |
 | goodPost | 是否标记为奖励帖，布尔值，默认 false；新人报道帖不可开启 | false |
 | rewardPoint | 打赏阅读价格，非负整数，默认 0 表示关闭 | 0 |
-| rewardContent | 打赏正文，最多 102400 字符；启用时至少 4 字符，关闭时留空 | |
+| rewardContent | 打赏正文，最多 102400 字符；启用时至少 4 字符，关闭时留空 | 补充阅读内容 |
 | qnaOfferPoint | 问答悬赏积分，非负整数，默认 0；问答至少 20 | 0 |
 | columnId | 本人专栏 ID，仅长篇使用；留空可通过 columnTitle 新建 | 1770000000000 |
 | columnTitle | 新专栏标题，最多 64 字符，仅长篇使用 | 我的专栏 |
@@ -1786,12 +1786,12 @@ curl --request POST 'https://fishpi.cn/api/v3/articles' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 发布结果 |
-| - id | 文章 ID |
-| - permalink | 文章站内链接，例如 /article/1770000000002 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 发布结果 |  |
+| - id | 文章 ID | 字符串 |
+| - permalink | 文章站内链接，例如 /article/1770000000002 | 字符串 |
 
 > 需要满足手机绑定、首帖标签、发帖间隔、周报及积分等平台规则；正文与打赏正文需通过内容审核。思绪新增仍关闭。长篇不提供专栏 ID 和标题时不关联专栏。
 >
@@ -1821,26 +1821,26 @@ curl 'https://fishpi.cn/api/v3/me/articles/1770000000002/source' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 编辑源码及选项 |
-| - id | 文章 ID |
-| - title / tags | 原标题 / 逗号分隔标签 |
-| - content | 原始 Markdown 正文；思绪为原始回放记录串 |
-| - type | 文章类型 |
-| - rewardContent / rewardPoint | 本人打赏正文源码 / 打赏价格 |
-| - qnaOfferPoint | 悬赏积分 |
-| - commentable | 是否允许评论，布尔值 |
-| - showInList | 是否在列表展示，0 否、1 是 |
-| - statement | 声明，0 无、1 AI、2 剧透、3 虚构 |
-| - columnId / columnTitle | 所属本人有效专栏 ID / 标题；无有效专栏时为空串 |
-| - columnCoverURL / chapterNo | 专栏封面 / 章节号字符串；无有效专栏时为空串 |
-| - anonymous | 是否匿名，布尔值；只读 |
-| - status | 状态，0 正常、1 不可用、2 锁定；只读 |
-| - editorType | 原编辑器类型；只读 |
-| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳；只读 |
-| - permalink | 文章站内链接；只读 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 编辑源码及选项 |  |
+| - id | 文章 ID | 字符串 |
+| - title / tags | 原标题 / 逗号分隔标签 |  |
+| - content | 原始 Markdown 正文；思绪为原始回放记录串 | 字符串 |
+| - type | 文章类型 | 整数 |
+| - rewardContent / rewardPoint | 本人打赏正文源码 / 打赏价格 |  |
+| - qnaOfferPoint | 悬赏积分 | 整数 |
+| - commentable | 是否允许评论，布尔值 | 布尔值 |
+| - showInList | 是否在列表展示，0 否、1 是 | 整数 |
+| - statement | 声明，0 无、1 AI、2 剧透、3 虚构 | 整数 |
+| - columnId / columnTitle | 所属本人有效专栏 ID / 标题；无有效专栏时为空串 |  |
+| - columnCoverURL / chapterNo | 专栏封面 / 章节号字符串；无有效专栏时为空串 |  |
+| - anonymous | 是否匿名，布尔值；只读 | 布尔值 |
+| - status | 状态，0 正常、1 不可用、2 锁定；只读 | 整数 |
+| - editorType | 原编辑器类型；只读 | 整数 |
+| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳；只读 |  |
+| - permalink | 文章站内链接；只读 | 字符串 |
 
 > 不存在或不属于本人的文章统一返回 HTTP 404。本人仍可读取锁定文章源码，读取成功不代表允许编辑；编辑时仍须满足权限和文章状态要求。
 >
@@ -1887,12 +1887,12 @@ curl --request PUT 'https://fishpi.cn/api/v3/articles/1770000000002' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 编辑结果 |
-| - id | 文章 ID |
-| - permalink | 文章站内链接 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 编辑结果 |  |
+| - id | 文章 ID | 字符串 |
+| - permalink | 文章站内链接 | 字符串 |
 
 > 作者、匿名状态、奖励帖标记及草稿 ID 不支持在此接口修改。编辑费用、五分钟规则、周报标题和悬赏规则沿用平台行为；正文与打赏正文需通过审核。
 >
@@ -1924,11 +1924,11 @@ curl --request DELETE 'https://fishpi.cn/api/v3/articles/1770000000002' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 删除结果 |
-| - id | 已删除的文章 ID |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 删除结果 |  |
+| - id | 已删除的文章 ID | 字符串 |
 
 > 文章发布满 24 小时后才可删除，周报不可删除；有评论、订阅、收藏、赞踩、打赏或感谢的文章不可删除。
 >
@@ -1996,30 +1996,37 @@ curl 'https://fishpi.cn/api/v3/articles?p=1&size=20&sort=latest&type=recent'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示，成功时 code 为 0 |
-| data | 列表数据 |
-| - list | 文章摘要数组 |
-| -- id | 文章 ID |
-| -- title | 标题（文本） |
-| -- preview | 摘要（文本），思绪帖为空 |
-| -- tags | 逗号分隔的标签 |
-| -- type | 文章类型，与旧接口 articleType 一致 |
-| -- anonymous | 是否匿名发表 |
-| -- perfect | 是否为优选文章，布尔值 |
-| -- author | 公开作者资料 |
-| --- id | 用户 ID，匿名发表时为空 |
-| --- userName / userNickname | 用户名 / 昵称，匿名发表时显示匿名用户 |
-| --- userAvatarURL | 头像地址，匿名发表时为空 |
-| -- permalink | 文章链接 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- commentCount / viewCount | 评论数 / 浏览数 |
-| -- stick | 当前置顶状态 |
-| --- active / permanent | 是否仍有效 / 是否管理员永久置顶 |
-| --- expiresAt | 到期毫秒时间戳；未置顶为0，永久置顶为null |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示，成功时 code 为 0 |  |
+| data | 列表数据 |  |
+| - list | 文章摘要数组 |  |
+| -- id | 文章 ID | 字符串 |
+| -- title | 标题（文本） | 字符串 |
+| -- preview | 摘要（文本），思绪帖为空 | 字符串 |
+| -- tags | 逗号分隔的标签 | 字符串 |
+| -- type | 文章类型，与旧接口 articleType 一致 | 整数 |
+| -- anonymous | 是否匿名发表 | 布尔值 |
+| -- perfect | 是否为优选文章，布尔值 | 布尔值 |
+| -- author | 公开作者资料 | {} |
+| --- id | 用户 ID，匿名发表时为空 | 字符串 |
+| --- userName | 用户名，匿名发表时显示匿名用户 | 字符串 |
+| --- userNickname | 昵称，匿名发表时显示匿名用户 | 字符串 |
+| --- userAvatarURL | 头像地址，匿名发表时为空 | 字符串 |
+| -- permalink | 文章链接 | 字符串 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- commentCount | 评论数 | 整数 |
+| -- viewCount | 浏览数 | 整数 |
+| -- stick | 当前置顶状态 |  |
+| --- active | 置顶是否仍有效 | 布尔值 |
+| --- permanent | 是否管理员永久置顶 | 布尔值 |
+| --- expiresAt | 到期毫秒时间戳；未置顶为0，永久置顶为null |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > type=recent的所有排序均先排列仍有效的置顶，管理员永久置顶最先，再按原排序排列；已过期记录不再因旧置顶时间优先。列表仅返回可列出的文章，不包含讨论帖。普通文章列表不包含长篇；month-comments 的时间门槛为当前服务端时间减一个自然月，按文章ID计龄，筛选后再统计与分页；超出总页数返回空数组。非法分页和筛选参数返回 HTTP 422。
 
@@ -2046,27 +2053,27 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191?includeInteractions=true' 
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 文章详情，包含文章列表的摘要字段及以下字段 |
-| - content | 正文源内容；Markdown 或思绪记录字符串 |
-| - contentFormat | markdown 或 thought |
-| - contentHtml | 正文 HTML；思绪帖为空，需要由客户端播放 content 中的记录 |
-| - commentable | 当前是否允许发布或编辑评论，布尔值；历史状态无法识别时为 null |
-| - statement | 创作声明：0 无、1 AI、2 剧透、3 虚构；历史状态无法识别时为 null |
-| - rewardPoint | 打赏所需积分 |
-| - rewarded | 当前阅读者是否已打赏或为文章作者 |
-| - rewardContent | 可查看的打赏内容源文本，否则为空 |
-| - rewardContentHtml | 可查看的打赏内容 HTML，否则为空 |
-| - interactions | 可选，仅登录且请求该字段时返回。单项缺失表示该项状态未取得 |
-| -- vote | 当前投票及赞同、反对计数，格式同文章投票状态 |
-| -- thanks | 当前感谢状态、计数与所需积分，格式同文章感谢状态 |
-| -- reactions | 当前表态及汇总，格式同文章表态状态 |
-| -- collection / subscription | 当前收藏和订阅状态，各包含 targetId 和 following |
-| - qna | 问答当前公开状态；非问答为 null |
-| -- offerPoint | 文章当前悬赏积分 |
-| -- accepted | 是否存在已采纳回答；包括隐藏或匿名回答，不包含回答编号、作者或正文 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 文章详情，包含文章列表的摘要字段及以下字段 |  |
+| - content | 正文源内容；Markdown 或思绪记录字符串 | 字符串 |
+| - contentFormat | markdown 或 thought | 字符串 |
+| - contentHtml | 正文 HTML；思绪帖为空，需要由客户端播放 content 中的记录 | 字符串 |
+| - commentable | 当前是否允许发布或编辑评论，布尔值；历史状态无法识别时为 null |  |
+| - statement | 创作声明：0 无、1 AI、2 剧透、3 虚构；历史状态无法识别时为 null |  |
+| - rewardPoint | 打赏所需积分 | 整数 |
+| - rewarded | 当前阅读者是否已打赏或为文章作者 | 布尔值 |
+| - rewardContent | 可查看的打赏内容源文本，否则为空 | 字符串 |
+| - rewardContentHtml | 可查看的打赏内容 HTML，否则为空 | 字符串 |
+| - interactions | 可选，仅登录且请求该字段时返回。单项缺失表示该项状态未取得 |  |
+| -- vote | 当前投票及赞同、反对计数，格式同文章投票状态 | {} |
+| -- thanks | 当前感谢状态、计数与所需积分，格式同文章感谢状态 | {} |
+| -- reactions | 当前表态及汇总，格式同文章表态状态 | {} |
+| -- collection / subscription | 当前收藏和订阅状态，各包含 targetId 和 following |  |
+| - qna | 问答当前公开状态；非问答为 null |  |
+| -- offerPoint | 文章当前悬赏积分 | 整数 |
+| -- accepted | 是否存在已采纳回答；包括隐藏或匿名回答，不包含回答编号、作者或正文 | 布尔值 |
 
 > commentable 为 false 或 null 时，不应发起新评论、回复或评论编辑；已有评论仍可读取，已成功请求的原幂等键可以恢复。旧服务未提供这些字段时应展示状态暂不可用，不推定允许评论或无创作声明。
 
@@ -2099,21 +2106,24 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 评论数组 |
-| -- id / articleId | 评论 / 所属文章 ID |
-| -- parentId | 被回复评论 ID，无回复目标时为空 |
-| -- content | 评论 Markdown 源文本，不可查看时为空 |
-| -- contentHtml | 评论 HTML，不可查看时为空 |
-| -- contentVisible | 当前阅读者是否可查看正文 |
-| -- createdAt | 创建时间，毫秒时间戳 |
-| -- anonymous | 是否匿名发表 |
-| -- author | 公开作者资料，字段与文章摘要 author 一致 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 评论数组 |  |
+| -- id / articleId | 评论 / 所属文章 ID |  |
+| -- parentId | 被回复评论 ID，无回复目标时为空 | 字符串 |
+| -- content | 评论 Markdown 源文本，不可查看时为空 | 字符串 |
+| -- contentHtml | 评论 HTML，不可查看时为空 | 字符串 |
+| -- contentVisible | 当前阅读者是否可查看正文 | 布尔值 |
+| -- createdAt | 创建时间，毫秒时间戳 | 整数 |
+| -- anonymous | 是否匿名发表 | 布尔值 |
+| -- author | 公开作者资料，字段与文章摘要 author 一致 | {} |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 文章和评论引用均按当前状态及可读范围返回。文章不存在或不可查看时返回 HTTP 404。仅作者可见评论的正文只对评论作者和文章作者可见，其他阅读者会得到 contentVisible=false 的占位记录。非法 ID、分页或排序返回 HTTP 422。
 
@@ -2164,14 +2174,14 @@ curl --request POST 'https://fishpi.cn/api/v3/me/drafts' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 新草稿摘要，字段与草稿列表中的单项一致 |
-| - id / title / summary | 草稿 ID / 标题 / 文本摘要 |
-| - tags / type | 标签 / 文章类型 |
-| - columnId / columnTitle / chapterNo | 专栏 ID / 标题 / 章节号 |
-| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 新草稿摘要，字段与草稿列表中的单项一致 | {} |
+| - id / title / summary | 草稿 ID / 标题 / 文本摘要 |  |
+| - tags / type | 标签 / 文章类型 |  |
+| - columnId / columnTitle / chapterNo | 专栏 ID / 标题 / 章节号 |  |
+| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |  |
 
 > 使用 JSON 请求体，最大 8 MiB；仅接受表中列出的正文参数，数字和布尔字段需使用对应 JSON 类型。草稿正文是编辑器源内容，保存草稿不会发布文章。成功请求使用相同幂等键重试返回原结果；同一操作使用相同键提交不同内容返回 HTTP 409。变更内容后应使用新键。
 
@@ -2205,11 +2215,11 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/drafts/20261016003' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 更新后的草稿摘要，字段与创建草稿一致 |
-| - id / createdAt / updatedAt | 原草稿 ID / 原创建时间 / 本次更新时间 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 更新后的草稿摘要，字段与创建草稿一致 | {} |
+| - id / createdAt / updatedAt | 原草稿 ID / 原创建时间 / 本次更新时间 |  |
 
 > 草稿不存在或不属于当前账号时返回 HTTP 404。此接口为完整替换，不是局部更新；请同时提交需要保留的思绪记录、专栏信息和其他选项。
 
@@ -2237,10 +2247,10 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/drafts/20261016003' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 成功时 code 为 0 |
-| data | 空对象 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 成功时 code 为 0 |  |
+| data | 空对象 | {} |
 
 > 无需请求体。成功删除后用相同键重试仍成功；使用新键删除不存在或不属于当前账号的草稿返回 HTTP 404。原创建请求的重试不会重新创建后来已删除的草稿。
 
@@ -2306,21 +2316,21 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/paragraphs?p=1&size=20&inc
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 段落结果 |
-| - list | 按正文顺序排列的当前段落 |
-| -- id | 64 位小写段落锚点，用作发布时的 paragraphId |
-| -- kind | 段落类型，如 paragraph、heading、list-item、blockquote、code、table、media |
-| -- index | 在整篇正文中的位置，从 0 开始 |
-| -- snapshot | 纯文本段落摘要，按普通文本展示 |
-| -- state | 当前段落为 active |
-| -- commentCount | 此锚点下有效段评数量，包含回复 |
-| - pagination | 分页信息 |
-| -- p / size | 当前页 / 每页数量 |
-| -- total / pageCount | 段落总数 / 总页数 |
-| - contentHtml | 仅 includeContent=true 时返回；完整正文 HTML，元素带 data-long-paragraph-id、data-long-paragraph-kind 和 data-long-paragraph-index |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 段落结果 |  |
+| - list | 按正文顺序排列的当前段落 |  |
+| -- id | 64 位小写段落锚点，用作发布时的 paragraphId | 字符串 |
+| -- kind | 段落类型，如 paragraph、heading、list-item、blockquote、code、table、media | 字符串 |
+| -- index | 在整篇正文中的位置，从 0 开始 | 整数 |
+| -- snapshot | 纯文本段落摘要，按普通文本展示 | 字符串 |
+| -- state | 当前段落为 active | 字符串 |
+| -- commentCount | 此锚点下有效段评数量，包含回复 | 整数 |
+| - pagination | 分页信息 | {} |
+| -- p / size | 当前页 / 每页数量 |  |
+| -- total / pageCount | 段落总数 / 总页数 |  |
+| - contentHtml | 仅 includeContent=true 时返回；完整正文 HTML，元素带 data-long-paragraph-id、data-long-paragraph-kind 和 data-long-paragraph-index | 字符串 |
 
 > 正文中的站内文章链接仅展示当前可公开的标题；无可公开标题时显示网址，不提供受限标题；链接保留原网址目标及查询参数、片段。
 
@@ -2353,23 +2363,23 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/paragraph-comments?state=a
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 段评结果 |
-| - list | 段评与回复的平铺列表，可通过 parentId 关联 |
-| -- id / articleId / parentId | 评论 ID / 所属文章 ID / 原评论 ID，独立段评的 parentId 为空 |
-| -- content / contentHtml | Markdown 正文 / 正文 HTML；不可读时均为空 |
-| -- contentVisible | 当前阅读者是否可读正文 |
-| -- createdAt / anonymous | 创建时间戳（毫秒） / 是否匿名 |
-| -- author | 公开作者资料 |
-| --- id / userName / userNickname / userAvatarURL | 公开 ID / 用户名 / 昵称 / 头像；匿名作者 ID 为空 |
-| -- type | 段评固定为 1 |
-| -- paragraph | 段落关联信息 |
-| --- id / kind / index / state | 锚点 / 类型 / 位置 / active 或 orphaned |
-| -- permalink | 文章内评论链接 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 当前页 / 每页数量 / 总数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 段评结果 |  |
+| - list | 段评与回复的平铺列表，可通过 parentId 关联 |  |
+| -- id / articleId / parentId | 评论 ID / 所属文章 ID / 原评论 ID，独立段评的 parentId 为空 |  |
+| -- content / contentHtml | Markdown 正文 / 正文 HTML；不可读时均为空 |  |
+| -- contentVisible | 当前阅读者是否可读正文 | 布尔值 |
+| -- createdAt / anonymous | 创建时间戳（毫秒） / 是否匿名 |  |
+| -- author | 公开作者资料 | {} |
+| --- id / userName / userNickname / userAvatarURL | 公开 ID / 用户名 / 昵称 / 头像；匿名作者 ID 为空 |  |
+| -- type | 段评固定为 1 | 整数 |
+| -- paragraph | 段落关联信息 | {} |
+| --- id / kind / index / state | 锚点 / 类型 / 位置 / active 或 orphaned |  |
+| -- permalink | 文章内评论链接 | 字符串 |
+| - pagination | 分页信息 | {} |
+| -- p / size / total / pageCount | 当前页 / 每页数量 / 总数 / 总页数 |  |
 
 > 仅楼主可见评论的正文仅评论者本人及楼主可读。当前段落摘要从长篇段落列表获取，评论对象不返回历史段落快照。段评与回复均参与分页；给定锚点下无匹配记录时返回空列表。不存在、不可查看或非长篇文章返回 HTTP 404，非法筛选、排序或分页返回 HTTP 422，段落标识无法唯一对应时返回 HTTP 409。
 
@@ -2397,19 +2407,19 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 评论对象 |
-| - id / articleId / parentId | 评论 ID / 所属文章 ID / 原评论 ID |
-| - content / contentHtml / contentVisible | 正文 / 正文 HTML / 是否可读；不可读时正文为空 |
-| - createdAt / anonymous | 创建时间戳（毫秒） / 是否匿名 |
-| - author | 公开作者资料 |
-| -- id / userName / userNickname / userAvatarURL | 公开 ID / 用户名 / 昵称 / 头像；匿名作者 ID 为空 |
-| - type | 0 普通评论，1 段评 |
-| - paragraph | 普通评论为 null；段评为关联信息 |
-| -- id / kind / index / state | 锚点 / 类型 / 位置 / active 或 orphaned |
-| - permalink | 文章内评论链接 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 评论对象 |  |
+| - id / articleId / parentId | 评论 ID / 所属文章 ID / 原评论 ID |  |
+| - content / contentHtml / contentVisible | 正文 / 正文 HTML / 是否可读；不可读时正文为空 |  |
+| - createdAt / anonymous | 创建时间戳（毫秒） / 是否匿名 |  |
+| - author | 公开作者资料 | {} |
+| -- id / userName / userNickname / userAvatarURL | 公开 ID / 用户名 / 昵称 / 头像；匿名作者 ID 为空 |  |
+| - type | 0 普通评论，1 段评 | 整数 |
+| - paragraph | 普通评论为 null；段评为关联信息 |  |
+| -- id / kind / index / state | 锚点 / 类型 / 位置 / active 或 orphaned |  |
+| - permalink | 文章内评论链接 | 字符串 |
 
 > 不存在、已失效的评论或所属文章不可查看时返回 HTTP 404。仅楼主可见正文及匿名作者资料遵循段评列表的规则；有效段评标识无法唯一对应时返回 HTTP 409。
 
@@ -2437,16 +2447,16 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003/location' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 当前定位信息，不包含评论正文或作者身份 |
-| - id / articleId | 评论 ID / 所属文章 ID |
-| - type | 0 普通评论，1 段评 |
-| - page / size | 当前页码 / 固定每页20条，按评论ID升序 |
-| - paragraph | 普通评论为 null；段评为当前分组信息 |
-| -- id | 段落标识；有效旧标识归入当前兼容分组 |
-| -- state | active 当前段评，orphaned 原段落已移除的段评 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 当前定位信息，不包含评论正文或作者身份 |  |
+| - id / articleId | 评论 ID / 所属文章 ID |  |
+| - type | 0 普通评论，1 段评 | 整数 |
+| - page / size | 当前页码 / 固定每页20条，按评论ID升序 |  |
+| - paragraph | 普通评论为 null；段评为当前分组信息 |  |
+| -- id | 段落标识；有效旧标识归入当前兼容分组 | 字符串 |
+| -- state | active 当前段评，orphaned 原段落已移除的段评 | 字符串 |
 
 > 普通评论使用文章普通评论列表；段评使用返回的 paragraph.id 和 state 查询段评列表，二者均按 oldest、每页20条读取。私密正文不可见时仍可定位其列表占位，不会因此获得正文或匿名作者身份。
 >
@@ -2485,12 +2495,12 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000001/comments' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 发布结果 |
-| - id | 新评论 ID |
-| - permalink | 文章内评论链接；段评链接包含 paragraph 参数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 发布结果 |  |
+| - id | 新评论 ID | 字符串 |
+| - permalink | 文章内评论链接；段评链接包含 paragraph 参数 | 字符串 |
 
 > 需要绑定手机、具备评论权限并通过正文审核，收费、发言间隔和匿名余额条件沿用平台规则。回复目标必须属于当前文章且可读；回复段评时可省略 paragraphId，若传入则必须与原段落一致。独立段评必须指向当前正文中存在的段落。兼容既有段落标识；无法唯一对应时返回 HTTP 409，且不发表或扣款。
 >
@@ -2524,12 +2534,12 @@ curl --request PUT 'https://fishpi.cn/api/v3/comments/1770000000003' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 编辑结果 |
-| - id | 评论 ID |
-| - permalink | 文章内评论链接 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 编辑结果 |  |
+| - id | 评论 ID | 字符串 |
+| - permalink | 文章内评论链接 | 字符串 |
 
 > 正文需通过审核。编辑费用与五分钟规则沿用平台行为；窗口外的普通公开评论编辑即使正文未变化，也按原规则收费。相同请求键重试不重复编辑、扣款或发送提醒，重放不会覆盖后续编辑；同键不同内容返回 HTTP 409。
 >
@@ -2561,12 +2571,12 @@ curl --request DELETE 'https://fishpi.cn/api/v3/comments/1770000000003' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 删除结果 |
-| - id | 评论 ID |
-| - removed | 是否已删除，成功时为 true |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 删除结果 |  |
+| - id | 评论 ID | 字符串 |
+| - removed | 是否已删除，成功时为 true | 布尔值 |
 
 > 请求体可省略或为 `{}`，不接受其他字段。已有回复、赞踩、感谢、已被采纳或积分不足时拒绝删除；匿名及私密评论仍沿用原删除费用，失败不扣款。
 >
@@ -2596,15 +2606,15 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003/thanks' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 当前状态 |
-| - id | 评论 ID |
-| - thanked | 本人是否已感谢 |
-| - canThank | 是否为他人评论且本人尚未感谢 |
-| - thankCount | 当前感谢次数 |
-| - thankPoint | 当前感谢费用；匿名评论为 0 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 当前状态 |  |
+| - id | 评论 ID | 字符串 |
+| - thanked | 本人是否已感谢 | 布尔值 |
+| - canThank | 是否为他人评论且本人尚未感谢 | 布尔值 |
+| - thankCount | 当前感谢次数 | 整数 |
+| - thankPoint | 当前感谢费用；匿名评论为 0 | 整数 |
 
 > canThank 为当前基本资格提示；权限、余额及最终费用在提交时重新校验。目标不存在、失效、作者不可用或正文不可阅读时返回 HTTP 404；缺少权限返回 HTTP 403，编号不合法返回 HTTP 422。
 
@@ -2634,12 +2644,12 @@ curl --request POST 'https://fishpi.cn/api/v3/comments/1770000000003/thanks' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 感谢结果 |
-| - id | 评论 ID |
-| - thanked | 是否已感谢，成功时为 true |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 感谢结果 |  |
+| - id | 评论 ID | 字符串 |
+| - thanked | 是否已感谢，成功时为 true | 布尔值 |
 
 > 请求体可省略或为 `{}`，不接受其他字段。相同请求键重试返回原结果；换用新键重复感谢也不重复扣费。匿名评论保留原有免转账规则。
 >
@@ -2669,14 +2679,14 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003/accept' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 当前状态 |
-| - id | 评论 ID |
-| - accepted | 当前评论是否已被采纳 |
-| - canAccept | 当前读者为问答文章作者、非评论作者，文章悬赏至少20积分且尚无采纳时为 true |
-| - offerPoint | 当前采纳费用；匿名评论为 0 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 当前状态 |  |
+| - id | 评论 ID | 字符串 |
+| - accepted | 当前评论是否已被采纳 | 布尔值 |
+| - canAccept | 当前读者为问答文章作者、非评论作者，文章悬赏至少20积分且尚无采纳时为 true | 布尔值 |
+| - offerPoint | 当前采纳费用；匿名评论为 0 | 整数 |
 
 > canAccept 为当前基本资格提示；余额及最终资格在提交时重新校验。仅返回当前评论的状态，不提供其他被采纳评论的编号。目标不存在、失效、作者不可用或正文不可阅读时返回 HTTP 404；缺少权限返回 HTTP 403，编号不合法返回 HTTP 422。
 
@@ -2708,12 +2718,12 @@ curl --request POST 'https://fishpi.cn/api/v3/comments/1770000000003/accept' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 采纳结果 |
-| - id | 被采纳评论 ID |
-| - accepted | 是否已采纳，成功时为 true |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 采纳结果 |  |
+| - id | 被采纳评论 ID | 字符串 |
+| - accepted | 是否已采纳，成功时为 true | 布尔值 |
 
 > 请求体可省略或为 `{}`，不接受其他字段。相同请求键重试返回原结果；换用新键重复采纳同一评论也不重复付款。保存失败时不扣款。
 > 已成功请求使用原键重试仍返回原结果；新键按文章当前类型及悬赏资格检查。
@@ -2883,14 +2893,14 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000003/thanks' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 感谢状态 |
-| - id | 文章 ID |
-| - thanked | 本人是否已感谢 |
-| - thankCount | 当前感谢次数 |
-| - thankPoint | 当前一次感谢所需积分，匿名文章为 0；已感谢不会再次扣除 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 感谢状态 |  |
+| - id | 文章 ID | 字符串 |
+| - thanked | 本人是否已感谢 | 布尔值 |
+| - thankCount | 当前感谢次数 | 整数 |
+| - thankPoint | 当前一次感谢所需积分，匿名文章为 0；已感谢不会再次扣除 | 整数 |
 
 > 文章不存在、作者不可用或不可阅读时返回 HTTP 404。锁定但仍可阅读的文章沿用原感谢规则。
 
@@ -2920,12 +2930,12 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000003/thanks' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 感谢结果 |
-| - id | 文章 ID |
-| - thanked | 成功时为 true |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 感谢结果 |  |
+| - id | 文章 ID | 字符串 |
+| - thanked | 成功时为 true | 布尔值 |
 
 > 请求体可省略或为 `{}`，不接受自定义费用等字段。同键重试返回原结果，换新键重复感谢也不再次扣款、计数或提醒；保存失败不扣款。
 >
@@ -2955,13 +2965,13 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000003/reward' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 打赏状态 |
-| - id | 文章 ID |
-| - rewarded | 本人已打赏或本人是文章作者时为 true |
-| - rewardPoint | 文章当前打赏积分；小于 1 表示未启用打赏 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 打赏状态 |  |
+| - id | 文章 ID | 字符串 |
+| - rewarded | 本人已打赏或本人是文章作者时为 true | 布尔值 |
+| - rewardPoint | 文章当前打赏积分；小于 1 表示未启用打赏 | 整数 |
 
 > 正文通过文章详情接口读取，需要 content.read。文章不存在、作者不可用或不可阅读时返回 HTTP 404。
 
@@ -2991,12 +3001,12 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000003/reward' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 打赏结果 |
-| - id | 文章 ID |
-| - rewarded | 成功时为 true |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 打赏结果 |  |
+| - id | 文章 ID | 字符串 |
+| - rewarded | 成功时为 true | 布尔值 |
 
 > 请求体可省略或为 `{}`，不接受自定义价格。同键重试返回原结果，换新键重复打赏也不再次扣款或提醒；文章价格调整后，已有打赏记录不会再次付款。保存失败不扣款。
 >
@@ -3026,14 +3036,14 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 投票状态 |
-| - id | 文章 ID |
-| - vote | 本人投票：up、down；未投票为 null |
-| - upCount | 当前赞数 |
-| - downCount | 当前踩数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 投票状态 |  |
+| - id | 文章 ID | 字符串 |
+| - vote | 本人投票：up、down；未投票为 null |  |
+| - upCount | 当前赞数 | 整数 |
+| - downCount | 当前踩数 | 整数 |
 
 > 文章不存在、失效、作者不可用或不可阅读时返回 HTTP 404；缺少 content.read 返回 HTTP 403，ID 格式不合法返回 HTTP 422。
 
@@ -3064,14 +3074,14 @@ curl --request PUT 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 本次操作结果 |
-| - id | 文章 ID |
-| - vote | 设置后的本人投票：up 或 down |
-| - upCount | 本次操作后的赞数 |
-| - downCount | 本次操作后的踩数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 本次操作结果 |  |
+| - id | 文章 ID | 字符串 |
+| - vote | 设置后的本人投票：up 或 down | up |
+| - upCount | 本次操作后的赞数 | 整数 |
+| - downCount | 本次操作后的踩数 | 整数 |
 
 > 普通用户不能对本人文章投票。字段或自投条件不满足时返回 HTTP 422；目标不可用或不可阅读时返回 HTTP 404，缺少权限返回 HTTP 403，文章归属变化时返回 HTTP 409，操作过于频繁返回 HTTP 429。
 >
@@ -3105,14 +3115,14 @@ curl --request DELETE 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 本次操作结果 |
-| - id | 文章 ID |
-| - vote | 清除后为 null |
-| - upCount | 本次操作后的赞数 |
-| - downCount | 本次操作后的踩数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 本次操作结果 |  |
+| - id | 文章 ID | 字符串 |
+| - vote | 清除后为 null |  |
+| - upCount | 本次操作后的赞数 | 整数 |
+| - downCount | 本次操作后的踩数 | 整数 |
 
 > 请求体可省略或为 `{}`，不接受其他字段。同键重试返回原结果，换新键重复清除也不重复改变计数；重放不会覆盖后续投票。目标和权限限制与设置接口一致，保存失败不改变投票及计数。
 
@@ -3142,14 +3152,14 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 投票状态 |
-| - id | 评论 ID |
-| - vote | 本人投票：up、down；未投票为 null |
-| - upCount | 当前赞数 |
-| - downCount | 当前踩数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 投票状态 |  |
+| - id | 评论 ID | 字符串 |
+| - vote | 本人投票：up、down；未投票为 null |  |
+| - upCount | 当前赞数 | 整数 |
+| - downCount | 当前踩数 | 整数 |
 
 > 评论不存在、失效、作者不可用或不可阅读时返回 HTTP 404；缺少 content.read 返回 HTTP 403，ID 格式不合法返回 HTTP 422。
 
@@ -3180,14 +3190,14 @@ curl --request PUT 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 本次操作结果 |
-| - id | 评论 ID |
-| - vote | 设置后的本人投票：up 或 down |
-| - upCount | 本次操作后的赞数 |
-| - downCount | 本次操作后的踩数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 本次操作结果 |  |
+| - id | 评论 ID | 字符串 |
+| - vote | 设置后的本人投票：up 或 down | up |
+| - upCount | 本次操作后的赞数 | 整数 |
+| - downCount | 本次操作后的踩数 | 整数 |
 
 > 普通用户不能对本人评论投票。字段或自投条件不满足时返回 HTTP 422；目标不可用或不可阅读时返回 HTTP 404，缺少权限返回 HTTP 403，评论归属变化时返回 HTTP 409，操作过于频繁返回 HTTP 429。
 >
@@ -3221,14 +3231,14 @@ curl --request DELETE 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 本次操作结果 |
-| - id | 评论 ID |
-| - vote | 清除后为 null |
-| - upCount | 本次操作后的赞数 |
-| - downCount | 本次操作后的踩数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 本次操作结果 |  |
+| - id | 评论 ID | 字符串 |
+| - vote | 清除后为 null |  |
+| - upCount | 本次操作后的赞数 | 整数 |
+| - downCount | 本次操作后的踩数 | 整数 |
 
 > 请求体可省略或为 `{}`，不接受其他字段。同键重试返回原结果，换新键重复清除也不重复改变计数；重放不会覆盖后续投票。目标和权限限制与设置接口一致，保存失败不改变投票及计数。
 
@@ -3256,12 +3266,12 @@ curl --location --request GET 'https://fishpi.cn/api/v3/reactions/emojis'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 结果 |
-| - list | 可用表情数组 |
-| -- value / emoji | 提交值 / 对应表情，如 heart / ❤️ |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 结果 |  |
+| - list | 可用表情数组 | [] |
+| -- value / emoji | 提交值 / 对应表情，如 heart / ❤️ |  |
 
 ##### 读取文章表态
 
@@ -3284,16 +3294,24 @@ curl --location --request GET 'https://fishpi.cn/api/v3/articles/1770000000000/r
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。
 
@@ -3323,17 +3341,25 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/articles/1770000000000/r
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
-| - changed | 本次首次执行是否改变表态状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
+| - changed | 本次首次执行是否改变表态状态 | 布尔值 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
@@ -3363,17 +3389,25 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/articles/177000000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
-| - changed | 本次首次执行是否改变表态状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
+| - changed | 本次首次执行是否改变表态状态 | 布尔值 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
@@ -3400,16 +3434,24 @@ curl --location --request GET 'https://fishpi.cn/api/v3/comments/1770000000000/r
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。
 
@@ -3439,17 +3481,25 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/comments/1770000000000/r
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
-| - changed | 本次首次执行是否改变表态状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
+| - changed | 本次首次执行是否改变表态状态 | 布尔值 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
@@ -3479,17 +3529,25 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/comments/177000000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
-| - changed | 本次首次执行是否改变表态状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
+| - changed | 本次首次执行是否改变表态状态 | 布尔值 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
@@ -3517,16 +3575,24 @@ curl --location --request GET 'https://fishpi.cn/api/v3/chat/messages/1770000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。
 
@@ -3556,17 +3622,25 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/chat/messages/1770000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
-| - changed | 本次首次执行是否改变表态状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
+| - changed | 本次首次执行是否改变表态状态 | 布尔值 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
@@ -3596,17 +3670,25 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1770000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 表态结果 |
-| - targetId / targetType / groupType | 目标 ID / article、comment 或 chat / 固定 emoji |
-| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 |
-| - summary | 表情汇总数组，仅包含数量大于零的表情 |
-| -- value / emoji / count / selected | 提交值 / 表情 / 数量 / 当前账号是否选择 |
-| -- users | 展示名称数组 |
-| -- userDetails | 公开用户展示资料数组，仅含 userName、displayName、avatarURL |
-| - changed | 本次首次执行是否改变表态状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 表态结果 |  |
+| - targetId | 目标 ID | 字符串 |
+| - targetType | 目标类型，可为 article、comment 或 chat | article |
+| - groupType | 表态分组，固定为 emoji | emoji |
+| - currentUserReaction | 当前账号的 value，无表态为空字符串；匿名读取为空字符串 | 字符串 |
+| - summary | 表情汇总数组，仅包含数量大于零的表情 |  |
+| -- value | 提交值 | 字符串 |
+| -- emoji | 展示表情 | 字符串 |
+| -- count | 表态数量 | 整数 |
+| -- selected | 当前账号是否选择 | 布尔值 |
+| -- users | 展示名称数组 | [] |
+| -- userDetails | 公开用户展示资料数组 | [] |
+| --- userName | 用户名 | 字符串 |
+| --- displayName | 展示名称 | 字符串 |
+| --- avatarURL | 头像地址 | 字符串 |
+| - changed | 本次首次执行是否改变表态状态 | 布尔值 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
@@ -3764,14 +3846,14 @@ curl --location --request POST 'https://fishpi.cn/api/v3/breezemoons' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 已发布记录 |
-| - id / content / contentHtml | ID / 正文 / 渲染正文 |
-| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| - author | 公开作者资料 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 已发布记录 |  |
+| - id / content / contentHtml | ID / 正文 / 渲染正文 |  |
+| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |  |
+| - author | 公开作者资料 | {} |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
 
 > 审核未通过返回 HTTP 422，未绑定手机返回 HTTP 403，操作过于频繁返回 HTTP 429。相同幂等键与正文重试返回原记录，不会重复发布；同键使用不同正文返回 HTTP 409。清风明月列表设为不公开时仍可发布，但不会进入全站公开列表。
 
@@ -3795,14 +3877,14 @@ curl --location --request GET 'https://fishpi.cn/api/v3/breezemoons/177000000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 清风明月记录 |
-| - id / content / contentHtml | ID / 正文 / 渲染正文 |
-| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| - author | 公开作者资料 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 清风明月记录 |  |
+| - id / content / contentHtml | ID / 正文 / 渲染正文 |  |
+| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |  |
+| - author | 公开作者资料 | {} |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
 
 > 遵循作者的清风明月列表公开设置；本人或具备相应权限的账号可读取私密列表记录。不存在、不可访问或已失效的记录返回 HTTP 404。
 
@@ -3831,14 +3913,14 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/breezemoons/177000000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 更新后的记录 |
-| - id / content / contentHtml | ID / 正文源文本 / 清洗后的渲染正文 |
-| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| - author | 公开作者资料 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 更新后的记录 |  |
+| - id / content / contentHtml | ID / 正文源文本 / 清洗后的渲染正文 |  |
+| - createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |  |
+| - author | 公开作者资料 | {} |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
 
 > 沿用原编辑规则，保留正文源标记；页面展示请使用清洗后的 contentHtml，或把 content 当作文本。审核未通过返回 HTTP 422；不存在、非本人或失效记录返回 HTTP 404。编辑不改变作者和创建时间。同键重试返回原编辑结果，不会覆盖后续编辑；同键提交不同正文返回 HTTP 409。
 
@@ -3864,17 +3946,21 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/watching/breezemoons?
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 清风明月记录，按发布时间倒序 |
-| -- id / content / contentHtml | ID / 正文 / 渲染正文 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- author | 公开作者资料 |
-| --- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 清风明月记录，按发布时间倒序 |  |
+| -- id / content / contentHtml | ID / 正文 / 渲染正文 |  |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- author | 公开作者资料 | {} |
+| --- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 只包含关注用户公开且有效的内容。没有关注用户或没有可展示内容时返回空列表，不回退为全站列表。
 
@@ -4285,7 +4371,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/online-users?p=1&size=20' \
 | -- id | 用户 ID | 123456 |
 | -- userName | 用户名 | Fish |
 | -- userAvatarURL | 头像地址 | https://example.com/image.png |
-| - pagination | 分页信息 | |
+| - pagination | 分页信息 | {} |
 | -- p | 当前页码 | 1 |
 | -- size | 每页条数 | 20 |
 | -- total | 本次结果中对当前阅读者可见的用户数 | 42 |
@@ -4332,7 +4418,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/mutes?p=1&size=20' \
 | -- userNickname | 昵称，可空 | 鱼 |
 | -- userAvatarURL | 头像地址，可空 | https://example.com/image.png |
 | -- expiresAt | 解除时间，毫秒时间戳 | 1793116800000 |
-| - pagination | 分页信息 | |
+| - pagination | 分页信息 | {} |
 | -- p | 当前页码 | 1 |
 | -- size | 每页条数 | 20 |
 | -- total | 本次查询的有效记录数 | 42 |
@@ -5399,13 +5485,16 @@ curl --request GET 'https://fishpi.cn/api/v3/me/notifications?type=all&status=un
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 通知数组，单项字段与通知详情一致 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 通知数组，单项字段与通知详情一致 | [] |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 读取不会自动标记已读。相关内容不存在或不可查看时返回 contentAvailable=false 的占位通知，不提供相关资源和跳转链接。 涉及文章的通知说明使用当前可读文章的标题，目标变化后不继续展示旧标题。
 
@@ -5430,13 +5519,13 @@ curl --request GET 'https://fishpi.cn/api/v3/me/notifications/unread-count' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 计数对象 |
-| - total | 未读总数 |
-| - categories | 分类计数对象 |
-| -- commented / reply / at / following / point / broadcast / sys-announce / other | 各分类的未读数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 计数对象 |  |
+| - total | 未读总数 | 整数 |
+| - categories | 分类计数对象 | {} |
+| -- commented / reply / at / following / point / broadcast / sys-announce / other | 各分类的未读数 |  |
 
 ##### 通知详情
 
@@ -5460,17 +5549,17 @@ curl --request GET 'https://fishpi.cn/api/v3/me/notifications/20261016004' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 通知对象 |
-| - id / type / category | 通知 ID / 数字类型 / 分类 |
-| - title | 通知标题文本 |
-| - hasRead / createdAt | 是否已读 / 创建时间（毫秒时间戳） |
-| - description / descriptionHtml | 通知说明文本 / HTML |
-| - url | 相关页面链接，无可用目标时为空 |
-| - contentAvailable | 相关内容当前是否可展示 |
-| - article / comment / actor | 可选的公开文章摘要 / 评论 / 操作用户资料；字段与对应 v3 资源一致 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 通知对象 |  |
+| - id / type / category | 通知 ID / 数字类型 / 分类 |  |
+| - title | 通知标题文本 | 字符串 |
+| - hasRead / createdAt | 是否已读 / 创建时间（毫秒时间戳） |  |
+| - description / descriptionHtml | 通知说明文本 / HTML |  |
+| - url | 相关页面链接，无可用目标时为空 | 字符串 |
+| - contentAvailable | 相关内容当前是否可展示 | 布尔值 |
+| - article / comment / actor | 可选的公开文章摘要 / 评论 / 操作用户资料；字段与对应 v3 资源一致 |  |
 
 > 通知不存在或不属于当前账号时返回 HTTP 404。
 
@@ -5502,11 +5591,11 @@ curl --request POST 'https://fishpi.cn/api/v3/me/notifications/20261016004/read'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 操作结果 |
-| - changed | 本次原操作变更的通知数；重试返回原结果 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 操作结果 |  |
+| - changed | 本次原操作变更的通知数；重试返回原结果 | 整数 |
 
 > 无需请求体。通知已读时 changed=0；不存在或不属于当前账号时返回 HTTP 404。
 
@@ -5536,11 +5625,11 @@ curl --request POST 'https://fishpi.cn/api/v3/me/notifications/read' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 操作结果 |
-| - changed | 本次原操作变更的通知数；重试返回原结果 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 操作结果 |  |
+| - changed | 本次原操作变更的通知数；重试返回原结果 | 整数 |
 
 > 成功后使用原键重试返回原结果，不会标记后来新增的通知。需要处理新通知时请使用新键。
 
@@ -5568,11 +5657,11 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/notifications/20261016004' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 操作结果 |
-| - changed | 本次原操作变更的通知数；重试返回原结果 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 操作结果 |  |
+| - changed | 本次原操作变更的通知数；重试返回原结果 | 整数 |
 
 > 无需请求体。成功删除后使用原键重试仍成功；使用新键删除不存在或不属于当前账号的通知返回 HTTP 404。
 
@@ -5602,11 +5691,11 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/notifications' \
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 操作结果 |
-| - changed | 本次原操作变更的通知数；重试返回原结果 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 操作结果 |  |
+| - changed | 本次原操作变更的通知数；重试返回原结果 | 整数 |
 
 > 需要 JSON 请求体及明确分类，不支持 all。成功后的重试不删除后来新增的通知。
 
@@ -5725,20 +5814,24 @@ curl 'https://fishpi.cn/api/v3/search?q=Java&p=1&size=20'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / title | 文章 ID / 标题 |
-| -- preview / tags | 文本摘要 / 逗号分隔标签 |
-| -- type / anonymous | 文章类型 / 是否匿名发表 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 |
-| -- permalink | 文章链接 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- commentCount / viewCount | 评论 / 浏览数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / title | 文章 ID / 标题 |  |
+| -- preview / tags | 文本摘要 / 逗号分隔标签 |  |
+| -- type / anonymous | 文章类型 / 是否匿名发表 |  |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 | {} |
+| -- permalink | 文章链接 | 字符串 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- commentCount / viewCount | 评论 / 浏览数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 特殊字符按字面含义搜索；结果不包含讨论帖和不可列出的文章。非法参数返回 HTTP 422；请求过于频繁返回 HTTP 429。
 
@@ -5764,18 +5857,21 @@ curl 'https://fishpi.cn/api/v3/tags'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id | 标签 ID |
-| -- title / uri | 标签名称 / 标签路径名 |
-| -- description | 描述源文本 |
-| -- iconURL | 图标地址 |
-| -- articleCount / followerCount | 关联文章数 / 关注人数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id | 标签 ID | 字符串 |
+| -- title / uri | 标签名称 / 标签路径名 |  |
+| -- description | 描述源文本 | 字符串 |
+| -- iconURL | 图标地址 | 字符串 |
+| -- articleCount / followerCount | 关联文章数 / 关注人数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 标签详情
 
@@ -5798,15 +5894,15 @@ curl 'https://fishpi.cn/api/v3/tags/20261016001'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 详情对象 |
-| - id | 标签 ID |
-| - title / uri | 标签名称 / 标签路径名 |
-| - description | 描述源文本 |
-| - iconURL | 图标地址 |
-| - articleCount / followerCount | 关联文章数 / 关注人数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 详情对象 |  |
+| - id | 标签 ID | 字符串 |
+| - title / uri | 标签名称 / 标签路径名 |  |
+| - description | 描述源文本 | 字符串 |
+| - iconURL | 图标地址 | 字符串 |
+| - articleCount / followerCount | 关联文章数 / 关注人数 |  |
 
 > 标签不存在或不可用时返回 HTTP 404。
 
@@ -5835,20 +5931,24 @@ curl 'https://fishpi.cn/api/v3/tags/20261016001/articles'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / title | 文章 ID / 标题 |
-| -- preview / tags | 文本摘要 / 逗号分隔标签 |
-| -- type / anonymous | 文章类型 / 是否匿名发表 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 |
-| -- permalink | 文章链接 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- commentCount / viewCount | 评论 / 浏览数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / title | 文章 ID / 标题 |  |
+| -- preview / tags | 文本摘要 / 逗号分隔标签 |  |
+| -- type / anonymous | 文章类型 / 是否匿名发表 |  |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 | {} |
+| -- permalink | 文章链接 | 字符串 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- commentCount / viewCount | 评论 / 浏览数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 标签不存在或不可用时返回 HTTP 404。
 
@@ -5874,18 +5974,21 @@ curl 'https://fishpi.cn/api/v3/domains'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id | 领域 ID |
-| -- title / uri | 领域名称 / 路径名 |
-| -- description | 描述源文本 |
-| -- iconURL | 图标地址 |
-| -- tagCount | 关联标签数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id | 领域 ID | 字符串 |
+| -- title / uri | 领域名称 / 路径名 |  |
+| -- description | 描述源文本 | 字符串 |
+| -- iconURL | 图标地址 | 字符串 |
+| -- tagCount | 关联标签数 | 整数 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 领域详情
 
@@ -5908,15 +6011,15 @@ curl 'https://fishpi.cn/api/v3/domains/20261016002'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 详情对象 |
-| - id | 领域 ID |
-| - title / uri | 领域名称 / 路径名 |
-| - description | 描述源文本 |
-| - iconURL | 图标地址 |
-| - tagCount | 关联标签数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 详情对象 |  |
+| - id | 领域 ID | 字符串 |
+| - title / uri | 领域名称 / 路径名 |  |
+| - description | 描述源文本 | 字符串 |
+| - iconURL | 图标地址 | 字符串 |
+| - tagCount | 关联标签数 | 整数 |
 
 > 领域不存在或不可用时返回 HTTP 404。
 
@@ -5943,18 +6046,21 @@ curl 'https://fishpi.cn/api/v3/domains/20261016002/tags'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id | 标签 ID |
-| -- title / uri | 标签名称 / 标签路径名 |
-| -- description | 描述源文本 |
-| -- iconURL | 图标地址 |
-| -- articleCount / followerCount | 关联文章数 / 关注人数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id | 标签 ID | 字符串 |
+| -- title / uri | 标签名称 / 标签路径名 |  |
+| -- description | 描述源文本 | 字符串 |
+| -- iconURL | 图标地址 | 字符串 |
+| -- articleCount / followerCount | 关联文章数 / 关注人数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 领域不存在或不可用时返回 HTTP 404。
 
@@ -5983,20 +6089,24 @@ curl 'https://fishpi.cn/api/v3/domains/20261016002/articles'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / title | 文章 ID / 标题 |
-| -- preview / tags | 文本摘要 / 逗号分隔标签 |
-| -- type / anonymous | 文章类型 / 是否匿名发表 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 |
-| -- permalink | 文章链接 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- commentCount / viewCount | 评论 / 浏览数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / title | 文章 ID / 标题 |  |
+| -- preview / tags | 文本摘要 / 逗号分隔标签 |  |
+| -- type / anonymous | 文章类型 / 是否匿名发表 |  |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 | {} |
+| -- permalink | 文章链接 | 字符串 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- commentCount / viewCount | 评论 / 浏览数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 领域不存在或不可用时返回 HTTP 404。
 
@@ -6022,18 +6132,18 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 详情对象 |
-| - id / userName | 用户 ID / 用户名 |
-| - userNickname / userAvatarURL | 昵称 / 头像 |
-| - userIntro / userURL | 个人介绍文本 / 个人网址 |
-| - userRole / userRoleId | 当前角色显示名 / 稳定角色 ID，仅供身份标签展示，不是读者的操作授权 |
-| - cardBg | 个性卡片背景图片 URL，未设置或无有效图片地址时为空字符串 |
-| - userPoint | 当前积分余额，整数 |
-| - onlineMinute | 累计在线时长，单位分钟，非负整数 |
-| - userLatestLoginTime | 可选，被查看用户的最后登录时间，Unix 毫秒时间戳。显式请求且有有效记录时返回 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 详情对象 |  |
+| - id / userName | 用户 ID / 用户名 |  |
+| - userNickname / userAvatarURL | 昵称 / 头像 |  |
+| - userIntro / userURL | 个人介绍文本 / 个人网址 |  |
+| - userRole / userRoleId | 当前角色显示名 / 稳定角色 ID，仅供身份标签展示，不是读者的操作授权 |  |
+| - cardBg | 个性卡片背景图片 URL，未设置或无有效图片地址时为空字符串 | 字符串 |
+| - userPoint | 当前积分余额，整数 | 整数 |
+| - onlineMinute | 累计在线时长，单位分钟，非负整数 | 整数 |
+| - userLatestLoginTime | 可选，被查看用户的最后登录时间，Unix 毫秒时间戳。显式请求且有有效记录时返回 | 整数 |
 
 > 用户不存在或不可用时返回 HTTP 404。 资料及相关列表按当前账号状态和隐私范围读取；收回公开权限后，无权读者的相关列表返回 HTTP 403，本人和符合既有权限的管理员例外保持。
 
@@ -6062,20 +6172,24 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/articles'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / title | 文章 ID / 标题 |
-| -- preview / tags | 文本摘要 / 逗号分隔标签 |
-| -- type / anonymous | 文章类型 / 是否匿名发表 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 |
-| -- permalink | 文章链接 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- commentCount / viewCount | 评论 / 浏览数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / title | 文章 ID / 标题 |  |
+| -- preview / tags | 文本摘要 / 逗号分隔标签 |  |
+| -- type / anonymous | 文章类型 / 是否匿名发表 |  |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 | {} |
+| -- permalink | 文章链接 | 字符串 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- commentCount / viewCount | 评论 / 浏览数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 沿用用户文章列表隐私设置，无权查看返回 HTTP 403；不包含匿名发表文章和讨论帖。
 
@@ -6102,18 +6216,21 @@ curl --location --request GET 'https://fishpi.cn/api/v3/users/Vanessa/comments?p
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 记录数组 |
-| -- id / articleId / parentId | 评论 ID / 文章 ID / 原评论 ID |
-| -- type | 0 普通评论，1 段评 |
-| -- content / contentHtml / contentVisible | 正文 / 渲染正文 / 当前阅读者是否可见正文 |
-| -- createdAt / anonymous / author | 创建时间（毫秒） / 是否匿名 / 公开作者资料 |
-| -- article | 文章摘要，与用户文章列表的记录字段相同 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 记录数组 | [] |
+| -- id / articleId / parentId | 评论 ID / 文章 ID / 原评论 ID |  |
+| -- type | 0 普通评论，1 段评 | 整数 |
+| -- content / contentHtml / contentVisible | 正文 / 渲染正文 / 当前阅读者是否可见正文 |  |
+| -- createdAt / anonymous / author | 创建时间（毫秒） / 是否匿名 / 公开作者资料 |  |
+| -- article | 文章摘要，与用户文章列表的记录字段相同 | {} |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 遵循用户的评论列表公开设置；不收录匿名评论、讨论帖或当前不可访问的文章。私密评论在无权阅读时保留记录，正文为空且 contentVisible=false。
 
@@ -6143,15 +6260,18 @@ curl --location --request GET 'https://fishpi.cn/api/v3/users/Vanessa/watching?p
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 记录数组 |
-| -- id / title / preview / tags / type / anonymous | 文章 ID / 标题 / 摘要 / 标签 / 类型 / 是否匿名 |
-| -- author / permalink / createdAt / updatedAt / commentCount / viewCount | 公开作者 / 链接 / 创建和更新时间 / 评论和浏览次数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 记录数组 | [] |
+| -- id / title / preview / tags / type / anonymous | 文章 ID / 标题 / 摘要 / 标签 / 类型 / 是否匿名 |  |
+| -- author / permalink / createdAt / updatedAt / commentCount / viewCount | 公开作者 / 链接 / 创建和更新时间 / 评论和浏览次数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 遵循用户的关注文章列表公开设置；按关注用户查找时不收录其匿名文章。source=all 合并用户和标签两个来源，不包括文章订阅。
 
@@ -6180,15 +6300,18 @@ curl --location --request GET 'https://fishpi.cn/api/v3/users/Vanessa/watching/a
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 记录数组 |
-| -- id / title / preview / tags / type / anonymous | 文章 ID / 标题 / 摘要 / 标签 / 类型 / 是否匿名 |
-| -- author / permalink / createdAt / updatedAt / commentCount / viewCount | 公开作者 / 链接 / 创建和更新时间 / 评论和浏览次数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 记录数组 | [] |
+| -- id / title / preview / tags / type / anonymous | 文章 ID / 标题 / 摘要 / 标签 / 类型 / 是否匿名 |  |
+| -- author / permalink / createdAt / updatedAt / commentCount / viewCount | 公开作者 / 链接 / 创建和更新时间 / 评论和浏览次数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 遵循用户的关注文章列表公开设置；仅包含当前可列出的订阅文章，收藏文章请使用 following/articles。
 
@@ -6215,17 +6338,21 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/breezemoons'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id | 清风明月 ID |
-| -- content / contentHtml | 正文 Markdown / 正文 HTML |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id | 清风明月 ID | 字符串 |
+| -- content / contentHtml | 正文 Markdown / 正文 HTML |  |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL | {} |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 沿用用户清风明月列表隐私设置，无权查看返回 HTTP 403。 单条详情同样按当前作者状态及可见范围判断，不可读时返回 HTTP 404。
 
@@ -6252,14 +6379,17 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/following/users'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 沿用用户关注列表隐私设置，无权查看返回 HTTP 403。
 
@@ -6286,18 +6416,21 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/following/tags'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id | 标签 ID |
-| -- title / uri | 标签名称 / 标签路径名 |
-| -- description | 描述源文本 |
-| -- iconURL | 图标地址 |
-| -- articleCount / followerCount | 关联文章数 / 关注人数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id | 标签 ID | 字符串 |
+| -- title / uri | 标签名称 / 标签路径名 |  |
+| -- description | 描述源文本 | 字符串 |
+| -- iconURL | 图标地址 | 字符串 |
+| -- articleCount / followerCount | 关联文章数 / 关注人数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 沿用用户关注标签隐私设置，无权查看返回 HTTP 403。
 
@@ -6326,20 +6459,24 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/following/articles'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / title | 文章 ID / 标题 |
-| -- preview / tags | 文本摘要 / 逗号分隔标签 |
-| -- type / anonymous | 文章类型 / 是否匿名发表 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 |
-| -- permalink | 文章链接 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- commentCount / viewCount | 评论 / 浏览数 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / title | 文章 ID / 标题 |  |
+| -- preview / tags | 文本摘要 / 逗号分隔标签 |  |
+| -- type / anonymous | 文章类型 / 是否匿名发表 |  |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL；匿名发表时隐藏真实身份 | {} |
+| -- permalink | 文章链接 | 字符串 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- commentCount / viewCount | 评论 / 浏览数 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 沿用用户收藏文章隐私设置，无权查看返回 HTTP 403；文章字段与文章列表一致。
 
@@ -6366,14 +6503,17 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/followers'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 沿用用户粉丝列表隐私设置，无权查看返回 HTTP 403。
 
@@ -6399,17 +6539,21 @@ curl 'https://fishpi.cn/api/v3/breezemoons'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 结果数组 |
-| -- id | 清风明月 ID |
-| -- content / contentHtml | 正文 Markdown / 正文 HTML |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 结果数组 | [] |
+| -- id | 清风明月 ID | 字符串 |
+| -- content / contentHtml | 正文 Markdown / 正文 HTML |  |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL | {} |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 #### v3 发现与公开操作记录
 
@@ -6625,19 +6769,23 @@ curl 'https://fishpi.cn/api/v3/fish-games'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 鱼游数组 |
-| -- id / name / description | 鱼游 ID / 名称 / 描述文本 |
-| -- url / iconURL | 游戏链接 / 图标链接 |
-| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL |
-| -- upCount / downCount | 点赞数 / 点踩数 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| -- userVote | 当前阅读者投票：like、dislike 或空字符串 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 鱼游数组 |  |
+| -- id / name / description | 鱼游 ID / 名称 / 描述文本 |  |
+| -- url / iconURL | 游戏链接 / 图标链接 |  |
+| -- author | 公开作者资料，包含 id、userName、userNickname、userAvatarURL | {} |
+| -- upCount / downCount | 点赞数 / 点踩数 |  |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| -- userVote | 当前阅读者投票：like、dislike 或空字符串 | 字符串 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 描述为文本；需要当前投票状态时携带 Bearer。
 
@@ -6662,10 +6810,10 @@ curl 'https://fishpi.cn/api/v3/fish-games/20261016005'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 鱼游对象，字段与列表单项一致 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 鱼游对象，字段与列表单项一致 | {} |
 
 > 不存在或未审核通过的鱼游返回 HTTP 404。
 
@@ -6692,18 +6840,21 @@ curl 'https://fishpi.cn/api/v3/fish-games/20261016005/comments'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 评论数组 |
-| -- id / gameId | 评论 ID / 鱼游 ID |
-| -- content | 正文文本 |
-| -- contentAvailable | 正文是否可展示 |
-| -- author | 公开作者资料 |
-| -- createdAt | 创建时间，毫秒时间戳 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 评论数组 |  |
+| -- id / gameId | 评论 ID / 鱼游 ID |  |
+| -- content | 正文文本 | 字符串 |
+| -- contentAvailable | 正文是否可展示 | 布尔值 |
+| -- author | 公开作者资料 | {} |
+| -- createdAt | 创建时间，毫秒时间戳 | 整数 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 父鱼游不存在或未审核通过时返回 HTTP 404。
 
@@ -6729,19 +6880,22 @@ curl 'https://fishpi.cn/api/v3/milestones'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 大事记数组 |
-| -- id / title | 大事记 ID / 标题文本 |
-| -- date / endDate | 开始 / 结束日期，YYYY-MM-DD；无结束日期时为空 |
-| -- content / contentHtml | 正文文本 / HTML |
-| -- link | 相关链接 |
-| -- media | 媒体对象 |
-| --- url / type / caption | 媒体链接 / 类型（image 或 video）/ 说明文本 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 大事记数组 |  |
+| -- id / title | 大事记 ID / 标题文本 |  |
+| -- date / endDate | 开始 / 结束日期，YYYY-MM-DD；无结束日期时为空 |  |
+| -- content / contentHtml | 正文文本 / HTML |  |
+| -- link | 相关链接 | 字符串 |
+| -- media | 媒体对象 | {} |
+| --- url / type / caption | 媒体链接 / 类型（image 或 video）/ 说明文本 |  |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 大事记详情
 
@@ -6764,10 +6918,10 @@ curl 'https://fishpi.cn/api/v3/milestones/20261016006'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 大事记对象，字段与列表单项一致 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 大事记对象，字段与列表单项一致 | {} |
 
 > 不存在或未审核通过时返回 HTTP 404。
 
@@ -6791,14 +6945,14 @@ curl 'https://fishpi.cn/api/v3/statistics'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 统计对象 |
-| - memberCount / articleCount / commentCount | 用户 / 文章 / 评论数 |
-| - domainCount / tagCount / linkCount | 领域 / 标签 / 链接数 |
-| - onlineVisitorCount / onlineMemberCount | 当前在线总数 / 在线成员数 |
-| - peakOnlineVisitorCount | 历史最高在线总数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 统计对象 |  |
+| - memberCount / articleCount / commentCount | 用户 / 文章 / 评论数 |  |
+| - domainCount / tagCount / linkCount | 领域 / 标签 / 链接数 |  |
+| - onlineVisitorCount / onlineMemberCount | 当前在线总数 / 在线成员数 |  |
+| - peakOnlineVisitorCount | 历史最高在线总数 | 整数 |
 
 ##### 同城用户
 
@@ -6823,15 +6977,18 @@ curl 'https://fishpi.cn/api/v3/cities/%E4%B8%8A%E6%B5%B7/users'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 用户数组 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
-| -- userIntro | 个人介绍文本 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 用户数组 |  |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
+| -- userIntro | 个人介绍文本 | 字符串 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 同城文章
 
@@ -6857,13 +7014,16 @@ curl 'https://fishpi.cn/api/v3/cities/%E4%B8%8A%E6%B5%B7/articles'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表数据 |
-| - list | 文章摘要数组，字段与文章列表一致 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表数据 |  |
+| - list | 文章摘要数组，字段与文章列表一致 | [] |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 只包含作者公开位置的文章，不包含匿名发表、讨论帖或不可列出的文章。
 
@@ -6892,13 +7052,13 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/fish-games/1770000000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 投票结果 |
-| - upCount / downCount | 当前点赞数 / 点踩数 |
-| - userVote | 当前账号投票，like、dislike 或空字符串 |
-| - changed | 本次首次执行是否改变投票状态 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 投票结果 |  |
+| - upCount / downCount | 当前点赞数 / 点踩数 |  |
+| - userVote | 当前账号投票，like、dislike 或空字符串 | 字符串 |
+| - changed | 本次首次执行是否改变投票状态 | 布尔值 |
 
 > 同值重复设置不会取消投票，changed=false；设置另一值会换票。同键重试返回原结果，不改变后续投票状态；同键使用不同值返回 HTTP 409。鱼游不存在或尚未公开返回 HTTP 404。
 
@@ -6925,13 +7085,13 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/fish-games/1770000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 投票结果 |
-| - upCount / downCount | 当前点赞数 / 点踩数 |
-| - userVote | 空字符串 |
-| - changed | 是否清除了已有投票 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 投票结果 |  |
+| - upCount / downCount | 当前点赞数 / 点踩数 |  |
+| - userVote | 空字符串 | 字符串 |
+| - changed | 是否清除了已有投票 | 布尔值 |
 
 > 请求体可省略或为 {}。没有投票时成功返回 changed=false；设置与清除请使用不同幂等键，否则返回 HTTP 409。目标必须已经公开。
 
@@ -6960,15 +7120,15 @@ curl --location --request POST 'https://fishpi.cn/api/v3/fish-games/177000000000
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 已创建的评论 |
-| - id / gameId | 评论 ID / 鱼游 ID |
-| - content / contentAvailable | 评论文本 / 当前是否可展示 |
-| - author | 公开作者资料 |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |
-| - createdAt | 创建时间，毫秒时间戳 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 已创建的评论 |  |
+| - id / gameId | 评论 ID / 鱼游 ID |  |
+| - content / contentAvailable | 评论文本 / 当前是否可展示 |  |
+| - author | 公开作者资料 | {} |
+| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
+| - createdAt | 创建时间，毫秒时间戳 | 整数 |
 
 > 同键重试返回原评论，不会重复发布；同键提交不同正文返回 HTTP 409。目标不存在或尚未公开返回 HTTP 404；非法内容返回 HTTP 422。
 
@@ -7111,13 +7271,16 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/follows/users?p=1&siz
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 用户公开资料：id、userName、userNickname、userAvatarURL、userIntro |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 用户公开资料：id、userName、userNickname、userAvatarURL、userIntro | [] |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 添加关注用户
 
@@ -7213,13 +7376,16 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/follows/tags?p=1&size
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 标签公开资料，与标签列表一致 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 标签公开资料，与标签列表一致 | [] |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 添加关注标签
 
@@ -7315,13 +7481,16 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/collections?p=1&size=
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 文章摘要，与用户文章列表一致；另含 available |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 文章摘要，与用户文章列表一致；另含 available | [] |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 按添加关系的先后倒序。当前不可阅读或已删除的目标仅返回 `id` 与 `available=false`，仍可取消该关系；允许阅读的讨论帖正常返回。
 
@@ -7423,13 +7592,16 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/subscriptions?p=1&siz
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 列表结果 |
-| - list | 文章摘要，与用户文章列表一致；另含 available |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 列表结果 |  |
+| - list | 文章摘要，与用户文章列表一致；另含 available | [] |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 按添加关系的先后倒序。当前不可阅读或已删除的目标仅返回 `id` 与 `available=false`，仍可取消该关系；允许阅读的讨论帖正常返回。
 
@@ -7655,17 +7827,17 @@ curl 'https://fishpi.cn/api/v3/me/settings' --header 'Authorization: Bearer TOKE
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 设置对象 |
-| - profile | 包含 userNickname、userIntro、userURL |
-| - privacy | 各列表是否公开，true 表示公开 |
-| -- articles / comments / breezemoons / points | 文章 / 评论 / 清风明月 / 积分 |
-| -- followers / followingUsers / followingTags / followingArticles | 粉丝 / 关注用户 / 关注标签 / 收藏文章 |
-| - display | 显示偏好 |
-| -- commentViewMode / avatarViewMode | 评论 / 头像模式 |
-| -- skin / mobileSkin | 桌面 / 移动皮肤 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 设置对象 |  |
+| - profile | 包含 userNickname、userIntro、userURL | {} |
+| - privacy | 各列表是否公开，true 表示公开 | {} |
+| -- articles / comments / breezemoons / points | 文章 / 评论 / 清风明月 / 积分 |  |
+| -- followers / followingUsers / followingTags / followingArticles | 粉丝 / 关注用户 / 关注标签 / 收藏文章 |  |
+| - display | 显示偏好 | {} |
+| -- commentViewMode / avatarViewMode | 评论 / 头像模式 |  |
+| -- skin / mobileSkin | 桌面 / 移动皮肤 |  |
 
 ##### 读取签到状态
 
@@ -7687,14 +7859,14 @@ curl 'https://fishpi.cn/api/v3/me/checkin' --header 'Authorization: Bearer TOKEN
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 签到状态 |
-| - checkedIn | 今日是否已签到 |
-| - liveness | 当前活跃度百分比 |
-| - threshold | 自动签到活跃度门槛 |
-| - streak | 连续签到天数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 签到状态 |  |
+| - checkedIn | 今日是否已签到 | 布尔值 |
+| - liveness | 当前活跃度百分比 | 12.5 |
+| - threshold | 自动签到活跃度门槛 | 整数 |
+| - streak | 连续签到天数 | 整数 |
 
 > 此接口只读取状态，不执行签到。
 
@@ -7718,12 +7890,12 @@ curl 'https://fishpi.cn/api/v3/me/bag' --header 'Authorization: Bearer TOKEN'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 背包数据 |
-| - list | 物品列表 |
-| -- code / count | 物品编码 / 数量 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 背包数据 |  |
+| - list | 物品列表 | [] |
+| -- code / count | 物品编码 / 数量 |  |
 
 ##### 读取积分流水
 
@@ -7747,18 +7919,21 @@ curl 'https://fishpi.cn/api/v3/me/points' --header 'Authorization: Bearer TOKEN'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 流水数据 |
-| - list | 积分记录数组 |
-| -- time | 发生时间，毫秒时间戳 |
-| -- amount / operation | 变动数量 / 收支符号（+ 或 -） |
-| -- balance | 变动后的本人余额 |
-| -- type / displayType | 类型编码 / 类型名称 |
-| -- descriptionHtml | 记录说明 HTML |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 流水数据 |  |
+| - list | 积分记录数组 |  |
+| -- time | 发生时间，毫秒时间戳 | 整数 |
+| -- amount / operation | 变动数量 / 收支符号（+ 或 -） |  |
+| -- balance | 变动后的本人余额 | 整数 |
+| -- type / displayType | 类型编码 / 类型名称 |  |
+| -- descriptionHtml | 记录说明 HTML | 字符串 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 ##### 读取会员积分记录
 
@@ -7811,17 +7986,21 @@ curl 'https://fishpi.cn/api/v3/me/drafts' --header 'Authorization: Bearer TOKEN'
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 草稿列表数据 |
-| - list | 草稿摘要数组 |
-| -- id / title / summary | 草稿 ID / 标题 / 文本摘要 |
-| -- tags / type | 标签 / 文章类型 |
-| -- columnId / columnTitle / chapterNo | 专栏 ID / 专栏标题 / 章节号 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 草稿列表数据 |  |
+| - list | 草稿摘要数组 | [] |
+| -- id / title / summary | 草稿 ID / 标题 / 文本摘要 |  |
+| -- tags / type | 标签 / 文章类型 |  |
+| -- columnId / columnTitle / chapterNo | 专栏 ID / 专栏标题 / 章节号 |  |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 > 列表不包含正文、思绪记录或打赏正文。
 
@@ -7846,15 +8025,15 @@ curl 'https://fishpi.cn/api/v3/me/drafts/20261016003' --header 'Authorization: B
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 草稿对象，包含列表摘要字段及以下字段 |
-| - content / thoughtContent | 编辑器正文 / 思绪记录，分别保留 |
-| - rewardContent / rewardPoint | 打赏正文 / 打赏积分 |
-| - qnaOfferPoint | 悬赏积分 |
-| - commentable / anonymous / notifyFollowers | 允许评论 / 匿名发表 / 通知关注者 |
-| - showInList / statement | 列表展示选项 / 文章声明 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 草稿对象，包含列表摘要字段及以下字段 |  |
+| - content / thoughtContent | 编辑器正文 / 思绪记录，分别保留 |  |
+| - rewardContent / rewardPoint | 打赏正文 / 打赏积分 |  |
+| - qnaOfferPoint | 悬赏积分 | 整数 |
+| - commentable / anonymous / notifyFollowers | 允许评论 / 匿名发表 / 通知关注者 |  |
+| - showInList / statement | 列表展示选项 / 文章声明 |  |
 
 > 草稿不存在或不属于当前账号时返回 HTTP 404。所有正文均为编辑器源内容，按文本处理。
 
@@ -7880,17 +8059,21 @@ curl 'https://fishpi.cn/api/v3/me/columns' --header 'Authorization: Bearer TOKEN
 
 响应：
 
-| Key | 说明 |
-| --- | --- |
-| code / msg | 结果码 / 提示 |
-| data | 专栏列表数据 |
-| - list | 专栏摘要数组 |
-| -- id / title | 专栏 ID / 标题 |
-| -- coverURL / order | 封面地址 / 手动排序值 |
-| -- articleCount | 文章数量 |
-| -- createdAt / updatedAt | 创建 / 更新时间，毫秒时间戳 |
-| - pagination | 分页信息 |
-| -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code / msg | 结果码 / 提示 |  |
+| data | 专栏列表数据 |  |
+| - list | 专栏摘要数组 |  |
+| -- id / title | 专栏 ID / 标题 |  |
+| -- coverURL / order | 封面地址 / 手动排序值 |  |
+| -- articleCount | 文章数量 | 整数 |
+| -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
+| -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
+| - pagination | 分页信息 | {} |
+| -- p | 当前页码 | 整数 |
+| -- size | 每页数量 | 整数 |
+| -- total | 总条数 | 整数 |
+| -- pageCount | 总页数 | 整数 |
 
 #### API v3 个人设置
 
@@ -11278,7 +11461,7 @@ curl --request POST 'https://fishpi.cn/api/v3/me/game-saves/evolve-save/migratio
 
 #### 宠物咖啡（第一方）
 
-- `GET /api/v3/me/pet/coffee` 需要 `profile.read`，返回 `{product,enabled,price,version,today,dailyLimit,remaining,energy,balance}`。`product` 为 `coffee`，`price` 和 `balance` 单位为站点积分，`today` 是北京时间日期。默认售价 64 积分，每个账号每天三次。
+- `GET /api/v3/me/pet/coffee` 需要 `profile.read`，返回 `{product,enabled,price,version,today,dailyLimit,remaining,energy,balance}`。`product` 为 `coffee`，`price` 和 `balance` 为整数，单位为站点积分，`today` 是北京时间日期。默认售价 64 积分，每个账号每天三次。
 - `POST /api/v3/me/pet/coffee` 需要 `settings.write` 和 `Idempotency-Key`。提交 `{petId,expectedDate,version}`，使用上次读取的日期和商品版本。购买立即恢复至多 30 精力（上限 100），需当前宠物空闲且精力未满。成功回执为 `{operation:"coffee",petId,committedAt}`。扣积分、恢复精力、扣当日次数、积分流水及活动日志一并提交。同键同内容重放返回原回执，客户端成功后重新读取当前状态和咖啡信息。
 - 当前日期、售价版本变化或商品下架分别返回 409（`date_changed`、`coffee_price_changed`、`coffee_off_sale`）。用完次数、余额不足或满精力也返回 409（`coffee_daily_limit`、`insufficient_points`、`already_full`）。拒绝时不扣积分或次数。
 
@@ -12249,10 +12432,10 @@ curl 'https://fishpi.cn/api/v3/admin/articles?status=all&type=all&p=1&size=20' \
 | articleShowInList | 可选列表可见性：`1` 可见、`0` 隐藏 | 1 |
 | articleStatement | 可选版权声明：`0`、`1` | 0 |
 | articleCommentable | 可选是否允许评论 | true |
-| columnId | 可选长文专栏 ID 或 `__NEW__` | |
-| columnTitle | 可选新建专栏标题 | |
-| columnCoverURL | 可选专栏封面 URL（http/https） | |
-| chapterNo | 可选长文章节序号（1-100000） | |
+| columnId | 可选长文专栏 ID 或 `__NEW__` | 字符串 |
+| columnTitle | 可选新建专栏标题 | 示例专栏 |
+| columnCoverURL | 可选专栏封面 URL（http/https） | https://example.com/cover.png |
+| chapterNo | 可选长文章节序号，接受 1 至 100000 的整数或数字字符串；null 或空字符串由服务端按未指定处理 | |
 | time | 可选自定义发布毫秒时间戳 | 1731571200000 |
 
 请求示例：
@@ -12314,7 +12497,7 @@ curl 'https://fishpi.cn/api/v3/admin/articles/1731571200000' \
 | articleId（Path） | 文章 ID | 1731571200000 |
 | articleTitle | 可选新标题 | 修订标题 |
 | articleContent | 可选新正文 | 修订正文 |
-| articleRewardContent | 可选新打赏正文 | |
+| articleRewardContent | 可选新打赏正文 | 补充阅读内容 |
 | articleTags | 可选新标签（`articleStatus=1` 时后端强制归档为 `回收站`） | 公告 |
 | articleStatus | 可选状态：`0` 正常、`1` 已封禁、`2` 已锁定 | 0 |
 | articleType | 可选类型：`0`、`1`、`2`、`3`、`5`、`6` | 0 |
@@ -12330,10 +12513,10 @@ curl 'https://fishpi.cn/api/v3/admin/articles/1731571200000' \
 | articleBadCnt | 可选点踩数 | 0 |
 | articleCollectCnt | 可选收藏数 | 2 |
 | articleWatchCnt | 可选关注数 | 1 |
-| columnId | 可选长文专栏 ID 或 `__NEW__` | |
-| columnTitle | 可选新建专栏标题 | |
-| columnCoverURL | 可选专栏封面 URL（http/https） | |
-| chapterNo | 可选长文章节序号 | |
+| columnId | 可选长文专栏 ID 或 `__NEW__` | 字符串 |
+| columnTitle | 可选新建专栏标题 | 示例专栏 |
+| columnCoverURL | 可选专栏封面 URL（http/https） | https://example.com/cover.png |
+| chapterNo | 可选长文章节序号，接受 1 至 100000 的整数或数字字符串；null 或空字符串由服务端按未指定处理 | |
 
 请求示例：
 
@@ -12780,15 +12963,104 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 
 - `GET /api/v3/admin/fish-games`：分页查询鱼游投稿、待审修改与列表（需管理员或 `menuAdminMisc`）
 - `POST /api/v3/admin/fish-games`：后台手工新增鱼游（需管理员或 `menuAdminMisc`）
-- `GET /api/v3/admin/fish-games/export`：导出鱼游 JSON（需管理员或 `menuAdminMisc`）
-- `POST /api/v3/admin/fish-games/import`：批量导入鱼游 JSON（需管理员或 `menuAdminMisc`）
 - `PUT /api/v3/admin/fish-games/{gameId}`：后台直接编辑鱼游（需管理员或 `menuAdminMisc`）
 - `POST /api/v3/admin/fish-games/{gameId}/review`：审核鱼游投稿或待审修改（需管理员）
 - `GET /api/v3/admin/milestones`：分页查询大事记列表（审核中心与日常维护共用数据源，需管理员或 `menuManageMilestone`）
 - `PUT /api/v3/admin/milestones/{milestoneId}`：审核状态变更或编辑大事记（需管理员或 `menuManageMilestone`）
 - `DELETE /api/v3/admin/milestones/{milestoneId}`：删除大事记（需管理员或 `menuManageMilestone`）
-- `GET /api/v3/admin/images`：查询 45 天内待审核公开上传图片（仅管理员且 `RHPIC_ENABLED == false` 时可用）
-- `POST /api/v3/admin/images/{imageId}/review`：标记图片为 `normal` 或 `illegal`（仅管理员且 `RHPIC_ENABLED == false` 时可用）
+
+###### 导出鱼游
+
+`GET /api/v3/admin/fish-games/export`
+
+导出鱼游 JSON（需管理员或 `menuAdminMisc`）
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.items | 导出的鱼游记录数组 | [] |
+
+###### 批量导入鱼游
+
+`POST /api/v3/admin/fish-games/import`
+
+批量导入鱼游 JSON（需管理员或 `menuAdminMisc`）
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Idempotency-Key | 必填。本次操作的幂等键；结果不明时沿用原键和原请求体 | operation-example-001 |
+| items | 必填。鱼游记录数组，最多 200 条 | 数组 |
+| - fishGameName | 名称 | 示例鱼游 |
+| - fishGameDescription | 简介 | 示例游戏说明 |
+| - fishGameUrl | 游戏地址 | https://example.com/game |
+| - fishGameIconUrl | 图标地址 | https://example.com/icon.png |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.imported | 本次导入的记录数 | 1 |
+| data.skipped | 因地址重复而跳过的记录数 | 0 |
+| data.legacyReceipt | 匹配到旧版历史回执时返回 true | true |
+| data.replayed | 返回旧版历史回执时为 true | true |
+
+###### 查询待审核图片
+
+`GET /api/v3/admin/images`
+
+查询 45 天内待审核公开上传图片（仅管理员且 `RHPIC_ENABLED == false` 时可用）
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| p | 页码 | 1 |
+| size | 每页条数，最多 100 | 20 |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.items | 当前页待审核图片 | [] |
+| - oId | 图片记录 ID | 字符串 |
+| - type | 上传类型 | 字符串 |
+| - userName | 上传者用户名 | example_user |
+| - time | 上传时间，Unix 毫秒时间戳 | 整数 |
+| - path | 图片地址 | https://example.com/image.png |
+| - public | 是否公开 | true |
+| - reviewed | 列表内记录尚未完成审核，值为 0 | 0 |
+| - reviewStatus | PENDING 待处理、IN_PROGRESS 处理中、UNKNOWN 结果待核对 | PENDING |
+| data.pagination | 分页信息 | {} |
+| - page | 页码 | 1 |
+| - pageSize | 每页条数 | 20 |
+| - total | 总条数 | 1 |
+| - totalPages | 总页数 | 1 |
+
+###### 提交图片审核结果
+
+`POST /api/v3/admin/images/{imageId}/review`
+
+标记图片为 `normal` 或 `illegal`（仅管理员且 `RHPIC_ENABLED == false` 时可用）
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Idempotency-Key | 必填。本次操作的幂等键；结果不明时沿用原键和原请求体 | operation-example-001 |
+| imageId | 图片记录 ID，路径参数 | 字符串 |
+| decision | 必填。normal 为正常，illegal 为违规 | normal |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.oId | 图片记录 ID | 字符串 |
+| data.decision | 本次审核决定 | normal |
+| data.reviewed | 已完成为 1，结果待核对为 0 | 1 |
+| data.status | SUCCEEDED 或 UNKNOWN；旧版已完成回执可能省略 | SUCCEEDED |
 
 ###### 领域、标签、保留词与广告位
 
@@ -12820,8 +13092,6 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 
 - `GET /api/v3/admin/ips`：查询防火墙与验证码盾运行状态摘要（需 `ipManage`）
 - `POST /api/v3/admin/ips`：批量封禁或解封 IP（`action=ban|unban`，需 `ipManage`）
-- `GET /api/v3/admin/settings`：读取站点杂项配置列表（需 `menuAdminMisc`）
-- `PUT /api/v3/admin/settings`：更新站点杂项配置并记录审计日志。除了后台入口和 `menuAdminMisc`，还需要对应配置项权限。GET 每项的 `writable`、`allowedValues` 指明可编辑性和允许值。PUT 仅提交要修改的值，值采用枚举字符串，非法字段或值返回 422，逐项权限不足返回 403。
 - `GET /api/v3/admin/security/monitor`：查询安全监控、爬虫统计、近期事件与当前开关状态（仅管理员分组）。事件的 `ip` 是来源；`userStatus` 可标注匹配租约的账号，但不代表访客本人已认证。
 - `GET /api/v3/admin/security/self-check`：执行安全自检（仅管理员分组）
 - `POST /api/v3/admin/security/switches`：保存临时安全开关（仅管理员分组且仅开发模式可写，生产模式只读返回 403）
@@ -12829,6 +13099,48 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/articles/{articleId}/reindex`：重建单篇文章搜索索引并写审计日志（需 `articleReindexArticleIndex`）
 
 社区安全的三个接口另需第一方 Bearer 及 `menuAdmin`、`menuAdminMisc` 权限；读取需要 `profile.read`，提交需要 `settings.write`。
+
+###### 读取站点杂项配置
+
+`GET /api/v3/admin/settings`
+
+读取站点杂项配置列表（需 `menuAdminMisc`）
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.options | 当前杂项配置列表 | [] |
+| - oId | 配置项标识 | 字符串 |
+| - optionValue | 当前配置值 | 字符串 |
+| - writable | 当前账号是否可编辑此项 | true |
+| - allowedValues | 允许提交的值列表 | [] |
+
+###### 更新站点杂项配置
+
+`PUT /api/v3/admin/settings`
+
+更新站点杂项配置并记录审计日志。除了后台入口和 `menuAdminMisc`，还需要对应配置项权限。GET 每项的 `writable`、`allowedValues` 指明可编辑性和允许值。PUT 仅提交要修改的值，值采用枚举字符串，非法字段或值返回 422，逐项权限不足返回 403。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Idempotency-Key | 必填。本次操作的幂等键；结果不明时沿用原键和原请求体 | operation-example-001 |
+| options | 必填。对象的键是要变更的配置项标识，值是该项 allowedValues 中的字符串 | {} |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.updatedCount | 原操作更新的配置项数 | 1 |
+| data.updatedAt | 原操作更新时间，Unix 毫秒时间戳 | 整数 |
+| data.replayed | 是否返回此前提交的回执 | false |
+| data.options | 当前杂项配置列表 | [] |
+| - oId | 配置项标识 | 字符串 |
+| - optionValue | 当前配置值 | 字符串 |
+| - writable | 当前账号是否可编辑此项 | true |
+| - allowedValues | 允许提交的值列表 | [] |
 
 ###### 职业配置工作台（仅管理员）
 
@@ -13144,7 +13456,7 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 | -- items | IP 任务逐项结果 | |
 | --- ip | 规范化后的地址 | `192.0.2.1` |
 | --- status | 该项状态；未确认完成的项不能当成成功 | `SUCCEEDED` |
-| -- switches | 已完成的开关设置，只有开关任务返回 | |
+| -- switches | 已完成的开关设置，只有开关任务返回 | {} |
 | -- skipped | 单篇索引因文章类型无需索引时返回 | `true` |
 | -- error | 任务失败代码 | `operation_failed` |
 
@@ -13178,7 +13490,57 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 
 #### 复读机内容管理
 
-后台可用 `GET /api/v3/admin/repeater/items` 分页读取后台添加记录（`profile.read`），或以 `POST /api/v3/admin/repeater/items` 添加（`settings.write` 与 `Idempotency-Key`）。需第一方管理员凭据。请求为 `{type,content}`，采用与投稿相同的分类、纯文本规范化和审核，有效内容可参与现有公开排行及随机读取。后台发布不触发投稿职业奖励，成功返回 `{id,repeaterId,type,createdTime}`。
+##### 读取后台添加的复读记录
+
+`GET /api/v3/admin/repeater/items`
+
+需要第一方管理员凭据与 `profile.read`。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| p | 页码 | 1 |
+| size | 每页条数 | 20 |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.list | 当前页记录 | [] |
+| - id | 复读记录 ID | 字符串 |
+| - type | 分类，可为 joke、kfc 或 fish | joke |
+| - createdTime | 创建时间，Unix 毫秒时间戳 | 整数 |
+| - content | 纯文本正文 | 示例正文 |
+| - status | 记录状态编号 | 整数 |
+| data.pagination | 分页信息 | {} |
+| - p | 页码 | 1 |
+| - size | 每页条数 | 20 |
+| - total | 总条数 | 1 |
+| - pageCount | 总页数 | 1 |
+
+##### 添加复读记录
+
+`POST /api/v3/admin/repeater/items`
+
+需要第一方管理员凭据与 `settings.write`。正文采用与投稿相同的规范化和审核；有效内容可参与公开排行及随机读取，后台添加不触发投稿职业奖励。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Idempotency-Key | 必填。结果不明时沿用原键和原请求体 | operation-example-001 |
+| type | 必填。分类，可为 joke、kfc 或 fish | joke |
+| content | 必填。纯文本正文 | 示例正文 |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.id | 复读记录 ID | 字符串 |
+| data.type | 分类，可为 joke、kfc 或 fish | joke |
+| data.createdTime | 创建时间，Unix 毫秒时间戳 | 整数 |
+| data.repeaterId | 复读记录 ID，与 id 相同 | 字符串 |
 
 #### 后台宠物管理
 
@@ -13189,7 +13551,44 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 
 #### 宠物咖啡管理
 
-- `GET /api/v3/admin/pets/coffee` 需要第一方管理员与 `profile.read`。`PUT /api/v3/admin/pets/coffee` 需要第一方管理员、`settings.write` 和 `Idempotency-Key`，提交 `{enabled,price,version}`，价格为 1 至 100000 的整数，版本取最近读取值。两者返回 `{product,enabled,price,version}`，实际更新会递增版本并记录后台审计。
+##### 读取咖啡配置
+
+`GET /api/v3/admin/pets/coffee`
+
+需要第一方管理员凭据与 `profile.read`。
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.product | 商品类别，固定为 coffee | coffee |
+| data.enabled | 当前是否上架 | true |
+| data.price | 积分价格 | 64 |
+| data.version | 报价版本 | 1 |
+
+##### 保存咖啡配置
+
+`PUT /api/v3/admin/pets/coffee`
+
+需要第一方管理员凭据与 `settings.write`。实际更新会递增版本并记录后台审计。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Idempotency-Key | 必填。结果不明时沿用原键和原请求体 | operation-example-001 |
+| enabled | 必填。是否上架 | true |
+| price | 必填。1 至 100000 的站点积分 | 64 |
+| version | 必填。最近读取的报价版本 | 1 |
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.product | 商品类别，固定为 coffee | coffee |
+| data.enabled | 当前是否上架 | true |
+| data.price | 积分价格 | 64 |
+| data.version | 报价版本 | 1 |
 
 #### 宠物后台分析
 
