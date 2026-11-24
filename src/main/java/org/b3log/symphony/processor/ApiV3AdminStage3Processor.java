@@ -26,6 +26,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Domain;
+import org.b3log.symphony.model.FishGame;
 import org.b3log.symphony.model.Invitecode;
 import org.b3log.symphony.model.Milestone;
 import org.b3log.symphony.model.Role;
@@ -82,7 +83,7 @@ public class ApiV3AdminStage3Processor {
             "fishGameIcon", "fishGameRejectReason");
     private static final Set<String> FISH_GAME_EDIT_FIELDS = Set.of(
             "fishGameName", "fishGameUrl", "fishGameTag", "fishGameDescription",
-            "fishGameIcon", "fishGameStatus", "fishGameOrder");
+            FishGame.ICON_URL, FishGame.LEGACY_ADMIN_ICON_URL, "fishGameStatus", "fishGameOrder");
     private static final Set<String> FISH_GAME_IMPORT_FIELDS = Set.of("items");
 
     private static final Set<String> MILESTONE_UPDATE_FIELDS = Set.of(

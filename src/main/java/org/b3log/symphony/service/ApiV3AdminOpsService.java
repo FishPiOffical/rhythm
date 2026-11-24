@@ -232,7 +232,7 @@ public class ApiV3AdminOpsService {
                         if (!actor.isAdmin() && !actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN_MISC)) {
                             throw ApiV3Requests.forbidden();
                         }
-                        return fishGameMgmtService.addManual(actorId, new JSONObject(body.toString()));
+                        return fishGameMgmtService.addManual(actorId, fishGameAdminInput(body));
                     }));
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "fish_game_add_failed");
@@ -266,7 +266,7 @@ public class ApiV3AdminOpsService {
                         if (!actor.isAdmin() && !actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN_MISC)) {
                             throw ApiV3Requests.forbidden();
                         }
-                        return fishGameMgmtService.updateByAdmin(gameId, new JSONObject(body.toString()));
+                        return fishGameMgmtService.updateByAdmin(gameId, fishGameAdminInput(body));
                     }));
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "fish_game_update_failed");
@@ -276,6 +276,16 @@ public class ApiV3AdminOpsService {
             LOGGER.error("编辑鱼游失败, gameId={}", gameId, e);
             throw ApiV3AdminService.unavailable();
         }
+    }
+
+    static JSONObject fishGameAdminInput(final JSONObject body) {
+        // 仅转换传给表单校验的副本，幂等摘要仍使用原请求。
+        final JSONObject input = new JSONObject(body.toString());
+        final Object legacyIcon = input.remove(FishGame.LEGACY_ADMIN_ICON_URL);
+        if (!input.has(FishGame.ICON_URL) && legacyIcon != null) {
+            input.put(FishGame.ICON_URL, legacyIcon);
+        }
+        return input;
     }
 
     /**

@@ -710,9 +710,18 @@
         "fishGameDescription": {
           "type": "string"
         },
+        "fishGameIconUrl": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 512,
+          "description": "图标的完整 HTTPS URL。两个字段都提交时使用此值。"
+        },
         "fishGameIcon": {
           "type": "string",
-          "description": "当前请求入口允许的图标字段名，后续鱼游表单校验读取 fishGameIconUrl。"
+          "format": "uri",
+          "maxLength": 512,
+          "deprecated": true,
+          "description": "旧版图标字段。只在未提交 fishGameIconUrl 时读取。"
         },
         "fishGameStatus": {
           "type": "integer"
@@ -727,7 +736,19 @@
         "fishGameUrl",
         "fishGameDescription"
       ],
-      "description": "当前版本的图标字段存在校验冲突，通过本接口提交新增或编辑可能失败。"
+      "description": "后台新增或编辑鱼游时使用的表单。图标须提供完整 HTTPS URL。",
+      "anyOf": [
+        {
+          "required": [
+            "fishGameIconUrl"
+          ]
+        },
+        {
+          "required": [
+            "fishGameIcon"
+          ]
+        }
+      ]
     },
     "AdminHeldMedal": {
       "type": "object",

@@ -107,6 +107,18 @@ class OpenApiSchemaTest(unittest.TestCase):
         self.assertIn('draft', save['required'])
         self.assertNotIn('draft', publish['properties'])
 
+    def test_admin_fish_game_icon_field_compatibility(self):
+        schema_ref = '#/components/schemas/AdminFishGameInput'
+        for method, path in (('post', 'admin/fish-games'), ('put', 'admin/fish-games/{gameId}')):
+            with self.subTest(method=method):
+                body = self.operation(path, method)['requestBody']
+                self.assertEqual(schema_ref, body['content']['application/json']['schema']['$ref'])
+        model = self.spec['components']['schemas']['AdminFishGameInput']
+        self.assertEqual('uri', model['properties']['fishGameIconUrl']['format'])
+        self.assertTrue(model['properties']['fishGameIcon']['deprecated'])
+        self.assertEqual([['fishGameIconUrl'], ['fishGameIcon']],
+                         [variant['required'] for variant in model['anyOf']])
+
     def test_write_audit_non_json_content(self):
         for path in ('oauth/token', 'oauth/consent', 'oauth/revoke'):
             with self.subTest(path=path):

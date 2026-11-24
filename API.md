@@ -12984,6 +12984,8 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `PUT /api/v3/admin/milestones/{milestoneId}`：审核状态变更或编辑大事记（需管理员或 `menuManageMilestone`）
 - `DELETE /api/v3/admin/milestones/{milestoneId}`：删除大事记（需管理员或 `menuManageMilestone`）
 
+后台新增和编辑鱼游时，图标通过 `fishGameIconUrl` 提交完整 HTTPS URL。旧字段 `fishGameIcon` 仍可使用，同时提交两个字段时以 `fishGameIconUrl` 为准。重试时沿用原请求体及原 `Idempotency-Key`。
+
 ###### 导出鱼游
 
 `GET /api/v3/admin/fish-games/export`
