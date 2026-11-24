@@ -527,7 +527,8 @@ def main():
             json.dumps(spec, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         (args.output / f'{version}.md').write_text(
             f'# 摸鱼派 API {version} 开发文档\n\n' + markdown + '\n', encoding='utf-8')
-        print(f"{version}：{count} 个操作，{stats['request']} 个结构化请求体，{stats['response']} 个结构化响应。")
+        print(f"{version}: {count} operations, {stats['request']} structured request bodies, "
+              f"{stats['response']} structured responses.")
 
 
 if __name__ == '__main__':
