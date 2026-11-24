@@ -1545,6 +1545,63 @@
         },
         "card": {
           "$ref": "#/components/schemas/ChatMessageCard"
+        },
+        "tail": {
+          "type": "object",
+          "description": "普通消息的小尾巴快照，存在时按纯文本渲染。",
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        },
+        "petStatus": {
+          "type": "object",
+          "description": "有公开作者的普通消息在发送时的宠物状态快照。",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "idle",
+                "rest",
+                "outing",
+                "course",
+                "work",
+                "claimable"
+              ]
+            },
+            "level": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 40
+            },
+            "speciesId": {
+              "type": "string",
+              "enum": [
+                "momota",
+                "hexiaotun",
+                "yubingmiao",
+                "paixiaoyu"
+              ]
+            },
+            "petId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "state"
+          ]
+        },
+        "reactionsUnavailable": {
+          "type": "boolean",
+          "description": "表态读取失败时为 true。"
         }
       }
     },
@@ -1984,6 +2041,38 @@
         }
       }
     },
+    "IdentityApplicationSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "const": "enterprise"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "materialReadAt": {
+          "type": "integer"
+        },
+        "reviewedAt": {
+          "type": "integer"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
     "LocaleSettings": {
       "description": "当前设置",
       "type": "object",
@@ -2132,6 +2221,10 @@
         },
         "actor": {
           "$ref": "#/components/schemas/PublicAuthor"
+        },
+        "article": {
+          "$ref": "#/components/schemas/ArticleSummary",
+          "description": "当前读者可查看的关联文章摘要。"
         }
       }
     },
@@ -5870,7 +5963,7 @@
     "GET /api/v3/articles/{articleId}/comments": {
       "fields": {
         "response": {
-          "data.list.author": {
+          "data.list[].author": {
             "$ref": "#/components/schemas/PublicAuthor"
           }
         }
@@ -5882,10 +5975,10 @@
           "data.pagination": {
             "$ref": "#/components/schemas/Pagination"
           },
-          "data.list.author": {
+          "data.list[].author": {
             "$ref": "#/components/schemas/PublicAuthor"
           },
-          "data.list.paragraph": {
+          "data.list[].paragraph": {
             "$ref": "#/components/schemas/ParagraphAssociation"
           }
         }
@@ -6005,65 +6098,56 @@
       }
     },
     "GET /api/v3/chat/messages": {
-      "fields": {
-        "response": {
-          "data.list[].medals": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "data.list[].appearance": {
-            "type": "object",
-            "properties": {
-              "bubbleId": {
-                "type": "string"
-              },
-              "frameId": {
-                "type": "string"
-              },
-              "version": {
-                "type": "integer"
-              },
-              "bubbleRevision": {
-                "type": "integer"
-              },
-              "bubbleStyle": {
-                "$ref": "#/components/schemas/ChatBubbleStyle"
-              }
-            }
-          },
-          "data.list[].reactions": {
-            "$ref": "#/components/schemas/ReactionState"
-          },
-          "data.list[].card": {
-            "$ref": "#/components/schemas/ChatMessageCard"
-          }
-        }
-      }
-    },
-    "GET /api/v3/chat/messages/{messageId}/context": {
-      "fields": {
-        "response": {
-          "data.list": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ChatMessage"
             }
+          },
+          "nextBefore": {
+            "type": "string"
+          },
+          "nextAfter": {
+            "type": "string"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/messages/{messageId}": {
+      "data": {
+        "$ref": "#/components/schemas/ChatMessage"
+      }
+    },
+    "GET /api/v3/chat/messages/{messageId}/context": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "nextBefore": {
+            "type": "string"
+          },
+          "nextAfter": {
+            "type": "string"
+          },
+          "anchorId": {
+            "type": "string"
+          },
+          "hasMoreBefore": {
+            "type": "boolean"
+          },
+          "hasMoreAfter": {
+            "type": "boolean"
           }
         }
       }
@@ -6380,7 +6464,7 @@
     "GET /api/v3/fish-games/{gameId}/comments": {
       "fields": {
         "response": {
-          "data.list.author": {
+          "data.list[].author": {
             "$ref": "#/components/schemas/PublicAuthor"
           }
         }
@@ -6559,6 +6643,22 @@
             "items": {
               "$ref": "#/components/schemas/PublicAuthor"
             }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/identity-applications": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdentityApplicationSummary"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         }
       }
@@ -7574,7 +7674,7 @@
     "GET /api/v3/me/watching/breezemoons": {
       "fields": {
         "response": {
-          "data.list.author": {
+          "data.list[].author": {
             "$ref": "#/components/schemas/PublicAuthor"
           }
         }
@@ -8135,6 +8235,34 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/review/identity-applications": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/IdentityApplicationSummary"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "applicantId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         }
       }
@@ -9085,7 +9213,17 @@
           }
         }
       },
-      "idempotencyKey": true
+      "idempotencyKey": true,
+      "requestBody": {
+        "required": false,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyJsonObject"
+            }
+          }
+        }
+      }
     },
     "POST /api/v3/admin/oauth/clients": {
       "fields": {
@@ -10175,7 +10313,17 @@
           }
         }
       },
-      "idempotencyKey": true
+      "idempotencyKey": true,
+      "requestBody": {
+        "required": false,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyJsonObject"
+            }
+          }
+        }
+      }
     },
     "POST /api/v3/admin/users/{userId}/deactivate": {
       "fields": {
@@ -10700,7 +10848,17 @@
       }
     },
     "POST /api/v3/me/game-saves/{gameId}/migrations": {
-      "idempotencyKey": true
+      "idempotencyKey": true,
+      "requestBody": {
+        "required": false,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyJsonObject"
+            }
+          }
+        }
+      }
     },
     "POST /api/v3/me/identity-applications/enterprise": {
       "requestBody": {

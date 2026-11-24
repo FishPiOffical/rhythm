@@ -136,6 +136,58 @@ class OpenApiSchemaTest(unittest.TestCase):
         for media_type in image['content'].values():
             self.assertEqual('binary', media_type['schema']['format'])
 
+    def test_optional_empty_json_distinct_from_required_body(self):
+        for path in ('admin/medals/sponsor/reorder', 'admin/tags/remove-unused',
+                     'me/game-saves/{gameId}/migrations'):
+            with self.subTest(path=path):
+                body = self.operation(path, 'post')['requestBody']
+                self.assertFalse(body['required'])
+                self.assertEqual('#/components/schemas/EmptyJsonObject',
+                                 body['content']['application/json']['schema']['$ref'])
+        self.assertEqual(0, self.spec['components']['schemas']['EmptyJsonObject']['maxProperties'])
+
+    def test_paged_content_and_conditional_comment_root(self):
+        for path in (
+            'articles/{articleId}/comments', 'articles/{articleId}/paragraph-comments',
+            'articles/{articleId}/paragraphs', 'cities/{cityName}/users', 'fish-games/{gameId}/comments',
+            'me/columns', 'me/identity-applications', 'me/points', 'me/watching/breezemoons',
+            'review/identity-applications',
+        ):
+            with self.subTest(path=path):
+                self.assertEqual('array', self.response_field(path, 'data.list')['type'])
+                self.assertTrue(self.response_field(path, 'data.list[]'))
+        comments = self.operation('articles/{articleId}/comments')
+        root_id = next(p for p in comments['parameters'] if p['name'] == 'rootId')
+        self.assertFalse(root_id['required'])
+        self.assertIn('view=replies', root_id['description'])
+
+    def test_chat_string_cursors_and_optional_snapshots(self):
+        for path in ('chat/messages', 'chat/messages/{messageId}/context', 'me/conversations/{peerId}/messages'):
+            with self.subTest(path=path):
+                for name in ('nextBefore', 'nextAfter'):
+                    self.assertEqual('string', self.response_field(path, f'data.{name}')['type'])
+        components = self.spec['components']['schemas']
+        chat_ref = '#/components/schemas/ChatMessage'
+        for path, field in (('chat/messages', 'data.list[]'), ('chat/messages/{messageId}', 'data'),
+                            ('chat/messages/{messageId}/context', 'data.list[]')):
+            self.assertEqual(chat_ref, self.response_field(path, field)['$ref'])
+        chat = components['ChatMessage']['properties']
+        self.assertEqual('string', chat['tail']['properties']['text']['type'])
+        self.assertEqual('string', chat['petStatus']['properties']['petId']['type'])
+        notification = components['Notification']['properties']
+        self.assertEqual('#/components/schemas/ArticleSummary', notification['article']['$ref'])
+        self.assertEqual('#/components/schemas/PublicAuthor', notification['actor']['$ref'])
+
+    def test_realtime_handshake_documents_frames_as_websocket(self):
+        socket = self.operation('realtime')
+        self.assertEqual({'101'}, set(socket['responses']))
+        self.assertNotIn('parameters', socket)
+        self.assertNotIn('requestBody', socket)
+        for frame in ('authentication.required', 'ready', 'ping', 'pong', 'chat.presence',
+                      'article.changed', 'notifications.changed', 'messages.changed', 'breezemoons.changed'):
+            self.assertIn(f'`{frame}`', socket['description'])
+        self.assertIn('60 秒', socket['description'])
+
     def test_success_media_matches_protocol(self):
         for path, method, media in (
             ('me/exports/posts/{jobId}/download', 'get', {'application/zip'}),

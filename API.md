@@ -1271,8 +1271,9 @@ curl --request GET 'https://fishpi.cn/api/v3/me/identity-applications?p=1&size=2
 | code | 状态码 | 0 |
 | msg | 结果说明 | |
 | data | 分页数据 | |
-| - list | 按申请ID降序排列的记录 | |
-| -- id / type | 申请ID / 固定enterprise | 1792800000000 / enterprise |
+| - list | 按申请ID降序排列的记录 | `[]` |
+| -- id | 申请 ID | `"1792800000000"` |
+| -- type | 固定 enterprise | enterprise |
 | -- status | pending、approved或rejected | pending |
 | -- createdAt | 创建毫秒时间戳 | 1792800000000 |
 | -- materialReadAt | 首次读取材料时间，未读为0 | 0 |
@@ -1343,7 +1344,7 @@ curl --request GET 'https://fishpi.cn/api/v3/review/identity-applications?status
 | code | 状态码 | 0 |
 | msg | 结果说明 | |
 | data | 分页数据 | |
-| - list | 与本人列表字段相同，另外包含申请人ID | |
+| - list | 与本人列表字段相同，另外包含申请人ID | `[]` |
 | -- applicantId | 申请人公开用户ID | 1630399192600 |
 | - pagination | p、size、total、pageCount | |
 
@@ -2098,7 +2099,7 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191?includeInteractions=true' 
 | size | 每页数量，默认 20，最大 50 | 20 |
 | sort | oldest（默认）、latest、hot | oldest |
 | view | 默认 flat。threads 按一级评论分页，replies 读取同一线程的回复页 | threads |
-| rootId | view=replies 时必填，指定本文一级评论 ID | 1770000000003 |
+| rootId | 仅当 view=replies 时必须提供，值为本文一级评论 ID | 1770000000003 |
 
 请求示例：
 
@@ -2113,8 +2114,9 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 列表数据 |  |
-| - list | 评论数组 |  |
-| -- id / articleId | 评论 / 所属文章 ID |  |
+| - list | 评论数组 | `[]` |
+| -- id | 评论 ID | 字符串 |
+| -- articleId | 所属文章 ID | 字符串 |
 | -- parentId | 被回复评论 ID，无回复目标时为空 | 字符串 |
 | -- content | 评论 Markdown 源文本，不可查看时为空 | 字符串 |
 | -- contentHtml | 评论 HTML，不可查看时为空 | 字符串 |
@@ -2323,7 +2325,7 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/paragraphs?p=1&size=20&inc
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 段落结果 |  |
-| - list | 按正文顺序排列的当前段落 |  |
+| - list | 按正文顺序排列的当前段落 | `[]` |
 | -- id | 64 位小写段落锚点，用作发布时的 paragraphId | 字符串 |
 | -- kind | 段落类型，如 paragraph、heading、list-item、blockquote、code、table、media | 字符串 |
 | -- index | 在整篇正文中的位置，从 0 开始 | 整数 |
@@ -2370,11 +2372,15 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/paragraph-comments?state=a
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 段评结果 |  |
-| - list | 段评与回复的平铺列表，可通过 parentId 关联 |  |
-| -- id / articleId / parentId | 评论 ID / 所属文章 ID / 原评论 ID，独立段评的 parentId 为空 |  |
-| -- content / contentHtml | Markdown 正文 / 正文 HTML；不可读时均为空 |  |
+| - list | 段评与回复的平铺列表，可通过 parentId 关联 | `[]` |
+| -- id | 评论 ID | 字符串 |
+| -- articleId | 所属文章 ID | 字符串 |
+| -- parentId | 原评论 ID，独立段评时为空 | 字符串 |
+| -- content | Markdown 正文，不可读时为空 | 字符串 |
+| -- contentHtml | 正文 HTML，不可读时为空 | 字符串 |
 | -- contentVisible | 当前阅读者是否可读正文 | 布尔值 |
-| -- createdAt / anonymous | 创建时间戳（毫秒） / 是否匿名 |  |
+| -- createdAt | 创建时间戳（毫秒） | 整数 |
+| -- anonymous | 是否匿名 | 布尔值 |
 | -- author | 公开作者资料 | {} |
 | --- id / userName / userNickname / userAvatarURL | 公开 ID / 用户名 / 昵称 / 头像；匿名作者 ID 为空 |  |
 | -- type | 段评固定为 1 | 整数 |
@@ -3953,8 +3959,10 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/watching/breezemoons?
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 列表结果 |  |
-| - list | 清风明月记录，按发布时间倒序 |  |
-| -- id / content / contentHtml | ID / 正文 / 渲染正文 |  |
+| - list | 清风明月记录，按发布时间倒序 | `[]` |
+| -- id | 清风 ID | 字符串 |
+| -- content | 正文 | 字符串 |
+| -- contentHtml | 渲染正文 | 字符串 |
 | -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
 | -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
 | -- author | 公开作者资料 | {} |
@@ -4484,8 +4492,8 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | -- reactionsUnavailable | 表态查询失败时为 true，消息正文仍可读取 | true |
 | -- reactions | 可读消息的表态快照，含汇总和当前账号的选择 | `{"targetId":"1792304000000","targetType":"chat","groupType":"emoji","currentUserReaction":"","summary":[]}` |
 | - hasMore | 当前查询方向是否还有更多消息；不传游标时指更早消息 | true |
-| - nextBefore | 本批最早消息 ID，用于继续查询更早消息；空列表为空 | 1792304000000 |
-| - nextAfter | 本批最新消息 ID，用于查询之后的新消息；空列表为空 | 1792304100000 |
+| - nextBefore | 本批最早消息 ID，用于继续查询更早消息；空列表为空 | `"1792304000000"` |
+| - nextAfter | 本批最新消息 ID，用于查询之后的新消息；空列表为空 | `"1792304100000"` |
 
 卡片字段：
 
@@ -4584,8 +4592,8 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages/1792304100000/context
 | - anchorId | 中心消息 ID | 1792304100000 |
 | - list | 消息对象列表，含中心消息一次，按 ID 升序；对象结构同消息列表 | `[]` |
 | - hasMoreBefore / hasMoreAfter | 前方 / 后方是否还有更多消息 | true / false |
-| - nextBefore | 本批最早消息 ID；前方无消息时为中心 ID | 1792304000000 |
-| - nextAfter | 本批最新消息 ID；后方无消息时为中心 ID | 1792304200000 |
+| - nextBefore | 本批最早消息 ID；前方无消息时为中心 ID | `"1792304000000"` |
+| - nextAfter | 本批最新消息 ID；后方无消息时为中心 ID | `"1792304200000"` |
 
 > 中心消息不存在或已撤回返回 HTTP 404；非法 ID 或 radius 超限返回 HTTP 422。位于历史边缘时，仅返回实际存在的相邻消息；可用列表接口及 before/after 继续读取。
 
@@ -5310,8 +5318,8 @@ curl 'https://fishpi.cn/api/v3/me/conversations/1480000000000/messages?size=20&b
 | - peer | 对方公开资料，同会话列表 | {} |
 | - list | 消息列表，同消息字段表 | [] |
 | - hasMore | 本次查询方向是否还有记录 | true |
-| - nextBefore | 本页最小消息 ID，供 before 使用；空页为空 | 1792380000000 |
-| - nextAfter | 本页最大消息 ID，供 after 使用；空页为空 | 1792390000000 |
+| - nextBefore | 本页最小消息 ID，供 before 使用；空页为空 | `"1792380000000"` |
+| - nextAfter | 本页最大消息 ID，供 after 使用；空页为空 | `"1792390000000"` |
 
 > 已有会话翻到尽头返回空列表；不存在本人参与的会话返回 HTTP 404。游标不包含边界记录。ID 必须是无前导零的正整数字符串，最多 19 位；非法 ID、同时传 before 与 after、超出分页范围返回 HTTP 422。
 
@@ -5701,6 +5709,46 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/notifications' \
 | - changed | 本次原操作变更的通知数；重试返回原结果 | 整数 |
 
 > 需要 JSON 请求体及明确分类，不支持 all。成功后的重试不删除后来新增的通知。
+
+#### API v3 实时连接协议
+
+`GET /api/v3/realtime`
+
+通过一次性票据订阅一个频道。先调用对应 HTTP 票据接口，再按返回的 `path` 建立同源 WebSocket。握手成功为 HTTP 101。连接 URL 不带查询参数。
+
+| 频道 | 票据接口 | 服务端业务帧 |
+| --- | --- | --- |
+| `notifications` | `/api/v3/realtime/tickets` | `notifications.changed`，`data: {}` |
+| `messages` | `/api/v3/me/messages/realtime-ticket` | `messages.changed`，`data: {}` |
+| `article` | `/api/v3/articles/{articleId}/realtime-ticket` | `article.changed`，`data.articleId` 为字符串 |
+| `breezemoons` | `/api/v3/breezemoons/realtime-ticket` | `breezemoons.changed`，`data: {}` |
+| `chat` | `/api/v3/chat/realtime-ticket` | 见下表 |
+
+每帧是一个 JSON 对象。服务端帧包含 `type` 和 `data`。客户端按以下顺序认证和保活。
+
+| 方向 | 帧 | 内容 |
+| --- | --- | --- |
+| 服务端 | `authentication.required` | `data: {}`。收到后提交票据 |
+| 客户端 | `authenticate` | `{"type":"authenticate","ticket":"TICKET"}` |
+| 服务端 | `ready` | `data.channel`、`data.expiresAt`（Unix 毫秒）。文章频道另带 `articleId`，聊天室频道另带 `presenceControl: true` |
+| 客户端 | `ping` | 收到 `ready` 后建议每 25 秒发送 `{"type":"ping"}` |
+| 服务端 | `pong` | `data: {}` |
+| 客户端 | `chat.presence` | 聊天室认证后可用，帧为 `{"type":"chat.presence","active":true}`，`active` 为布尔值 |
+
+从 `ready` 开始，连续 60 秒未收到有效 `ping` 时服务端关闭连接。推送和 `chat.presence` 不计入心跳。授权到 `expiresAt` 仍会结束。连接关闭后需申请新票据并重新认证，收到 `ready` 后通过相应 HTTP 接口重新读取状态。事件可能合并或重复，断线期间的事件不保证补发。
+
+| 聊天室服务端帧 | data |
+| --- | --- |
+| `chat.message.created`、`chat.message.updated` | `messageId` 和 `revision`，均为字符串。可附 `message` 快照 |
+| `chat.message.deleted` | `messageId`、`revision` |
+| `chat.message.reactions` | `messageId`、`revision`，可附 `reactions` 或 `reactionsUnavailable` |
+| `chat.topic_changed` | `revision`，字符串。收到后重读话题 |
+| `chat.sync_required` | `{}`。收到后重同步当前消息窗口 |
+| `chat.barrager` | `id`、`content`、`color`、`createdAt`、`author` |
+| `chat.red_packet.claimed` | `id`、`createdAt`、`actor`、`sender`、`packetId`、`got`、`count` |
+| `chat.presence.changed` | `id`、`createdAt`、`actor`、`kind`（`join` 或 `leave`）、`text`，座驾进场可附 `mount` 和 `avatarURL` |
+
+即时公告中的 `id` 为字符串，`createdAt` 为 Unix 毫秒。`author` 含 `id`、`userName`、`userNickname` 和 `userAvatarURL`，`actor` 和 `sender` 只包含前三个字段。即时公告可按 `id` 去重，断线后不会补播。
 
 #### API v3 实时通知
 
@@ -6847,8 +6895,9 @@ curl 'https://fishpi.cn/api/v3/fish-games/20261016005/comments'
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 列表数据 |  |
-| - list | 评论数组 |  |
-| -- id / gameId | 评论 ID / 鱼游 ID |  |
+| - list | 评论数组 | `[]` |
+| -- id | 评论 ID | 字符串 |
+| -- gameId | 鱼游 ID | 字符串 |
 | -- content | 正文文本 | 字符串 |
 | -- contentAvailable | 正文是否可展示 | 布尔值 |
 | -- author | 公开作者资料 | {} |
@@ -6984,8 +7033,11 @@ curl 'https://fishpi.cn/api/v3/cities/%E4%B8%8A%E6%B5%B7/users'
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 列表数据 |  |
-| - list | 用户数组 |  |
-| -- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 |  |
+| - list | 用户数组 | `[]` |
+| -- id | 用户 ID | 字符串 |
+| -- userName | 用户名 | 字符串 |
+| -- userNickname | 昵称 | 字符串 |
+| -- userAvatarURL | 头像 | 字符串 |
 | -- userIntro | 个人介绍文本 | 字符串 |
 | - pagination | 分页信息 | {} |
 | -- p | 当前页码 | 整数 |
@@ -7926,11 +7978,13 @@ curl 'https://fishpi.cn/api/v3/me/points' --header 'Authorization: Bearer TOKEN'
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 流水数据 |  |
-| - list | 积分记录数组 |  |
+| - list | 积分记录数组 | `[]` |
 | -- time | 发生时间，毫秒时间戳 | 整数 |
-| -- amount / operation | 变动数量 / 收支符号（+ 或 -） |  |
+| -- amount | 变动数量 | 整数 |
+| -- operation | 收支符号（+ 或 -） | + |
 | -- balance | 变动后的本人余额 | 整数 |
-| -- type / displayType | 类型编码 / 类型名称 |  |
+| -- type | 类型编码 | 整数 |
+| -- displayType | 类型名称 | 字符串 |
 | -- descriptionHtml | 记录说明 HTML | 字符串 |
 | - pagination | 分页信息 | {} |
 | -- p | 当前页码 | 整数 |
@@ -8066,9 +8120,11 @@ curl 'https://fishpi.cn/api/v3/me/columns' --header 'Authorization: Bearer TOKEN
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 专栏列表数据 |  |
-| - list | 专栏摘要数组 |  |
-| -- id / title | 专栏 ID / 标题 |  |
-| -- coverURL / order | 封面地址 / 手动排序值 |  |
+| - list | 专栏摘要数组 | `[]` |
+| -- id | 专栏 ID | 字符串 |
+| -- title | 标题 | 字符串 |
+| -- coverURL | 封面地址 | 字符串 |
+| -- order | 手动排序值 | 整数 |
 | -- articleCount | 文章数量 | 整数 |
 | -- createdAt | 创建时间，Unix 毫秒时间戳 | 整数 |
 | -- updatedAt | 更新时间，Unix 毫秒时间戳 | 整数 |
@@ -11349,7 +11405,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/game-saves/evolve-save' \
 | --- | --- | --- |
 | Authorization | 请求头 | Bearer ACCESS_TOKEN |
 | Idempotency-Key | 请求头，同一次迁移重试保持不变 | evolve-migrate-001 |
-| Content-Type | 有请求体时使用application/json | application/json |
+| Content-Type | 发送空对象 `{}` 时使用 application/json；请求体可省略 | application/json |
 | gameId | 路径参数 | evolve-save |
 
 请求示例：
@@ -12957,7 +13013,7 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/medals`：新增勋章定义（需管理员）
 - `PUT /api/v3/admin/medals/{medalId}`：更新勋章定义（需管理员）
 - `DELETE /api/v3/admin/medals/{medalId}`：删除勋章定义（需管理员）
-- `POST /api/v3/admin/medals/sponsor/reorder`：重排赞助勋章顺序（需管理员）
+- `POST /api/v3/admin/medals/sponsor/reorder`：由服务端重排全部赞助勋章展示顺序。请求体可省略或传 `{}`（需管理员）
 - `GET /api/v3/admin/medals/{medalId}/owners`：查询勋章持有者列表
 - `GET /api/v3/admin/medals/users/{target}`：查询指定用户持有勋章列表
 - `POST /api/v3/admin/medals/hold-check`：批量检测目标用户是否已持有指定勋章
@@ -13090,7 +13146,7 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `GET /api/v3/admin/tags`：分页查询标签列表（需 `menuAdminTags`）
 - `POST /api/v3/admin/tags`：新增标签（需 `menuAdminTags`）
 - `PUT /api/v3/admin/tags/{tagId}`：更新标签（需 `menuAdminTags`）
-- `POST /api/v3/admin/tags/remove-unused`：清理未使用标签（需 `menuAdminTags`）
+- `POST /api/v3/admin/tags/remove-unused`：清理未使用标签。请求体可省略或传 `{}`（需 `menuAdminTags`）
 - `GET /api/v3/admin/reserved-words`：查询保留词列表（需 `menuAdminRWs`）
 - `POST /api/v3/admin/reserved-words`：新增保留词（需 `menuAdminRWs`）
 - `POST /api/v3/admin/reserved-words/remove`：删除保留词（需 `menuAdminRWs`）

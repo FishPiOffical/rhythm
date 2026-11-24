@@ -388,6 +388,9 @@ def compile_spec(rhythm, version):
     for (method, canonical), (url, registration, ws) in sorted(inventory.items()):
         pd = re.findall(r'\{([^{}]+)\}', url)
         matches = indexed[(method, canonical)]
+        if ws and version == 'v3':
+            handshake = f'`{method} {url}`'
+            matches = [match for match in matches if match[2] == handshake]
         heading = matches[0][1] if matches else ''
         title = summary_for(heading, matches[0][2], matches[0][4]) if matches else '连接实时 WebSocket'
         tag = (matches[0][0] or '通用') if matches else '聊天与通知'
@@ -405,6 +408,8 @@ def compile_spec(rhythm, version):
                 excerpts.append(block)
             if len(excerpt) == 1 and len(context) <= 25 and (heading_block := '\n'.join(context).strip()) not in excerpts:
                 excerpts.append(heading_block)
+            if ws and version == 'v3':
+                continue  # WebSocket 帧不属于 HTTP 请求参数。
             offsets = re.search(r'/[^\s`?]+\?([^\s`，、；]+)', declaration)
             query_keys = set(re.findall(r'(?:^|&)(' + KEY + r')=', offsets[1])) if offsets else set()
             for name in sorted(query_keys):
@@ -454,7 +459,7 @@ def compile_spec(rhythm, version):
             prose = f'{title}。\n\n{prose}'.strip()
         if not matches and not ws:
             raise ValueError(f'缺少接口说明：{method} {url}')
-        if ws and version == 'v3':
+        if ws and version == 'v3' and not matches:
             prose = ('使用对应实时票据接口获取一次性票据，建立 WebSocket 连接后通过首帧提交。'
                      '事件字段和重连方式参见完整说明中的文章、聊天室、私信及通知实时订阅章节。')
         scope_match = re.search(r'auth::(\w+)', registration)
