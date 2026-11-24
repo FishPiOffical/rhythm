@@ -2000,7 +2000,7 @@ curl 'https://fishpi.cn/api/v3/articles?p=1&size=20&sort=latest&type=recent'
 | --- | --- | --- |
 | code / msg | 结果码 / 提示，成功时 code 为 0 |  |
 | data | 列表数据 |  |
-| - list | 文章摘要数组 |  |
+| - list | 文章摘要数组 | [] |
 | -- id | 文章 ID | 字符串 |
 | -- title | 标题（文本） | 字符串 |
 | -- preview | 摘要（文本），思绪帖为空 | 字符串 |

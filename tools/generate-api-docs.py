@@ -237,6 +237,85 @@ def summary_for(label, declaration, route_count):
             return sentence
     return label or 'API v3 接口'
 
+
+def schema_field(schema, path):
+    """定位已记录字段。找不到时立即报错，避免重命名后留下无效补充。"""
+    node = schema
+    for segment in path.split('.'):
+        if segment.endswith('[]'):
+            node = node['properties'][segment[:-2]]['items']
+        else:
+            node = node['properties'][segment]
+    return node
+
+
+def apply_contract(operation, contract, operation_key):
+    """补充 Markdown 无法表达的 OpenAPI 结构。"""
+    json_media = 'application/json'
+    try:
+        unknown = contract.keys() - {'request', 'data', 'responses', 'fields'}
+        if unknown or {'data', 'responses'} <= contract.keys():
+            raise ValueError(f'{operation_key} 的 OpenAPI 补充格式不正确：{sorted(unknown)}')
+        if 'request' in contract:
+            operation['requestBody'] = {'required': True, 'content': {
+                json_media: {'schema': contract['request']},
+            }}
+        if 'responses' in contract:
+            operation['responses'] = {
+                **{status: response for status, response in operation['responses'].items()
+                   if status == 'default'},
+                **contract['responses'],
+            }
+        if 'data' in contract:
+            success = operation['responses']['2XX']
+            content = success.setdefault('content', {})
+            content[json_media] = {'schema': {
+                'type': 'object',
+                'properties': {
+                    'code': {'type': 'integer', 'const': 0},
+                    'msg': {'type': 'string'},
+                    'data': contract['data'],
+                },
+            }}
+        for key, fields in contract.get('fields', {}).items():
+            if key == 'request':
+                carrier = operation['requestBody']
+            elif key == 'response':
+                carrier = operation['responses']['2XX']
+            else:
+                raise ValueError(f'未知字段位置 {key}')
+            schema = carrier['content'][json_media]['schema']
+            for path, rules in fields.items():
+                target = schema_field(schema, path)
+                description = target.get('description')
+                target.clear()
+                if description:
+                    target['description'] = description
+                target.update(rules)
+    except KeyError as error:
+        raise ValueError(f'{operation_key} 的 OpenAPI 补充与生成结构不匹配：{error}') from error
+
+
+def check_schema_refs(spec):
+    components = spec['components'].get('schemas', {})
+
+    def visit(node):
+        if isinstance(node, list):
+            for value in node:
+                visit(value)
+        elif isinstance(node, dict):
+            ref = node.get('$ref')
+            if ref is not None:
+                prefix = '#/components/schemas/'
+                if not ref.startswith(prefix) or ref[len(prefix):] not in components:
+                    raise ValueError(f'未知 OpenAPI 结构引用：{ref}')
+            for value in node.values():
+                visit(value)
+
+    visit(spec['paths'])
+    visit(components)
+
+
 def compile_spec(rhythm, version):
     source = (rhythm / 'API.md').read_text(encoding='utf-8').split('## API v3\n', 1)[1]
     current, legacy = source.split('## 旧版及兼容 API', 1)
@@ -287,6 +366,11 @@ def compile_spec(rhythm, version):
 
     if not inventory:
         raise ValueError(f'{version} 没有可生成的接口，请检查 API.md 与路由来源')
+    contract_data = {}
+    if version == 'v3':
+        contract_path = rhythm / 'docs/api-v3-openapi-schemas.json'
+        contract_data = json.loads(contract_path.read_text(encoding='utf-8'))
+    contracts = contract_data.get('operations', {}).copy()
     paths, stats = {}, Counter()
     for (method, canonical), (url, registration, ws) in sorted(inventory.items()):
         pd = re.findall(r'\{([^{}]+)\}', url)
@@ -378,7 +462,6 @@ def compile_spec(rhythm, version):
             operation['parameters'] = list(params.values())
         if body.get('properties'):
             operation['requestBody'] = {'content': {'application/json': {'schema': body}}}
-            stats['request'] += 1
         success = {'description': 'WebSocket 握手成功。' if ws else '请求成功，具体业务结果见接口说明。'}
         if response.get('properties') and not ws:
             if version == 'v3' and not url.startswith('/api/v3/oauth/'):
@@ -391,11 +474,20 @@ def compile_spec(rhythm, version):
                     if kind:
                         prop.setdefault('type', kind)
             success['content'] = {'application/json': {'schema': response}}
-            stats['response'] += 1
         operation['responses']['101' if ws else '2XX'] = success
         if not ws:
             operation['responses']['default'] = {'description': '调用失败。请结合 HTTP 状态码与业务错误信息处理，特殊响应格式见接口说明。'}
+        operation_key = f'{method} {url}'
+        if operation_key in contracts:
+            apply_contract(operation, contracts.pop(operation_key), operation_key)
+        if 'requestBody' in operation:
+            stats['request'] += 1
+        if any(response.get('content') for status, response in operation['responses'].items()
+               if status.startswith('2')):
+            stats['response'] += 1
         paths.setdefault(url, {})[method.lower()] = operation
+    if contracts:
+        raise ValueError(f'OpenAPI 补充引用了未注册的操作：{", ".join(sorted(contracts))}')
     count = sum(len(methods) for methods in paths.values())
     groups = GROUPS if version == 'v3' else {
         name: f'旧版{name}接口。' for name in dict.fromkeys(op['tags'][0] for methods in paths.values() for op in methods.values())
@@ -414,6 +506,9 @@ def compile_spec(rhythm, version):
     }
     if version == 'v2':
         del spec['components']
+    else:
+        spec['components']['schemas'] = contract_data.get('schemas', {})
+        check_schema_refs(spec)
     return spec, markdown, count, stats
 
 def make_param(name, location, description, kind=None, required=False):

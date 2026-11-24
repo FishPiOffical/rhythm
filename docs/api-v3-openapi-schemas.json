@@ -1,0 +1,4198 @@
+{
+  "schemas": {
+    "AdminFishGame": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "fishGameName": {
+          "type": "string"
+        },
+        "fishGameDescription": {
+          "type": "string"
+        },
+        "fishGameUrl": {
+          "type": "string"
+        },
+        "fishGameIconUrl": {
+          "type": "string"
+        },
+        "fishGameOauthLoginUrl": {
+          "type": "string"
+        },
+        "fishGameAuthorId": {
+          "type": "string"
+        },
+        "fishGameStatus": {
+          "type": "integer"
+        },
+        "fishGameEditPending": {
+          "type": "integer"
+        },
+        "fishGameLikeCount": {
+          "type": "integer"
+        },
+        "fishGameDislikeCount": {
+          "type": "integer"
+        },
+        "fishGameCreatedTime": {
+          "type": "integer"
+        },
+        "fishGameUpdatedTime": {
+          "type": "integer"
+        }
+      }
+    },
+    "AdminPagination": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "totalPages": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "pageSize",
+        "total",
+        "totalPages"
+      ]
+    },
+    "AdminTaskAcceptance": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "accepted": {
+          "const": true
+        },
+        "triggeredAt": {
+          "type": "integer"
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "statusUrl": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "ArticleStick": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "permanent": {
+          "type": "boolean"
+        },
+        "expiresAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "active",
+        "permanent",
+        "expiresAt"
+      ]
+    },
+    "CardBackground": {
+      "type": "object",
+      "properties": {
+        "cardBg": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cardBg"
+      ]
+    },
+    "ChatAppearance": {
+      "type": "object",
+      "properties": {
+        "bubbleId": {
+          "type": "string"
+        },
+        "frameId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bubbleId",
+        "frameId",
+        "version"
+      ]
+    },
+    "ColumnSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "coverURL": {
+          "type": "string"
+        },
+        "articleCount": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "coverURL",
+        "articleCount",
+        "updatedAt"
+      ]
+    },
+    "GameLedgerRow": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "referenceId": {
+          "type": "string"
+        },
+        "coinDelta": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "Pagination": {
+      "type": "object",
+      "properties": {
+        "p": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "pageCount": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "p",
+        "size",
+        "total",
+        "pageCount"
+      ]
+    },
+    "ParagraphAssociation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "snapshot": {
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "active",
+            "orphaned"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "index",
+        "snapshot",
+        "state"
+      ]
+    },
+    "ParkingModel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "starter": {
+          "type": "boolean"
+        },
+        "price": {
+          "type": "integer"
+        },
+        "rate": {
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PartnerCard": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "rate": {
+          "type": "integer"
+        },
+        "rateVersion": {
+          "type": "integer"
+        },
+        "displayValue": {
+          "type": "string"
+        },
+        "price": {
+          "type": "integer"
+        },
+        "full": {
+          "type": "boolean"
+        },
+        "mine": {
+          "type": "boolean"
+        },
+        "following": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer"
+        }
+      }
+    },
+    "PetBrawlOrder": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "petId": {
+          "type": "string"
+        },
+        "weapon": {
+          "type": "string"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "materials": {
+          "type": "integer"
+        },
+        "points": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "completed",
+            "expired"
+          ]
+        },
+        "product": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "petId",
+        "weapon",
+        "level",
+        "materials",
+        "points",
+        "version",
+        "createdAt",
+        "expiresAt",
+        "status"
+      ]
+    },
+    "PetJournalPage": {
+      "type": "object",
+      "properties": {
+        "serverNow": {
+          "type": "integer"
+        },
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "pageSize": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            },
+            "pageCount": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "page",
+            "pageSize",
+            "total",
+            "pageCount"
+          ]
+        }
+      },
+      "required": [
+        "serverNow",
+        "list",
+        "pagination"
+      ]
+    },
+    "PetOperationReceipt": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "petId": {
+          "type": "string"
+        },
+        "committedAt": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "operation",
+        "petId",
+        "committedAt"
+      ]
+    },
+    "ProfessionVersionTree": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "professionCode": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "schemes": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "automations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "PublicPetOwner": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userNickname": {
+          "type": "string"
+        },
+        "userAvatarURL": {
+          "type": "string"
+        }
+      }
+    },
+    "PublicPetProgress": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "level": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "operations": {
+    "DELETE /api/v3/admin/coupons/{couponId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/domains/{domainId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/domains/{domainId}/tags/{tagId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "domainId": {
+            "type": "string"
+          },
+          "tagId": {
+            "type": "string"
+          },
+          "unbound": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/medals/{medalId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/milestones/{milestoneId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/roles/{roleId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/vip/levels/{levelId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/articles/{articleId}/vote": {
+      "fields": {
+        "response": {
+          "data.vote": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/comments/{commentId}/vote": {
+      "fields": {
+        "response": {
+          "data.vote": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/repeater/items/{itemId}/like": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "liked": {
+            "type": "boolean"
+          },
+          "likeCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "liked",
+          "likeCount"
+        ]
+      }
+    },
+    "GET /api/v3/admin/ads": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "sideFullAd": {
+            "type": "string"
+          },
+          "headerBanner": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/client-downloads": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "authors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "userName": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "recommended": {
+                  "type": "boolean"
+                },
+                "sortOrder": {
+                  "type": "integer"
+                },
+                "revision": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/coupons": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/domains": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/fish-games": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminFishGame"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/fish-games/export": {
+      "fields": {
+        "response": {
+          "data.items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminFishGame"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/invitecodes": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "memo": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "integer"
+                },
+                "statusLabel": {
+                  "type": "string"
+                },
+                "generatorId": {
+                  "type": "string"
+                },
+                "generatorName": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "userName": {
+                  "type": "string"
+                },
+                "time": {
+                  "type": "integer"
+                },
+                "useTime": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/ips": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "firewallEnabled": {
+            "type": "boolean"
+          },
+          "threshold": {
+            "type": "integer"
+          },
+          "verificationEnabled": {
+            "type": "boolean"
+          },
+          "firstVisitCaptchaEnabled": {
+            "type": "boolean"
+          },
+          "defaultThreshold": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/medals": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/medals/users/{target}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/medals/{medalId}/owners": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "userName": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "string"
+                },
+                "expireTime": {
+                  "type": "integer"
+                },
+                "permanent": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/milestones": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/parking/ledger": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GameLedgerRow"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/parking/metrics": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "asOf": {
+            "type": "integer"
+          },
+          "firstPark": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "integer"
+              },
+              "hits": {
+                "type": "number"
+              }
+            }
+          },
+          "emptySearch": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "integer"
+              },
+              "hits": {
+                "type": "number"
+              }
+            }
+          },
+          "upgrade": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "integer"
+              },
+              "meanMs": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "nextDay": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "integer"
+              },
+              "hits": {
+                "type": "number"
+              }
+            }
+          },
+          "repeatPairs": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "integer"
+              },
+              "hits": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/parking/models": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParkingModel"
+            }
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/partners/ledger": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GameLedgerRow"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/partners/report": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "asOf": {
+            "type": "integer"
+          },
+          "policy": {
+            "type": "object"
+          },
+          "occupancy": {
+            "type": "object",
+            "properties": {
+              "joinedCount": {
+                "type": "integer"
+              },
+              "fullCount": {
+                "type": "integer"
+              }
+            }
+          },
+          "money": {
+            "type": "object",
+            "properties": {
+              "income": {
+                "type": "integer"
+              },
+              "earningDays": {
+                "type": "integer"
+              },
+              "netIssued": {
+                "type": "integer"
+              }
+            }
+          },
+          "pairs": {
+            "type": "object",
+            "properties": {
+              "transfers": {
+                "type": "integer"
+              },
+              "quickReturns": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/pets": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "petId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "speciesId": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "userName": {
+                  "type": "string"
+                },
+                "userNickname": {
+                  "type": "string"
+                },
+                "moderated": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/pets/logs": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "tab": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "object"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "from": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/professions/automation/metadata": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "triggers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "triggerType": {
+                  "type": "string"
+                },
+                "schemaVersion": {
+                  "type": "integer"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "fieldCode": {
+                        "type": "string"
+                      },
+                      "fieldType": {
+                        "type": "string"
+                      },
+                      "operators": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "conditionTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "calculatorTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "actionType": {
+                  "type": "string"
+                },
+                "actionCode": {
+                  "type": "string"
+                },
+                "configType": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/professions/catalog": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfessionVersionTree"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/professions/catalog-summary": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "professionCode": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "sortOrder": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/professions/config/export": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string"
+          },
+          "formatVersion": {
+            "type": "integer"
+          },
+          "exportedAt": {
+            "type": "integer"
+          },
+          "scope": {
+            "enum": [
+              "ALL",
+              "SINGLE"
+            ]
+          },
+          "professions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "professionCode": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "sortOrder": {
+                  "type": "integer"
+                },
+                "revisions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "schemes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "automations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/professions/definition/metadata": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "presets": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/professions/{professionId}": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProfessionVersionTree"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "operatorNames": {
+                "type": "object"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "GET /api/v3/admin/professions/{professionId}/schemes/{schemeId}/impact": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "type": "integer"
+          },
+          "addedLevelCount": {
+            "type": "integer"
+          },
+          "removedLevelCount": {
+            "type": "integer"
+          },
+          "addedRewardCount": {
+            "type": "integer"
+          },
+          "removedRewardCount": {
+            "type": "integer"
+          },
+          "rankingRebuildRequired": {
+            "type": "boolean"
+          },
+          "candidateSchemeId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/reserved-words": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "word": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/roles": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "roleName": {
+                  "type": "string"
+                },
+                "roleDescription": {
+                  "type": "string"
+                },
+                "userCount": {
+                  "type": "integer"
+                },
+                "builtIn": {
+                  "type": "boolean"
+                },
+                "removable": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "canManageAdminPerms": {
+            "type": "boolean"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/roles/{roleId}/permissions": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "object",
+            "properties": {
+              "oId": {
+                "type": "string"
+              },
+              "roleName": {
+                "type": "string"
+              },
+              "roleDescription": {
+                "type": "string"
+              },
+              "isAdminRole": {
+                "type": "boolean"
+              }
+            }
+          },
+          "canManageAdminPerms": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "permissionCategory": {
+                  "type": "string"
+                },
+                "categoryLabel": {
+                  "type": "string"
+                },
+                "permissionLabel": {
+                  "type": "string"
+                },
+                "permissionGrant": {
+                  "type": "boolean"
+                },
+                "adminOnly": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/security/monitor": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "crawlers": {
+            "type": "object"
+          },
+          "switches": {
+            "type": "object",
+            "properties": {
+              "firewallEnabled": {
+                "type": "boolean"
+              },
+              "threshold": {
+                "type": "integer"
+              },
+              "verificationEnabled": {
+                "type": "boolean"
+              },
+              "firstVisitCaptchaEnabled": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/security/self-check": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "checkedAt": {
+            "type": "string"
+          },
+          "runtimeMode": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "REVIEW"
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "passed": {
+                  "type": "boolean"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/tags": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/vip/levels": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/vip/users": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/appearance-shop": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "styleId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "price7": {
+                  "type": "integer"
+                },
+                "price30": {
+                  "type": "integer"
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "revision": {
+                  "type": "integer"
+                },
+                "vipIncluded": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "list"
+        ]
+      }
+    },
+    "GET /api/v3/articles": {
+      "fields": {
+        "response": {
+          "data.list[].stick": {
+            "$ref": "#/components/schemas/ArticleStick"
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/random": {
+      "fields": {
+        "response": {
+          "data.list[].stick": {
+            "$ref": "#/components/schemas/ArticleStick"
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/{articleId}": {
+      "fields": {
+        "response": {
+          "data.commentable": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "data.statement": {
+            "enum": [
+              0,
+              1,
+              2,
+              3,
+              null
+            ]
+          },
+          "data.qna": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "offerPoint": {
+                "type": "integer"
+              },
+              "accepted": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "offerPoint",
+              "accepted"
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/{articleId}/column": {
+      "fields": {
+        "response": {
+          "data.column": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ColumnSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "data.chapterNo": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/{articleId}/vote": {
+      "fields": {
+        "response": {
+          "data.vote": {
+            "enum": [
+              "up",
+              "down",
+              null
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/game-status": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "parkingFree": {
+                  "type": "boolean"
+                },
+                "partner": {
+                  "type": "object",
+                  "properties": {
+                    "full": {
+                      "type": "boolean"
+                    },
+                    "displayValue": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/messages/{messageId}/pet": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "speciesId": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "experience": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/PublicPetOwner"
+          },
+          "learning": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPetProgress"
+            }
+          },
+          "career": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPetProgress"
+            }
+          },
+          "petId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/comments/{commentId}": {
+      "fields": {
+        "response": {
+          "data.paragraph": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParagraphAssociation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/comments/{commentId}/revisions": {
+      "fields": {
+        "response": {
+          "data.items[].time": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/comments/{commentId}/revisions/{revisionId}": {
+      "fields": {
+        "response": {
+          "data.time": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/comments/{commentId}/vote": {
+      "fields": {
+        "response": {
+          "data.vote": {
+            "enum": [
+              "up",
+              "down",
+              null
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/chat-appearance": {
+      "data": {
+        "$ref": "#/components/schemas/ChatAppearance"
+      }
+    },
+    "GET /api/v3/me/exports/posts/{jobId}/download": {
+      "responses": {
+        "200": {
+          "description": "返回帖子导出 ZIP 附件。",
+          "content": {
+            "application/zip": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/medals/image": {
+      "responses": {
+        "200": {
+          "description": "返回当前可见的勋章 SVG。",
+          "content": {
+            "image/svg+xml": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/parking": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "serverNow": {
+            "type": "integer"
+          },
+          "catalog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParkingModel"
+            }
+          },
+          "coins": {
+            "type": "integer"
+          },
+          "owned": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "driving": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "car": {
+                "type": "string"
+              },
+              "otherName": {
+                "type": "string"
+              },
+              "startedAt": {
+                "type": "integer"
+              },
+              "rate": {
+                "type": "integer"
+              },
+              "earned": {
+                "type": "integer"
+              },
+              "passengerSpecies": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "note": {
+                "type": "string"
+              },
+              "mountStyle": {
+                "type": "string"
+              },
+              "pardoned": {
+                "type": "boolean"
+              }
+            }
+          },
+          "occupant": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "car": {
+                "type": "string"
+              },
+              "otherName": {
+                "type": "string"
+              },
+              "startedAt": {
+                "type": "integer"
+              },
+              "rate": {
+                "type": "integer"
+              },
+              "earned": {
+                "type": "integer"
+              },
+              "passengerSpecies": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "note": {
+                "type": "string"
+              },
+              "mountStyle": {
+                "type": "string"
+              },
+              "pardoned": {
+                "type": "boolean"
+              }
+            }
+          },
+          "availablePet": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "speciesId": {
+                "type": "string"
+              }
+            }
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "car": {
+                  "type": "string"
+                },
+                "endedAt": {
+                  "type": "integer"
+                },
+                "ending": {
+                  "type": "string"
+                },
+                "paid": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "spaces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "free": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "next": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/partners": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "joined": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "holderName": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "peer": {
+                  "type": "string"
+                },
+                "rate": {
+                  "type": "integer"
+                },
+                "today": {
+                  "type": "integer"
+                },
+                "usedMs": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerCard"
+            }
+          },
+          "displayValue": {
+            "type": "string"
+          },
+          "coins": {
+            "type": "integer"
+          },
+          "today": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/partners/activity": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "integer"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "integer"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "operation": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "next": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "list",
+          "next"
+        ]
+      }
+    },
+    "GET /api/v3/me/partners/card/{id}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "card": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartnerCard"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "card"
+        ]
+      }
+    },
+    "GET /api/v3/me/pet": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "serverNow": {
+            "type": "integer"
+          },
+          "today": {
+            "type": "string"
+          },
+          "catalogVersion": {
+            "type": "integer"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "stories": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "income": {
+            "type": "object"
+          },
+          "wallet": {
+            "type": "object",
+            "properties": {
+              "coins": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "coins"
+            ]
+          },
+          "dailySupply": {
+            "type": "object",
+            "properties": {
+              "claimed": {
+                "type": "boolean"
+              },
+              "coins": {
+                "type": "integer"
+              },
+              "food": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "claimed",
+              "coins",
+              "food"
+            ]
+          },
+          "pet": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "inventory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "serverNow",
+          "today",
+          "catalogVersion",
+          "collections",
+          "stories",
+          "income",
+          "wallet",
+          "dailySupply",
+          "pet",
+          "inventory"
+        ]
+      }
+    },
+    "GET /api/v3/me/pet/activities": {
+      "data": {
+        "$ref": "#/components/schemas/PetJournalPage"
+      }
+    },
+    "GET /api/v3/me/pet/brawl/matches": {
+      "fields": {
+        "response": {
+          "data.next": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/pet/brawl/orders": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PetBrawlOrder"
+            }
+          },
+          "data.next": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/pet/brawl/orders/{id}": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PetBrawlOrder"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "balance": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "balance"
+            ]
+          }
+        ]
+      }
+    },
+    "GET /api/v3/me/pet/brawl/season": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "season": {
+            "type": "integer"
+          },
+          "current": {
+            "type": "integer"
+          },
+          "startsAt": {
+            "type": "integer"
+          },
+          "endsAt": {
+            "type": "integer"
+          },
+          "settled": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rating": {
+                  "type": "integer"
+                },
+                "wins": {
+                  "type": "integer"
+                },
+                "games": {
+                  "type": "integer"
+                },
+                "rank": {
+                  "type": "integer"
+                },
+                "mine": {
+                  "type": "boolean"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "nickname": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "mine": {
+            "type": "object",
+            "properties": {
+              "rating": {
+                "type": "integer"
+              },
+              "wins": {
+                "type": "integer"
+              },
+              "games": {
+                "type": "integer"
+              },
+              "opponents": {
+                "type": "integer"
+              },
+              "rank": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "reward": {
+                "type": "integer"
+              },
+              "claimed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "season",
+          "current",
+          "startsAt",
+          "endsAt",
+          "settled",
+          "page",
+          "hasNext",
+          "list",
+          "mine"
+        ]
+      }
+    },
+    "GET /api/v3/me/pet/coffee": {
+      "fields": {
+        "response": {
+          "data.product": {
+            "const": "coffee"
+          },
+          "data.price": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/pet/journal": {
+      "data": {
+        "$ref": "#/components/schemas/PetJournalPage"
+      }
+    },
+    "GET /api/v3/me/settings/card-background": {
+      "data": {
+        "$ref": "#/components/schemas/CardBackground"
+      }
+    },
+    "GET /api/v3/membership/styles": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "unchanged": {
+            "type": "boolean"
+          },
+          "maxAgeMs": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "configJson": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "userId",
+                "configJson"
+              ]
+            }
+          }
+        },
+        "required": [
+          "version",
+          "unchanged",
+          "maxAgeMs"
+        ]
+      }
+    },
+    "GET /api/v3/oauth/authorize": {
+      "responses": {
+        "200": {
+          "description": "返回授权确认 HTML 页面。",
+          "content": {
+            "text/html": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/pets/catalog": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "activityVersion": {
+            "type": "integer"
+          },
+          "species": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "growthRules": {
+            "type": "object",
+            "properties": {
+              "experiencePerLevel": {
+                "type": "integer"
+              },
+              "maxLevel": {
+                "type": "integer"
+              },
+              "careExperience": {
+                "type": "integer"
+              },
+              "careFriendship": {
+                "type": "integer"
+              }
+            }
+          },
+          "readoptionRules": {
+            "type": "object",
+            "properties": {
+              "coins": {
+                "type": "integer"
+              }
+            }
+          },
+          "incomeRules": {
+            "type": "object",
+            "properties": {
+              "dailyLimit": {
+                "type": "integer"
+              }
+            }
+          },
+          "stories": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "rules": {
+            "type": "object"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "places": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "recipes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/pets/{petId}/profile": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "speciesId": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "experience": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/PublicPetOwner"
+          },
+          "learning": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPetProgress"
+            }
+          },
+          "career": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPetProgress"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/medals/image": {
+      "responses": {
+        "200": {
+          "description": "返回当前可见的勋章 SVG。",
+          "content": {
+            "image/svg+xml": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/points": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": {
+                  "type": "integer"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "integer"
+                },
+                "operation": {
+                  "type": "string"
+                },
+                "balance": {
+                  "type": "integer"
+                },
+                "displayType": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "list",
+          "pagination"
+        ]
+      }
+    },
+    "POST /api/v3/admin/articles": {
+      "fields": {
+        "request": {
+          "chapterNo": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/articles/reindex": {
+      "data": {
+        "$ref": "#/components/schemas/AdminTaskAcceptance"
+      }
+    },
+    "POST /api/v3/admin/bags/adjust": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/coupons": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/domains": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/domains/{domainId}/tags": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "domainId": {
+            "type": "string"
+          },
+          "tagId": {
+            "type": "string"
+          },
+          "tagTitle": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/fish-games": {
+      "data": {
+        "$ref": "#/components/schemas/AdminFishGame"
+      }
+    },
+    "POST /api/v3/admin/fish-games/{gameId}/review": {
+      "data": {
+        "$ref": "#/components/schemas/AdminFishGame"
+      }
+    },
+    "POST /api/v3/admin/invitecodes/generate": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer"
+          },
+          "memo": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/ips": {
+      "data": {
+        "$ref": "#/components/schemas/AdminTaskAcceptance"
+      }
+    },
+    "POST /api/v3/admin/medals": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/medals/batch-grant": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "medalId": {
+            "type": "string"
+          },
+          "successCount": {
+            "type": "integer"
+          },
+          "failureCount": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "userName": {
+                  "type": "string"
+                },
+                "ok": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/medals/grant": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "medalId": {
+            "type": "string"
+          },
+          "expireTime": {
+            "type": "integer"
+          },
+          "legacyReceipt": {
+            "type": "boolean"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/medals/hold-check": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "found": {
+                  "type": "boolean"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "userName": {
+                  "type": "string"
+                },
+                "holds": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/medals/revoke": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "medalId": {
+            "type": "string"
+          },
+          "revoked": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/medals/sponsor/reorder": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "reordered": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/points/charge": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "legacyReceipt": {
+            "type": "boolean"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/points/deduct": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "legacyReceipt": {
+            "type": "boolean"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/points/exchange": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "transferId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "point": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/points/init": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "legacyReceipt": {
+            "type": "boolean"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/automation/copy": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/automation/draft": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/automation/publish": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/automation/retire": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "retired": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/automation/rollback": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/automation/test": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "matched": {
+            "type": "boolean"
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "actionCode": {
+                  "type": "string"
+                },
+                "actionType": {
+                  "type": "string"
+                },
+                "contributionRecorded": {
+                  "type": "boolean"
+                },
+                "notificationContent": {
+                  "type": "string"
+                },
+                "notificationWhen": {
+                  "type": "string"
+                },
+                "experienceDelta": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/catalog/order": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "reordered": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/config/import": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "importedCount": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/config/precheck": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "ready": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "professionCode": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "professionCode": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/definition/copy": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/definition/draft": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/definition/publish": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/definition/retire": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "retired": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/definition/rollback": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/scheme/copy": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/scheme/draft": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/scheme/publish": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/scheme/retire": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "retired": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/professions/scheme/rollback": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/reserved-words": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "added": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/reserved-words/remove": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "removed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/roles": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string"
+          },
+          "roleDescription": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/salary/pay": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "successCount": {
+            "type": "integer"
+          },
+          "failureCount": {
+            "type": "integer"
+          },
+          "totalAmount": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "userName": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "transferId": {
+                  "type": "string"
+                },
+                "ok": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/security/switches": {
+      "data": {
+        "$ref": "#/components/schemas/AdminTaskAcceptance"
+      }
+    },
+    "POST /api/v3/admin/tags": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "tagTitle": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/tags/remove-unused": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "cleaned": {
+            "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/vip/levels": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/vip/users": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "membership": {
+            "type": "object"
+          },
+          "legacyReceipt": {
+            "type": "boolean"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/vip/users/{userId}/extend": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer"
+          },
+          "membership": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/vip/users/{userId}/refund": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "refund": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "POST /api/v3/auth/session": {
+      "data": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "linked": {
+                "const": false
+              }
+            },
+            "required": [
+              "linked"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "userId",
+              "revision"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "null"
+              },
+              "revision": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "userId",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "POST /api/v3/breezemoons/realtime-ticket": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "channel": {
+            "const": "breezemoons"
+          }
+        },
+        "required": [
+          "ticket",
+          "expiresIn",
+          "path",
+          "channel"
+        ]
+      }
+    },
+    "POST /api/v3/me/appearance-purchases": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "paidPoints": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "paidPoints",
+          "expiresAt"
+        ]
+      }
+    },
+    "POST /api/v3/me/parking/{action}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "amount"
+        ]
+      }
+    },
+    "POST /api/v3/me/partners/{action}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/actions": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "POST /api/v3/me/pet/activities": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PetOperationReceipt"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "activityId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "activityId"
+            ]
+          }
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/activities/claim": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PetOperationReceipt"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "activityId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "activityId"
+            ]
+          }
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/adoption": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "POST /api/v3/me/pet/brawl/orders": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PetOperationReceipt"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId"
+            ]
+          }
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/brawl/orders/{id}/confirm": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PetOperationReceipt"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "orderId"
+            ]
+          }
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/brawl/pvp": {
+      "data": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PetOperationReceipt"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "matchId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "matchId"
+            ]
+          }
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/brawl/season/{id}/claim": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "const": "brawl-season-claim"
+          },
+          "season": {
+            "type": "integer"
+          },
+          "place": {
+            "type": "integer"
+          },
+          "materials": {
+            "type": "integer"
+          },
+          "claimedAt": {
+            "type": "integer"
+          },
+          "committedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operation",
+          "season",
+          "place",
+          "materials",
+          "claimedAt",
+          "committedAt"
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/purchases": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "POST /api/v3/me/pet/supplies": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "POST /api/v3/oauth/consent": {
+      "responses": {
+        "303": {
+          "description": "浏览器返回已登记的回调地址。",
+          "headers": {
+            "Location": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "maxProperties": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/review/identity-applications/{applicationId}/material/open": {
+      "responses": {
+        "200": {
+          "description": "成功返回一次性可读的证明图片。",
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/ads": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "const": true
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/appearance/bubbles/{bubbleId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "publishedRevision": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "hasDraftChanges": {
+            "type": "boolean"
+          },
+          "draft": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "access": {
+                "type": "string"
+              },
+              "price7": {
+                "type": "integer"
+              },
+              "price30": {
+                "type": "integer"
+              },
+              "style": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/articles/{articleId}": {
+      "fields": {
+        "request": {
+          "chapterNo": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/client-downloads/{id}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/coupons/{couponId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "times": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/domains/{domainId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/fish-games/{gameId}": {
+      "data": {
+        "$ref": "#/components/schemas/AdminFishGame"
+      }
+    },
+    "PUT /api/v3/admin/invitecodes/{invitecodeId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "statusLabel": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/medals/{medalId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "updated": {
+            "const": true
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/milestones/{milestoneId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/parking/models/{model}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "parkingModel": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/partners/rate": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "partnerRateVersion": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/roles/{roleId}/permissions": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "string"
+          },
+          "grantedCount": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/tags/{tagId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/vip/levels/{levelId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "oId": {
+            "type": "string"
+          },
+          "updated": {
+            "const": true
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/vip/users/{userId}": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "membership": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/articles/{articleId}/vote": {
+      "fields": {
+        "response": {
+          "data.vote": {
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /api/v3/comments/{commentId}/vote": {
+      "fields": {
+        "response": {
+          "data.vote": {
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/chat-appearance": {
+      "data": {
+        "$ref": "#/components/schemas/ChatAppearance"
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "bubbleId": {
+            "type": "string"
+          },
+          "frameId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bubbleId",
+          "frameId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "PUT /api/v3/me/pet/brawl/profile": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "PUT /api/v3/me/pet/brawl/socket": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "PUT /api/v3/me/pet/name": {
+      "data": {
+        "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "PUT /api/v3/me/settings/card-background": {
+      "data": {
+        "$ref": "#/components/schemas/CardBackground"
+      },
+      "request": {
+        "type": "object",
+        "properties": {
+          "cardBg": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cardBg"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "PUT /api/v3/repeater/items/{itemId}/like": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "liked": {
+            "type": "boolean"
+          },
+          "likeCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "liked",
+          "likeCount"
+        ]
+      }
+    }
+  }
+}
