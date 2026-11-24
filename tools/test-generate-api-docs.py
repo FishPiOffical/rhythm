@@ -37,6 +37,42 @@ class OpenApiSchemaTest(unittest.TestCase):
             part['type'] for part in generator.schema_field(body, 'chapterNo')['anyOf']
         ])
 
+    def test_request_shapes_for_drafts_user_update_and_brawl_upgrade(self):
+        def json_body(path, method):
+            operation = self.operation(path, method)
+            headers = {param['name']: param for param in operation['parameters'] if param['in'] == 'header'}
+            self.assertTrue(headers['Idempotency-Key']['required'], path)
+            body = operation['requestBody']
+            self.assertTrue(body['required'], path)
+            return body['content']['application/json']['schema']
+
+        create_draft = json_body('me/drafts', 'post')
+        self.assertEqual(create_draft, json_body('me/drafts/{draftId}', 'put'))
+        self.assertEqual('#/components/schemas/DraftSaveInput', create_draft['$ref'])
+        draft = self.spec['components']['schemas']['DraftSaveInput']
+        self.assertNotIn('required', draft)
+        self.assertEqual('string', draft['properties']['chapterNo']['type'])
+        self.assertEqual('boolean', draft['properties']['notifyFollowers']['type'])
+        self.assertEqual(16, len(draft['properties']))
+
+        user_update = json_body('admin/users/{userId}', 'put')
+        self.assertEqual(1, user_update['minProperties'])
+        self.assertEqual({'userNickname', 'userURL', 'userIntro', 'userTags', 'userEmail',
+                          'userStatus', 'userCommentStatus', 'userPointStatus', 'userRole'},
+                         set(user_update['properties']))
+        self.assertNotIn('required', user_update)
+
+        upgrade = json_body('me/pet/brawl/upgrade', 'post')
+        self.assertEqual({'petId', 'weapon', 'level', 'version'}, set(upgrade['required']))
+        self.assertIn('LOTUS', upgrade['properties']['weapon']['enum'])
+        self.assertEqual('integer', upgrade['properties']['level']['type'])
+        for path in ('admin/articles/reindex', 'admin/articles/{articleId}/reindex'):
+            reindex = self.operation(path, 'post')
+            self.assertNotIn('requestBody', reindex)
+            self.assertTrue(any(param['name'] == 'Idempotency-Key' and param['in'] == 'header' and param['required']
+                                for param in reindex['parameters']), path)
+        self.assertFalse(self.operation('me/pet').get('parameters'))
+
     def test_success_media_matches_protocol(self):
         for path, method, media in (
             ('me/exports/posts/{jobId}/download', 'get', {'application/zip'}),

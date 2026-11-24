@@ -1647,6 +1647,96 @@
         }
       }
     },
+    "DraftSaveInput": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 255,
+          "default": ""
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 1024000,
+          "default": ""
+        },
+        "thoughtContent": {
+          "type": "string",
+          "maxLength": 1024000,
+          "default": ""
+        },
+        "tags": {
+          "type": "string",
+          "maxLength": 255,
+          "default": ""
+        },
+        "type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6,
+          "default": 0
+        },
+        "columnId": {
+          "type": "string",
+          "maxLength": 19,
+          "pattern": "^[0-9]{0,19}$",
+          "default": ""
+        },
+        "columnTitle": {
+          "type": "string",
+          "maxLength": 64,
+          "default": ""
+        },
+        "chapterNo": {
+          "type": "string",
+          "maxLength": 32,
+          "default": ""
+        },
+        "rewardContent": {
+          "type": "string",
+          "maxLength": 102400,
+          "default": ""
+        },
+        "rewardPoint": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 0
+        },
+        "qnaOfferPoint": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 0
+        },
+        "commentable": {
+          "type": "boolean",
+          "default": true
+        },
+        "anonymous": {
+          "type": "boolean",
+          "default": false
+        },
+        "notifyFollowers": {
+          "type": "boolean",
+          "default": false
+        },
+        "showInList": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "statement": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 0
+        }
+      },
+      "additionalProperties": false,
+      "description": "草稿内容。字段均可省略，未提供的字段使用默认值。"
+    },
     "DraftSummary": {
       "type": "object",
       "properties": {
@@ -9458,12 +9548,10 @@
       }
     },
     "POST /api/v3/me/drafts": {
+      "request": {
+        "$ref": "#/components/schemas/DraftSaveInput"
+      },
       "fields": {
-        "request": {
-          "thoughtContent": {
-            "type": "string"
-          }
-        },
         "response": {
           "data": {
             "$ref": "#/components/schemas/DraftSummary"
@@ -9644,6 +9732,52 @@
           "materials",
           "claimedAt",
           "committedAt"
+        ]
+      }
+    },
+    "POST /api/v3/me/pet/brawl/upgrade": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "weapon": {
+            "type": "string",
+            "enum": [
+              "SPOON",
+              "GUARD",
+              "FAN",
+              "PEBBLE",
+              "SHELL",
+              "LEAF",
+              "LOTUS",
+              "CLAW",
+              "SLING",
+              "FIN",
+              "BUBBLE"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 19,
+            "description": "强化前的当前等级。"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "使用乱斗状态返回的当前规则版本。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "petId",
+          "weapon",
+          "level",
+          "version"
         ]
       }
     },
@@ -10066,6 +10200,57 @@
       }
     },
     "PUT /api/v3/admin/users/{userId}": {
+      "request": {
+        "type": "object",
+        "properties": {
+          "userNickname": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "userURL": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "个人主页的 HTTP 或 HTTPS 链接，传空字符串可清空。"
+          },
+          "userIntro": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "userTags": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "userEmail": {
+            "type": "string",
+            "maxLength": 128,
+            "format": "email"
+          },
+          "userStatus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "userCommentStatus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "userPointStatus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "userRole": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "description": "角色 ID。"
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1,
+        "description": "至少提交一个需修改的字段，省略的字段保持原值。"
+      },
       "fields": {
         "response": {
           "data": {
@@ -10249,6 +10434,9 @@
       }
     },
     "PUT /api/v3/me/drafts/{draftId}": {
+      "request": {
+        "$ref": "#/components/schemas/DraftSaveInput"
+      },
       "fields": {
         "response": {
           "data": {

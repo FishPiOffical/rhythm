@@ -2147,7 +2147,7 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | Bearer 访问令牌，需要 content.write | Bearer TOKEN |
-| Idempotency-Key | 请求头；重试同一次操作保持不变，1–128 个英文字母、数字或 `._:-` | 550e8400-e29b-41d4-a716-446655440000 |
+| Idempotency-Key | 请求头；必填，重试同一次操作保持不变，1–128 个英文字母、数字或 `._:-` | 550e8400-e29b-41d4-a716-446655440000 |
 | title | 标题，最多 255 字符，默认空 | 草稿标题 |
 | content | 编辑器正文，最多 1024000 字符，默认空 | 正文 |
 | thoughtContent | 思绪记录字符串，最多 1024000 字符，默认空 | 思绪记录文本 |
@@ -2199,7 +2199,7 @@ curl --request POST 'https://fishpi.cn/api/v3/me/drafts' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | Bearer 访问令牌，需要 content.write | Bearer TOKEN |
-| Idempotency-Key | 请求头；同一次替换的重试使用相同键 | 550e8400-e29b-41d4-a716-446655440001 |
+| Idempotency-Key | 请求头；必填，同一次替换的重试使用相同键 | 550e8400-e29b-41d4-a716-446655440001 |
 | draftId | 路径中的草稿 ID | 20261016003 |
 | title / content / thoughtContent / tags / type | 与创建草稿相同 | 正文 |
 | columnId / columnTitle / chapterNo | 与创建草稿相同 | 1 |
@@ -11608,7 +11608,7 @@ curl 'https://fishpi.cn/api/v3/me/pet' \
   --header 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
-响应增加：
+响应字段：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
@@ -11808,8 +11808,12 @@ curl 'https://fishpi.cn/api/v3/me/pet/brawl/matches/1794700000001' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| petId / weapon | 当前宠物 ID、要强化的武器 ID | `"1794000000000"` / `"LOTUS"` |
-| level / version | 当前武器强化等级、当前乱斗版本 | `4` / `2` |
+| Authorization | 第一方 Bearer，需 settings.write | Bearer ACCESS_TOKEN |
+| Idempotency-Key | 请求头；必填，重试同一次强化时沿用原键 | UPGRADE_COMMAND_KEY |
+| petId | 当前宠物 ID | `"1794000000000"` |
+| weapon | 当前宠物可强化的武器 ID，取乱斗状态 | `"LOTUS"` |
+| level | 当前武器强化等级，0 至 19 | `4` |
+| version | 乱斗规则版本，取当前状态的 `version` | `2` |
 
 请求示例：
 
@@ -11825,7 +11829,9 @@ curl 'https://fishpi.cn/api/v3/me/pet/brawl/upgrade' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | data | 强化回执 | `{}` |
-| - operation / petId / committedAt | 操作名、当前宠物 ID、提交时间（毫秒） | `"brawl-upgrade"` / `"1794000000000"` / `1794700000000` |
+| - operation | 操作名 | `"brawl-upgrade"` |
+| - petId | 当前宠物 ID | `"1794000000000"` |
+| - committedAt | 提交时间（毫秒） | `1794700000000` |
 | - level | 本次成功后的武器等级 | `5` |
 
 > 费用读取状态接口的 `costs[level]`。当前等级已变化返回 HTTP 409 `brawl_stale_level`，规则已变化返回 HTTP 409 `brawl_version_changed`。收到成功回执后重读当前乱斗状态。强化会在之后开打的正式闯关、随机匹配与好友约战中生效。
@@ -13390,18 +13396,18 @@ curl --request DELETE 'https://fishpi.cn/api/v3/admin/oauth/clients/app_YOUR_CLI
 
 `POST /api/v3/admin/security/switches`
 
-`POST /api/v3/admin/articles/reindex`
-
 `POST /api/v3/admin/articles/{articleId}/reindex`
 
 这些操作返回任务受理结果，客户端应继续查询任务状态，不应把 `accepted=true` 显示为操作完成。使用 V3 Bearer 凭据及原接口所需管理权限。
+
+两条重建索引接口均无需请求体；单篇重建直接从路径读取 `articleId`。下表中的 JSON 字段只适用于 IP 操作和安全开关。
 
 请求：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | Authorization | V3 Bearer 凭据 | `Bearer <access_token>` |
-| Idempotency-Key | 本次操作的幂等键 | `admin-operation-001` |
+| Idempotency-Key | 请求头；必填，本次操作的幂等键 | `admin-operation-001` |
 | action | IP 操作：`ban` 或 `unban` | `ban` |
 | ipList | IP 操作：IPv4/IPv6 地址数组，最多 500 项，不接受主机名、网段或区域标识；重复地址合并 | `["192.0.2.1"]` |
 | threshold | 开关操作：正整数 | `100` |
@@ -13429,6 +13435,27 @@ curl -X POST 'https://fishpi.cn/api/v3/admin/articles/1234567890123/reindex' \
 | - replayed | 是否复用了同一幂等键的受理记录 | `false` |
 
 > IP 与开关客户端须改为读取任务结果；不再以原同步响应中的计数或开关值判断执行完成。相同幂等键返回同一任务；搜索任务明确失败后，原键重试可重新调度。`PARTIAL`、`UNKNOWN` 必须先核实结果，不能直接自动重发。历史版本回执若没有任务编号，返回 `status=LEGACY_UNVERIFIED`，需人工确认原操作结果。
+
+##### 重建全站文章搜索索引
+
+`POST /api/v3/admin/articles/reindex`
+
+使用第一方 Bearer，需要 `settings.write` 和原索引管理权限。发送以下两个请求头即可，成功返回上文的后台任务受理结果。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | V3 Bearer 凭据 | `Bearer <access_token>` |
+| Idempotency-Key | 请求头；必填，重试同一次索引重建时沿用原键 | `all-articles-index-001` |
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/api/v3/admin/articles/reindex' \
+  -H 'Authorization: Bearer <access_token>' \
+  -H 'Idempotency-Key: all-articles-index-001'
+```
 
 ##### 查询后台任务
 
