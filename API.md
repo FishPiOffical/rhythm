@@ -28,6 +28,9 @@
 
 `POST /api/v3/auth/session` 供第一方网页使用当前会话 Cookie 查询登录状态。
 
+- 返回 `data.linked: false`（布尔值）时，请求携带刷新 Cookie，但当前没有新旧站绑定会话。这个结果不确认刷新 Cookie 有效，也不表示已退出。
+- 已确认绑定会话时，返回字符串 `data.userId` 和 `data.revision`；未确认有效会话且未进入前述未绑定分支时，两字段均为 `null`。
+
 ### 账号与授权
 
 #### 注册与登录
@@ -2147,7 +2150,7 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 | Idempotency-Key | 请求头；重试同一次操作保持不变，1–128 个英文字母、数字或 `._:-` | 550e8400-e29b-41d4-a716-446655440000 |
 | title | 标题，最多 255 字符，默认空 | 草稿标题 |
 | content | 编辑器正文，最多 1024000 字符，默认空 | 正文 |
-| thoughtContent | 思绪记录，最多 1024000 字符，默认空 | [] |
+| thoughtContent | 思绪记录字符串，最多 1024000 字符，默认空 | 思绪记录文本 |
 | tags | 标签输入，最多 255 字符，默认空 | Java,生活 |
 | type | 文章类型，默认 0，与现有 articleType 一致 | 6 |
 | columnId | 专栏 ID，最多 19 位数字，可为空 | 20261016001 |
@@ -7275,7 +7278,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/follows/users?p=1&siz
 | --- | --- | --- |
 | code / msg | 结果码 / 提示 |  |
 | data | 列表结果 |  |
-| - list | 用户公开资料：id、userName、userNickname、userAvatarURL、userIntro | [] |
+| - list | 用户公开资料：id、userName、userNickname、userAvatarURL | [] |
 | - pagination | 分页信息 | {} |
 | -- p | 当前页码 | 整数 |
 | -- size | 每页数量 | 整数 |

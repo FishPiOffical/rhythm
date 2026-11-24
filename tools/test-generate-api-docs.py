@@ -25,7 +25,10 @@ class OpenApiSchemaTest(unittest.TestCase):
     def test_nullable_and_shared_fields(self):
         self.assertEqual(['boolean', 'null'], self.response_field('articles/{articleId}', 'data.commentable')['type'])
         self.assertEqual(['string', 'null'], self.response_field('me/pet/brawl/orders', 'data.next')['type'])
-        self.assertEqual('#/components/schemas/ArticleStick', self.response_field('articles', 'data.list[].stick')['$ref'])
+        article = self.response_field('articles', 'data.list[]')
+        self.assertEqual('#/components/schemas/ArticleSummary', article['$ref'])
+        self.assertEqual('#/components/schemas/ArticleStick',
+                         self.spec['components']['schemas']['ArticleSummary']['properties']['stick']['$ref'])
         detail = self.response_field('me/pet/brawl/orders/{id}', 'data')
         self.assertEqual('#/components/schemas/PetBrawlOrder', detail['allOf'][0]['$ref'])
         self.assertIn('balance', detail['allOf'][1]['properties'])
@@ -49,6 +52,18 @@ class OpenApiSchemaTest(unittest.TestCase):
         self.assertIn('Location', consent['303']['headers'])
         self.assertNotIn('2XX', consent)
         self.assertEqual({'101'}, set(self.operation('realtime')['responses']))
+
+    def test_session_unlinked_and_detailed_collection_schemas(self):
+        session = self.operation('auth/session', 'post')['responses']['2XX']['content']['application/json']['schema']
+        linked = session['properties']['data']['oneOf'][0]['properties']['linked']
+        self.assertEqual('boolean', linked['type'])
+        self.assertIs(linked['const'], False)
+        self.assertTrue(linked['description'])
+        self.assertNotIn('requestBody', self.operation('admin/articles/{articleId}/reindex', 'post'))
+        components = self.spec['components']['schemas']
+        self.assertEqual(2, len(components['PetJournalPage']['properties']['list']['items']['oneOf']))
+        for name in ('revisions', 'schemes', 'automations'):
+            self.assertIn('$ref', components['ProfessionVersionTree']['properties'][name]['items'])
 
     def test_all_http_operations_have_a_success_representation(self):
         for path, operations in self.spec['paths'].items():

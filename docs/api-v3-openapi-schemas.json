@@ -1,5 +1,427 @@
 {
   "schemas": {
+    "AdminArticleDetail": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/AdminArticleSummary"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "articleContent": {
+              "type": "string"
+            },
+            "articleRewardContent": {
+              "type": "string"
+            },
+            "articleCommentable": {
+              "type": "boolean"
+            },
+            "articleStatement": {
+              "type": "integer"
+            },
+            "articleRewardPoint": {
+              "type": "integer"
+            },
+            "articleQnAOfferPoint": {
+              "type": "integer"
+            },
+            "authorColumns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "oId": {
+                    "type": "string"
+                  },
+                  "columnTitle": {
+                    "type": "string"
+                  },
+                  "columnCoverURL": {
+                    "type": "string"
+                  },
+                  "columnArticleCount": {
+                    "type": "integer"
+                  },
+                  "columnOrder": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "recentOperations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AdminAuditOperation"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AdminArticleSummary": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "articleTitle": {
+          "type": "string"
+        },
+        "articleTags": {
+          "type": "string"
+        },
+        "articleAuthorId": {
+          "type": "string"
+        },
+        "articleAuthorName": {
+          "type": "string"
+        },
+        "articleAuthorNickname": {
+          "type": "string"
+        },
+        "articleAuthorAvatarURL": {
+          "type": "string"
+        },
+        "articleStatusLabel": {
+          "type": "string"
+        },
+        "articleTypeLabel": {
+          "type": "string"
+        },
+        "articlePermalink": {
+          "type": "string"
+        },
+        "articleStatus": {
+          "type": "integer"
+        },
+        "articleType": {
+          "type": "integer"
+        },
+        "articlePerfect": {
+          "type": "integer"
+        },
+        "articleStick": {
+          "type": "integer"
+        },
+        "articleCommentCount": {
+          "type": "integer"
+        },
+        "articleViewCount": {
+          "type": "integer"
+        },
+        "articleGoodCnt": {
+          "type": "integer"
+        },
+        "articleBadCnt": {
+          "type": "integer"
+        },
+        "articleCollectCnt": {
+          "type": "integer"
+        },
+        "articleWatchCnt": {
+          "type": "integer"
+        },
+        "articleShowInList": {
+          "type": "integer"
+        },
+        "articleCreateTime": {
+          "type": "integer"
+        },
+        "articleUpdateTime": {
+          "type": "integer"
+        },
+        "articleLatestCmtTime": {
+          "type": "integer"
+        },
+        "longArticleChapter": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "columnId": {
+              "type": "string"
+            },
+            "columnTitle": {
+              "type": "string"
+            },
+            "columnCoverURL": {
+              "type": "string"
+            },
+            "chapterNo": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "AdminAuditOperation": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "operationUserId": {
+          "type": "string"
+        },
+        "operationUserName": {
+          "type": "string"
+        },
+        "operationUserNickname": {
+          "type": "string"
+        },
+        "operationCode": {
+          "type": "integer"
+        },
+        "operationCodeLabel": {
+          "type": "string"
+        },
+        "targetType": {
+          "type": "string"
+        },
+        "operationDataId": {
+          "type": "string"
+        },
+        "operationCreated": {
+          "type": "integer"
+        },
+        "operationIP": {
+          "type": "string"
+        },
+        "operationUA": {
+          "type": "string"
+        }
+      }
+    },
+    "AdminBreezemoonDetail": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/AdminBreezemoonSummary"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "breezemoonUA": {
+              "type": "string"
+            },
+            "recentOperations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AdminAuditOperation"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AdminBreezemoonSummary": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "breezemoonContent": {
+          "type": "string"
+        },
+        "breezemoonAuthorId": {
+          "type": "string"
+        },
+        "breezemoonAuthorName": {
+          "type": "string"
+        },
+        "breezemoonAuthorNickname": {
+          "type": "string"
+        },
+        "breezemoonAuthorAvatarURL": {
+          "type": "string"
+        },
+        "breezemoonStatusLabel": {
+          "type": "string"
+        },
+        "breezemoonCity": {
+          "type": "string"
+        },
+        "breezemoonIP": {
+          "type": "string"
+        },
+        "breezemoonStatus": {
+          "type": "integer"
+        },
+        "breezemoonCreated": {
+          "type": "integer"
+        },
+        "breezemoonUpdated": {
+          "type": "integer"
+        }
+      }
+    },
+    "AdminCapabilities": {
+      "type": "object",
+      "properties": {
+        "canAccessAdmin": {
+          "type": "boolean"
+        },
+        "canEnterConsole": {
+          "type": "boolean"
+        },
+        "isAdmin": {
+          "type": "boolean"
+        },
+        "isSecurityOperator": {
+          "type": "boolean"
+        },
+        "isIdentityReviewer": {
+          "type": "boolean"
+        },
+        "rhypicEnabled": {
+          "type": "boolean"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userNickname": {
+          "type": "string"
+        },
+        "avatarUrl": {
+          "type": "string"
+        },
+        "roleId": {
+          "type": "string"
+        },
+        "roleName": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "menus": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "fetchedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "AdminCommentDetail": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/AdminCommentSummary"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commentUA": {
+              "type": "string"
+            },
+            "commentParagraphId": {
+              "type": "string"
+            },
+            "commentParagraphIndex": {
+              "type": "integer"
+            },
+            "commentParagraphSnapshot": {
+              "type": "string"
+            },
+            "commentParagraphStatus": {
+              "type": "integer"
+            },
+            "recentOperations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AdminAuditOperation"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AdminCommentSummary": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "commentContent": {
+          "type": "string"
+        },
+        "commentContentPreview": {
+          "type": "string"
+        },
+        "commentAuthorId": {
+          "type": "string"
+        },
+        "commentAuthorName": {
+          "type": "string"
+        },
+        "commentAuthorNickname": {
+          "type": "string"
+        },
+        "commentAuthorAvatarURL": {
+          "type": "string"
+        },
+        "commentOnArticleId": {
+          "type": "string"
+        },
+        "commentArticleTitle": {
+          "type": "string"
+        },
+        "commentArticlePermalink": {
+          "type": "string"
+        },
+        "commentOriginalCommentId": {
+          "type": "string"
+        },
+        "commentStatusLabel": {
+          "type": "string"
+        },
+        "commentSharpURL": {
+          "type": "string"
+        },
+        "commentIP": {
+          "type": "string"
+        },
+        "commentStatus": {
+          "type": "integer"
+        },
+        "commentVisible": {
+          "type": "integer"
+        },
+        "commentType": {
+          "type": "integer"
+        },
+        "commentGoodCnt": {
+          "type": "integer"
+        },
+        "commentBadCnt": {
+          "type": "integer"
+        },
+        "commentReplyCnt": {
+          "type": "integer"
+        },
+        "commentThankCnt": {
+          "type": "integer"
+        },
+        "commentCreateTime": {
+          "type": "integer"
+        }
+      }
+    },
     "AdminFishGame": {
       "type": "object",
       "properties": {
@@ -112,6 +534,53 @@
         "expiresAt"
       ]
     },
+    "ArticleSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "preview": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "anonymous": {
+          "type": "boolean"
+        },
+        "perfect": {
+          "type": "boolean"
+        },
+        "author": {
+          "$ref": "#/components/schemas/PublicAuthor"
+        },
+        "permalink": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "commentCount": {
+          "type": "integer"
+        },
+        "viewCount": {
+          "type": "integer"
+        },
+        "stick": {
+          "$ref": "#/components/schemas/ArticleStick"
+        }
+      }
+    },
     "CardBackground": {
       "type": "object",
       "properties": {
@@ -142,6 +611,130 @@
         "version"
       ]
     },
+    "ChatMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "contentHtml": {
+          "type": "string"
+        },
+        "author": {
+          "$ref": "#/components/schemas/PublicAuthor"
+        },
+        "client": {
+          "type": "string"
+        },
+        "appearance": {
+          "type": "object",
+          "properties": {
+            "bubbleId": {
+              "type": "string"
+            },
+            "frameId": {
+              "type": "string"
+            },
+            "version": {
+              "type": "integer"
+            },
+            "bubbleRevision": {
+              "type": "integer"
+            },
+            "bubbleStyle": {
+              "type": "object"
+            }
+          }
+        },
+        "medals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "reactions": {
+          "$ref": "#/components/schemas/ReactionState"
+        },
+        "card": {
+          "type": "object"
+        }
+      }
+    },
+    "ColumnCard": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "columnId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "coverURL": {
+          "type": "string"
+        },
+        "articleCount": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "chapters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ColumnChapter"
+          }
+        }
+      }
+    },
+    "ColumnChapter": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "chapterNo": {
+          "type": "integer"
+        },
+        "permalink": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "preview": {
+          "type": "string"
+        }
+      }
+    },
     "ColumnSummary": {
       "type": "object",
       "properties": {
@@ -169,6 +762,147 @@
         "updatedAt"
       ]
     },
+    "DisplaySettings": {
+      "description": "当前设置",
+      "type": "object",
+      "properties": {
+        "commentViewMode": {
+          "description": "评论模式，0 传统 / 1 实时",
+          "type": "integer"
+        },
+        "avatarViewMode": {
+          "description": "头像模式，0 原图 / 1 静态",
+          "type": "integer"
+        },
+        "skin": {
+          "description": "PC 皮肤 ID，最多 32 字符，须为有效 PC 皮肤",
+          "type": "string"
+        },
+        "mobileSkin": {
+          "description": "移动皮肤 ID，最多 32 字符，须为有效移动皮肤",
+          "type": "string"
+        }
+      }
+    },
+    "DraftSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "columnId": {
+          "type": "string"
+        },
+        "columnTitle": {
+          "type": "string"
+        },
+        "chapterNo": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "FishGame": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "iconURL": {
+          "type": "string"
+        },
+        "author": {
+          "$ref": "#/components/schemas/PublicAuthor"
+        },
+        "upCount": {
+          "type": "integer"
+        },
+        "downCount": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "userVote": {
+          "enum": [
+            "like",
+            "dislike",
+            ""
+          ]
+        }
+      }
+    },
+    "FunctionSettings": {
+      "description": "当前设置",
+      "type": "object",
+      "properties": {
+        "listPageSize": {
+          "description": "文章列表每页条数，10–96",
+          "type": "integer"
+        },
+        "listViewMode": {
+          "description": "列表显示，0 标题 / 1 标题与摘要",
+          "type": "integer"
+        },
+        "notifications": {
+          "description": "通知提示开关",
+          "type": "boolean"
+        },
+        "subscriptionEmail": {
+          "description": "订阅邮件开关",
+          "type": "boolean"
+        },
+        "keyboardShortcuts": {
+          "description": "键盘快捷键开关",
+          "type": "boolean"
+        },
+        "autoSubscribeOnReply": {
+          "description": "回复后自动订阅文章",
+          "type": "boolean"
+        },
+        "externalLinkConfirmation": {
+          "description": "站外链接跳转确认开关",
+          "type": "boolean"
+        },
+        "chatImageBlur": {
+          "description": "聊天室图片自动模糊开关",
+          "type": "boolean"
+        },
+        "indexRedirectURL": {
+          "description": "首页跳转地址，最多 255 字符；空字符串清空，仅可设置当前站点及部署路径内的绝对地址",
+          "type": "string"
+        }
+      }
+    },
     "GameLedgerRow": {
       "type": "object",
       "properties": {
@@ -189,6 +923,131 @@
         },
         "createdAt": {
           "type": "integer"
+        }
+      }
+    },
+    "LocaleSettings": {
+      "description": "当前设置",
+      "type": "object",
+      "properties": {
+        "language": {
+          "description": "语言代码，取自可选项目录",
+          "type": "string"
+        },
+        "timezone": {
+          "description": "时区 ID，取自可选项目录",
+          "type": "string"
+        }
+      }
+    },
+    "LocationSettings": {
+      "description": "当前设置",
+      "type": "object",
+      "properties": {
+        "publicLocation": {
+          "description": "是否公开位置；不提供城市或 IP 修改",
+          "type": "boolean"
+        }
+      }
+    },
+    "Milestone": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "contentHtml": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "media": {
+          "$ref": "#/components/schemas/MilestoneMedia"
+        }
+      }
+    },
+    "MilestoneMedia": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        }
+      }
+    },
+    "MilestoneSubmission": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "description": "保存后的正文；v3 投稿为已渲染的 HTML，历史记录也可能是纯文本",
+          "type": "string"
+        },
+        "media": {
+          "$ref": "#/components/schemas/MilestoneMedia"
+        },
+        "link": {
+          "description": "相关链接，可为空",
+          "type": "string"
+        },
+        "status": {
+          "description": "pending 待审核 / approved 已通过 / rejected 已拒绝",
+          "type": "string"
+        }
+      }
+    },
+    "Notification": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "category": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "hasRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "descriptionHtml": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "contentAvailable": {
+          "type": "boolean"
+        },
+        "actor": {
+          "$ref": "#/components/schemas/PublicAuthor"
         }
       }
     },
@@ -309,6 +1168,139 @@
         }
       }
     },
+    "PetActivityPage": {
+      "type": "object",
+      "properties": {
+        "serverNow": {
+          "type": "integer"
+        },
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "petId": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "entryId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "startedAt": {
+                "type": "integer"
+              },
+              "endsAt": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string"
+              },
+              "claimedAt": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "cost": {
+                "type": "object"
+              },
+              "rewards": {
+                "type": "object"
+              },
+              "actualRewards": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "pageSize": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            },
+            "pageCount": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "page",
+            "pageSize",
+            "total",
+            "pageCount"
+          ]
+        }
+      },
+      "required": [
+        "serverNow",
+        "list",
+        "pagination"
+      ]
+    },
+    "PetActivityRecord": {
+      "type": "object",
+      "properties": {
+        "recordType": {
+          "const": "activity"
+        },
+        "id": {
+          "type": "string"
+        },
+        "petId": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "integer"
+        },
+        "endsAt": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "claimedAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cost": {
+          "type": "object"
+        },
+        "rewards": {
+          "type": "object"
+        },
+        "actualRewards": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "recordType"
+      ]
+    },
     "PetBrawlOrder": {
       "type": "object",
       "properties": {
@@ -366,6 +1358,81 @@
         "status"
       ]
     },
+    "PetJournalEvent": {
+      "type": "object",
+      "properties": {
+        "recordType": {
+          "const": "event"
+        },
+        "id": {
+          "type": "string"
+        },
+        "petId": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "occurredAt": {
+          "type": "integer"
+        },
+        "itemChanges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "coinsDelta": {
+          "type": "integer"
+        },
+        "effects": {
+          "type": "object",
+          "properties": {
+            "hunger": {
+              "type": "number"
+            },
+            "water": {
+              "type": "number"
+            },
+            "mood": {
+              "type": "number"
+            },
+            "energy": {
+              "type": "number"
+            },
+            "experience": {
+              "type": "integer"
+            },
+            "friendship": {
+              "type": "integer"
+            }
+          }
+        },
+        "collectionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "recordType"
+      ]
+    },
     "PetJournalPage": {
       "type": "object",
       "properties": {
@@ -375,7 +1442,14 @@
         "list": {
           "type": "array",
           "items": {
-            "type": "object"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PetActivityRecord"
+              },
+              {
+                "$ref": "#/components/schemas/PetJournalEvent"
+              }
+            ]
           }
         },
         "pagination": {
@@ -427,6 +1501,397 @@
         "committedAt"
       ]
     },
+    "PostExportResult": {
+      "description": "导出结果",
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "description": "导出任务ID",
+          "type": "string"
+        },
+        "status": {
+          "description": "文件状态，ready表示可下载；同键重试过期任务时为expired",
+          "type": "string"
+        },
+        "paidPoints": {
+          "description": "此任务支付的积分，不重复收费",
+          "type": "integer"
+        },
+        "createdAt": {
+          "description": "文件就绪时间，毫秒时间戳",
+          "type": "integer"
+        },
+        "capturedAt": {
+          "description": "本次内容快照时间，毫秒时间戳",
+          "type": "integer"
+        },
+        "expiresAt": {
+          "description": "下载期限，文件就绪后24小时",
+          "type": "integer"
+        },
+        "articleCount": {
+          "description": "本人文章数",
+          "type": "integer"
+        },
+        "commentCount": {
+          "description": "本人评论数",
+          "type": "integer"
+        },
+        "byteLength": {
+          "description": "ZIP字节数",
+          "type": "integer"
+        },
+        "sha256": {
+          "description": "ZIP的SHA-256摘要",
+          "type": "string"
+        }
+      }
+    },
+    "PrivacySettings": {
+      "description": "当前设置",
+      "type": "object",
+      "properties": {
+        "articles": {
+          "description": "文章列表公开",
+          "type": "boolean"
+        },
+        "comments": {
+          "description": "评论列表公开",
+          "type": "boolean"
+        },
+        "breezemoons": {
+          "description": "清风明月列表公开",
+          "type": "boolean"
+        },
+        "points": {
+          "description": "积分记录公开",
+          "type": "boolean"
+        },
+        "followers": {
+          "description": "粉丝列表公开",
+          "type": "boolean"
+        },
+        "followingUsers": {
+          "description": "关注用户公开",
+          "type": "boolean"
+        },
+        "followingTags": {
+          "description": "关注标签公开",
+          "type": "boolean"
+        },
+        "followingArticles": {
+          "description": "文章收藏公开",
+          "type": "boolean"
+        },
+        "watchingArticles": {
+          "description": "文章订阅公开",
+          "type": "boolean"
+        },
+        "online": {
+          "description": "是否公开资料在线状态，不影响聊天室在线名单",
+          "type": "boolean"
+        },
+        "userAgent": {
+          "description": "设备信息公开",
+          "type": "boolean"
+        },
+        "joinPointRank": {
+          "description": "参加积分榜",
+          "type": "boolean"
+        },
+        "joinUsedPointRank": {
+          "description": "参加消费积分榜",
+          "type": "boolean"
+        }
+      }
+    },
+    "PrivateMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "fromId": {
+          "type": "string"
+        },
+        "toId": {
+          "type": "string"
+        },
+        "fromMe": {
+          "type": "boolean"
+        },
+        "sentAt": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "contentHtml": {
+          "type": "string"
+        },
+        "preview": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PrivateMessagePeer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userNickname": {
+          "type": "string"
+        },
+        "userAvatarURL": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "builtin": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ProfessionAutomation": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "professionId": {
+          "type": "string"
+        },
+        "automationCode": {
+          "type": "string"
+        },
+        "currentRevisionId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProfessionAutomationRevision"
+          }
+        }
+      }
+    },
+    "ProfessionAutomationRevision": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "professionId": {
+          "type": "string"
+        },
+        "revisionNo": {
+          "type": "integer"
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "effectiveFrom": {
+          "type": "integer"
+        },
+        "effectiveTo": {
+          "type": "integer"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "publishedBy": {
+          "type": "string"
+        },
+        "publishedAt": {
+          "type": "integer"
+        },
+        "automationId": {
+          "type": "string"
+        },
+        "triggerType": {
+          "type": "string"
+        },
+        "triggerSchemaVersion": {
+          "type": "integer"
+        },
+        "configurationJson": {
+          "type": "string"
+        },
+        "configurationHash": {
+          "type": "string"
+        }
+      }
+    },
+    "ProfessionDefinitionRevision": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "professionId": {
+          "type": "string"
+        },
+        "revisionNo": {
+          "type": "integer"
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "effectiveFrom": {
+          "type": "integer"
+        },
+        "effectiveTo": {
+          "type": "integer"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "publishedBy": {
+          "type": "string"
+        },
+        "publishedAt": {
+          "type": "integer"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "defaultPresentationJson": {
+          "type": "string"
+        }
+      }
+    },
+    "ProfessionLevelScheme": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "professionId": {
+          "type": "string"
+        },
+        "revisionNo": {
+          "type": "integer"
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "effectiveFrom": {
+          "type": "integer"
+        },
+        "effectiveTo": {
+          "type": "integer"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "publishedBy": {
+          "type": "string"
+        },
+        "publishedAt": {
+          "type": "integer"
+        },
+        "professionRevisionId": {
+          "type": "string"
+        },
+        "migrationPolicy": {
+          "type": "string"
+        },
+        "rewardMigrationPolicy": {
+          "type": "string"
+        },
+        "migrationConfigJson": {
+          "type": "string"
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProfessionSchemeLevel"
+          }
+        }
+      }
+    },
+    "ProfessionSchemeLevel": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "schemeId": {
+          "type": "string"
+        },
+        "levelCode": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        },
+        "requiredTotalExperience": {
+          "type": "integer"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "achievementDescription": {
+          "type": "string"
+        },
+        "isTopLevel": {
+          "type": [
+            "integer",
+            "boolean"
+          ]
+        }
+      }
+    },
     "ProfessionVersionTree": {
       "type": "object",
       "properties": {
@@ -445,20 +1910,55 @@
         "revisions": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/components/schemas/ProfessionDefinitionRevision"
           }
         },
         "schemes": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/components/schemas/ProfessionLevelScheme"
           }
         },
         "automations": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/components/schemas/ProfessionAutomation"
           }
+        }
+      }
+    },
+    "ProfileSettings": {
+      "description": "当前设置",
+      "type": "object",
+      "properties": {
+        "userNickname": {
+          "description": "昵称，最多 20 字符，可为空",
+          "type": "string"
+        },
+        "userIntro": {
+          "description": "简介，最多 255 字符，可为空并保留换行",
+          "type": "string"
+        },
+        "userURL": {
+          "description": "HTTP/HTTPS 个人网址，最多 100 字符；空字符串清空",
+          "type": "string"
+        }
+      }
+    },
+    "PublicAuthor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userNickname": {
+          "type": "string"
+        },
+        "userAvatarURL": {
+          "type": "string"
         }
       }
     },
@@ -492,9 +1992,178 @@
           "type": "integer"
         }
       }
+    },
+    "ReactionState": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "string"
+        },
+        "targetType": {
+          "type": "string"
+        },
+        "groupType": {
+          "type": "string"
+        },
+        "currentUserReaction": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ReactionSummaryItem"
+          }
+        }
+      }
+    },
+    "ReactionSummaryItem": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "emoji": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "userDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userName": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "avatarURL": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "RepeaterItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "likeCount": {
+          "type": "integer"
+        },
+        "createdTime": {
+          "type": "integer"
+        },
+        "liked": {
+          "type": "boolean"
+        },
+        "author": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      }
     }
   },
   "operations": {
+    "DELETE /api/v3/admin/articles/{articleId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "articleId": {
+                "type": "string"
+              },
+              "deleted": {
+                "const": true
+              },
+              "removedAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/breezemoons/{breezemoonId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "breezemoonId": {
+                "type": "string"
+              },
+              "deleted": {
+                "const": true
+              },
+              "removedAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/admin/comments/{commentId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "commentId": {
+                "type": "string"
+              },
+              "deleted": {
+                "const": true
+              },
+              "removedAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
     "DELETE /api/v3/admin/coupons/{couponId}": {
       "data": {
         "type": "object",
@@ -598,11 +2267,67 @@
         }
       }
     },
+    "DELETE /api/v3/articles/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/breezemoons/{breezemoonId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "maxProperties": 0
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/chat/messages/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "DELETE /api/v3/comments/{commentId}/vote": {
       "fields": {
         "response": {
           "data.vote": {
             "type": "null"
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/comments/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "DELETE /api/v3/me/drafts/{draftId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "maxProperties": 0
           }
         }
       }
@@ -637,6 +2362,95 @@
           },
           "headerBanner": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/articles": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminArticleSummary"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/articles/{articleId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/AdminArticleDetail"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/audit-logs": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAuditOperation"
+            }
+          },
+          "data.codeOptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "integer"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "targetType": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/breezemoons": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminBreezemoonSummary"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/breezemoons/{breezemoonId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/AdminBreezemoonDetail"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/capabilities": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/AdminCapabilities"
           }
         }
       }
@@ -711,6 +2525,30 @@
         }
       }
     },
+    "GET /api/v3/admin/comments": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCommentSummary"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/comments/{commentId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/AdminCommentDetail"
+          }
+        }
+      }
+    },
     "GET /api/v3/admin/coupons": {
       "data": {
         "type": "object",
@@ -719,6 +2557,99 @@
             "type": "array",
             "items": {
               "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/dashboard": {
+      "fields": {
+        "response": {
+          "data.recentOperations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAuditOperation"
+            }
+          },
+          "data.capabilities": {
+            "$ref": "#/components/schemas/AdminCapabilities"
+          },
+          "data.todos": {
+            "type": "object",
+            "properties": {
+              "pendingReports": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "pendingIdentityApplications": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          },
+          "data.communityStats": {
+            "type": "object",
+            "properties": {
+              "memberCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "articleCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "commentCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "domainCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "tagCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "linkCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "maxOnlineVisitorCount": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          },
+          "data.meta": {
+            "type": "object",
+            "properties": {
+              "fetchedAt": {
+                "type": "integer"
+              },
+              "source": {
+                "type": "string"
+              },
+              "statsNote": {
+                "type": "string"
+              }
             }
           }
         }
@@ -924,6 +2855,24 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/oauth/clients": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/oauth/clients/{clientId}": {
+      "fields": {
+        "response": {
+          "data.redirects.pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         }
       }
@@ -1386,7 +3335,10 @@
             "type": "object",
             "properties": {
               "operatorNames": {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -1417,6 +3369,94 @@
           },
           "candidateSchemeId": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/reports": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oId": {
+                  "type": "string"
+                },
+                "reportUserId": {
+                  "type": "string"
+                },
+                "reporterName": {
+                  "type": "string"
+                },
+                "reporterNickname": {
+                  "type": "string"
+                },
+                "reportDataId": {
+                  "type": "string"
+                },
+                "reportDataTypeLabel": {
+                  "type": "string"
+                },
+                "reportTypeLabel": {
+                  "type": "string"
+                },
+                "reportMemo": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "integer"
+                },
+                "reportDataType": {
+                  "type": "integer"
+                },
+                "reportType": {
+                  "type": "integer"
+                },
+                "reportHandled": {
+                  "type": "integer"
+                },
+                "isOwnReport": {
+                  "type": "boolean"
+                },
+                "target": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "dataType": {
+                      "type": "integer"
+                    },
+                    "exists": {
+                      "type": "boolean"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "snippet": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "statusLabel": {
+                      "type": "string"
+                    },
+                    "removable": {
+                      "type": "boolean"
+                    },
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1615,6 +3655,18 @@
         }
       }
     },
+    "GET /api/v3/admin/settings": {
+      "fields": {
+        "response": {
+          "data.options[].allowedValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "GET /api/v3/admin/tags": {
       "data": {
         "type": "object",
@@ -1627,6 +3679,35 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/AdminPagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/tasks/{taskId}": {
+      "fields": {
+        "response": {
+          "data.result.switches": {
+            "type": "object",
+            "properties": {
+              "firewallEnabled": {
+                "type": "boolean"
+              },
+              "threshold": {
+                "type": "integer"
+              },
+              "verificationEnabled": {
+                "type": "boolean"
+              },
+              "firstVisitCaptchaEnabled": {
+                "type": "boolean"
+              },
+              "runtimeMode": {
+                "type": "string"
+              },
+              "editable": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }
@@ -1711,8 +3792,11 @@
     "GET /api/v3/articles": {
       "fields": {
         "response": {
-          "data.list[].stick": {
-            "$ref": "#/components/schemas/ArticleStick"
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSummary"
+            }
           }
         }
       }
@@ -1761,6 +3845,74 @@
               "offerPoint",
               "accepted"
             ]
+          },
+          "data.interactions": {
+            "type": "object",
+            "properties": {
+              "vote": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "vote": {
+                    "enum": [
+                      "up",
+                      "down",
+                      null
+                    ]
+                  },
+                  "upCount": {
+                    "type": "integer"
+                  },
+                  "downCount": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "thanks": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "thanked": {
+                    "type": "boolean"
+                  },
+                  "thankCount": {
+                    "type": "integer"
+                  },
+                  "thankPoint": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "reactions": {
+                "$ref": "#/components/schemas/ReactionState"
+              },
+              "collection": {
+                "type": "object",
+                "properties": {
+                  "targetId": {
+                    "type": "string"
+                  },
+                  "following": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "subscription": {
+                "type": "object",
+                "properties": {
+                  "targetId": {
+                    "type": "string"
+                  },
+                  "following": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1787,6 +3939,39 @@
         }
       }
     },
+    "GET /api/v3/articles/{articleId}/comments": {
+      "fields": {
+        "response": {
+          "data.list.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/{articleId}/paragraph-comments": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          },
+          "data.list.paragraph": {
+            "$ref": "#/components/schemas/ParagraphAssociation"
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/{articleId}/paragraphs": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
     "GET /api/v3/articles/{articleId}/vote": {
       "fields": {
         "response": {
@@ -1796,6 +3981,65 @@
               "down",
               null
             ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/articles/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/breezemoons": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/breezemoons/{breezemoonId}": {
+      "fields": {
+        "response": {
+          "data.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/bubbles": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "access": {
+                  "type": "string"
+                },
+                "style": {
+                  "type": "object"
+                },
+                "bubbleRevision": {
+                  "type": "integer"
+                }
+              }
+            }
           }
         }
       }
@@ -1827,6 +4071,67 @@
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/messages": {
+      "fields": {
+        "response": {
+          "data.list[].medals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "data.list[].appearance": {
+            "type": "object",
+            "properties": {
+              "bubbleId": {
+                "type": "string"
+              },
+              "frameId": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "bubbleRevision": {
+                "type": "integer"
+              },
+              "bubbleStyle": {
+                "type": "object"
+              }
+            }
+          },
+          "data.list[].reactions": {
+            "$ref": "#/components/schemas/ReactionState"
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/messages/{messageId}/context": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
             }
           }
         }
@@ -1875,6 +4180,171 @@
         }
       }
     },
+    "GET /api/v3/chat/messages/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/red-packets/{id}": {
+      "fields": {
+        "response": {
+          "data.recipientIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/chat/topic": {
+      "fields": {
+        "response": {
+          "data.message": {
+            "$ref": "#/components/schemas/ChatMessage"
+          }
+        }
+      }
+    },
+    "GET /api/v3/cities/{cityName}/articles": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSummary"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/client-downloads": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "authors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "userName": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "recommended": {
+                  "type": "boolean"
+                },
+                "sortOrder": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/columns": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ColumnCard"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/columns/hot": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ColumnCard"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/columns/{columnId}": {
+      "fields": {
+        "response": {
+          "data.column": {
+            "$ref": "#/components/schemas/ColumnCard"
+          },
+          "data.chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ColumnChapter"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/columns/{columnId}/articles": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ColumnChapter"
+            }
+          }
+        }
+      }
+    },
     "GET /api/v3/comments/{commentId}": {
       "fields": {
         "response": {
@@ -1887,6 +4357,9 @@
                 "type": "null"
               }
             ]
+          },
+          "data.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
           }
         }
       }
@@ -1928,9 +4401,205 @@
         }
       }
     },
+    "GET /api/v3/comments/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/domains/{domainId}/articles": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/fish-games": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FishGame"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/fish-games/{gameId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/FishGame"
+          }
+        }
+      }
+    },
+    "GET /api/v3/fish-games/{gameId}/comments": {
+      "fields": {
+        "response": {
+          "data.list.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/anonymous-articles": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/anonymous-comments": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/bag": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "GET /api/v3/me/chat-appearance": {
       "data": {
         "$ref": "#/components/schemas/ChatAppearance"
+      }
+    },
+    "GET /api/v3/me/collections": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ArticleSummary"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "available"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "available": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "available"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/conversations": {
+      "fields": {
+        "response": {
+          "data.list[].peer": {
+            "$ref": "#/components/schemas/PrivateMessagePeer"
+          },
+          "data.list[].lastMessage": {
+            "$ref": "#/components/schemas/PrivateMessage"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/conversations/{peerId}": {
+      "fields": {
+        "response": {
+          "data.peer": {
+            "$ref": "#/components/schemas/PrivateMessagePeer"
+          },
+          "data.lastMessage": {
+            "$ref": "#/components/schemas/PrivateMessage"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/conversations/{peerId}/messages": {
+      "fields": {
+        "response": {
+          "data.peer": {
+            "$ref": "#/components/schemas/PrivateMessagePeer"
+          },
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateMessage"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/drafts": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftSummary"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/exports/posts/{jobId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/PostExportResult"
+          }
+        }
       }
     },
     "GET /api/v3/me/exports/posts/{jobId}/download": {
@@ -1948,6 +4617,62 @@
         }
       }
     },
+    "GET /api/v3/me/follows/tags": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "uri": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "iconURL": {
+                  "type": "string"
+                },
+                "articleCount": {
+                  "type": "integer"
+                },
+                "followerCount": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/follows/users": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicAuthor"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/medals": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
     "GET /api/v3/me/medals/image": {
       "responses": {
         "200": {
@@ -1958,6 +4683,69 @@
                 "type": "string"
               }
             }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/messages/{messageId}": {
+      "fields": {
+        "response": {
+          "data.peer": {
+            "$ref": "#/components/schemas/PrivateMessagePeer"
+          },
+          "data.message": {
+            "$ref": "#/components/schemas/PrivateMessage"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/milestones": {
+      "fields": {
+        "response": {
+          "data.list[].media": {
+            "$ref": "#/components/schemas/MilestoneMedia"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/milestones/{milestoneId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/MilestoneSubmission"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/notifications": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/notifications/unread-count": {
+      "fields": {
+        "response": {
+          "data.categories": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/notifications/{notificationId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/Notification"
           }
         }
       }
@@ -2122,6 +4910,29 @@
           },
           "next": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/parking/weekly": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userName": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "income": {
+                  "type": "integer"
+                }
+              }
+            }
           }
         }
       }
@@ -2338,7 +5149,7 @@
     },
     "GET /api/v3/me/pet/activities": {
       "data": {
-        "$ref": "#/components/schemas/PetJournalPage"
+        "$ref": "#/components/schemas/PetActivityPage"
       }
     },
     "GET /api/v3/me/pet/brawl/matches": {
@@ -2505,9 +5316,288 @@
         "$ref": "#/components/schemas/PetJournalPage"
       }
     },
+    "GET /api/v3/me/professions": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/professions/{professionId}/records": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings": {
+      "fields": {
+        "response": {
+          "data.profile": {
+            "$ref": "#/components/schemas/ProfileSettings"
+          },
+          "data.privacy": {
+            "type": "object",
+            "properties": {
+              "articles": {
+                "type": "boolean"
+              },
+              "comments": {
+                "type": "boolean"
+              },
+              "breezemoons": {
+                "type": "boolean"
+              },
+              "points": {
+                "type": "boolean"
+              },
+              "followers": {
+                "type": "boolean"
+              },
+              "followingUsers": {
+                "type": "boolean"
+              },
+              "followingTags": {
+                "type": "boolean"
+              },
+              "followingArticles": {
+                "type": "boolean"
+              }
+            }
+          },
+          "data.display": {
+            "type": "object",
+            "properties": {
+              "commentViewMode": {
+                "type": "integer"
+              },
+              "avatarViewMode": {
+                "type": "integer"
+              },
+              "skin": {
+                "type": "string"
+              },
+              "mobileSkin": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "GET /api/v3/me/settings/card-background": {
       "data": {
         "$ref": "#/components/schemas/CardBackground"
+      }
+    },
+    "GET /api/v3/me/settings/display": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/DisplaySettings"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/emoji-groups": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/emoji-groups/{groupId}/emojis": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/emotion-options": {
+      "fields": {
+        "response": {
+          "data.defaults": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data.groups": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/emotions": {
+      "fields": {
+        "response": {
+          "data.emotions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/functions": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/FunctionSettings"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/locale": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/LocaleSettings"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/locale-options": {
+      "fields": {
+        "response": {
+          "data.languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data.timezones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/location": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/LocationSettings"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/personality-options": {
+      "fields": {
+        "response": {
+          "data.types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data.variants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/privacy": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/PrivacySettings"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/settings/profile": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/ProfileSettings"
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/subscriptions": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ArticleSummary"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "available"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "available": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "available"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/me/watching/breezemoons": {
+      "fields": {
+        "response": {
+          "data.list.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/membership/levels": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
       }
     },
     "GET /api/v3/membership/styles": {
@@ -2550,6 +5640,27 @@
           "unchanged",
           "maxAgeMs"
         ]
+      }
+    },
+    "GET /api/v3/milestones": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Milestone"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/milestones/{milestoneId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/Milestone"
+          }
+        }
       }
     },
     "GET /api/v3/oauth/authorize": {
@@ -2717,6 +5828,168 @@
         }
       }
     },
+    "GET /api/v3/professions": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/professions/{professionId}/ranking": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/rankings/{type}": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "GET /api/v3/reactions/emojis": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "emoji": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/repeater/next": {
+      "fields": {
+        "response": {
+          "data.item": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepeaterItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "GET /api/v3/search": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/suggestions/tags": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/tags/{tagId}/articles": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/articles": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/breezemoons": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/comments": {
+      "fields": {
+        "response": {
+          "data.list[].article": {
+            "$ref": "#/components/schemas/ArticleSummary"
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/followers": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicAuthor"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/following/articles": {
+      "fields": {
+        "response": {
+          "data.list[].author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/following/users": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicAuthor"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/medals": {
+      "fields": {
+        "response": {
+          "data.pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
     "GET /api/v3/users/{userName}/medals/image": {
       "responses": {
         "200": {
@@ -2771,6 +6044,114 @@
         ]
       }
     },
+    "GET /api/v3/users/{userName}/professions": {
+      "fields": {
+        "response": {
+          "data.professions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "professionId": {
+                  "type": "string"
+                },
+                "professionCode": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "shortName": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "levelCode": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "totalExperience": {
+                  "type": "integer"
+                },
+                "requiredExperience": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "data.contributionStats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "professionId": {
+                  "type": "string"
+                },
+                "eventCount": {
+                  "type": "integer"
+                },
+                "lastOccurredAt": {
+                  "type": "integer"
+                },
+                "experienceSum": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "data.ranking": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "professionId": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "integer"
+                },
+                "totalUsers": {
+                  "type": "integer"
+                },
+                "surpassedPercent": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/watching": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSummary"
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/users/{userName}/watching/articles": {
+      "fields": {
+        "response": {
+          "data.list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSummary"
+            }
+          }
+        }
+      }
+    },
     "POST /api/v3/admin/articles": {
       "fields": {
         "request": {
@@ -2789,12 +6170,86 @@
               }
             ]
           }
+        },
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "oId": {
+                "type": "string"
+              },
+              "articleId": {
+                "type": "string"
+              },
+              "articlePermalink": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminArticleDetail"
+              }
+            }
+          }
         }
       }
     },
     "POST /api/v3/admin/articles/reindex": {
       "data": {
         "$ref": "#/components/schemas/AdminTaskAcceptance"
+      }
+    },
+    "POST /api/v3/admin/articles/{articleId}/cancel-stick": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "articleId": {
+                "type": "string"
+              },
+              "articleStick": {
+                "const": 0
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminArticleDetail"
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/articles/{articleId}/reindex": {
+      "request": null
+    },
+    "POST /api/v3/admin/articles/{articleId}/stick": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "articleId": {
+                "type": "string"
+              },
+              "articleStick": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminArticleDetail"
+              }
+            }
+          }
+        }
       }
     },
     "POST /api/v3/admin/bags/adjust": {
@@ -3012,6 +6467,26 @@
         "properties": {
           "reordered": {
             "const": true
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/oauth/clients": {
+      "fields": {
+        "request": {
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "response": {
+          "data.redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -3357,6 +6832,66 @@
         }
       }
     },
+    "POST /api/v3/admin/repeater/{id}/remove": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "repeaterId": {
+                "type": "string"
+              },
+              "status": {
+                "const": 1
+              },
+              "removedAt": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/reports/{reportId}/handle": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "reportId": {
+                "type": "string"
+              },
+              "reportHandled": {
+                "const": 1
+              },
+              "updatedAt": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/reports/{reportId}/ignore": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "reportId": {
+                "type": "string"
+              },
+              "reportHandled": {
+                "const": 2
+              },
+              "updatedAt": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
     "POST /api/v3/admin/reserved-words": {
       "data": {
         "type": "object",
@@ -3536,6 +7071,43 @@
         }
       }
     },
+    "POST /api/v3/auth/app-login/app-status": {
+      "fields": {
+        "response": {
+          "data.account": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "POST /api/v3/auth/logout": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "maxProperties": 0
+          }
+        }
+      }
+    },
+    "POST /api/v3/auth/password-reset/request": {
+      "fields": {
+        "request": {
+          "captcha": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/v3/auth/registration/request": {
+      "fields": {
+        "request": {
+          "captcha": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "POST /api/v3/auth/session": {
       "data": {
         "oneOf": [
@@ -3543,7 +7115,9 @@
             "type": "object",
             "properties": {
               "linked": {
-                "const": false
+                "const": false,
+                "type": "boolean",
+                "description": "固定为 false。请求携带刷新 Cookie，但当前没有新旧站绑定会话。这个分支不确认刷新 Cookie 有效，也不表示已退出。"
               }
             },
             "required": [
@@ -3586,6 +7160,15 @@
         ]
       }
     },
+    "POST /api/v3/breezemoons": {
+      "fields": {
+        "response": {
+          "data.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
     "POST /api/v3/breezemoons/realtime-ticket": {
       "data": {
         "type": "object",
@@ -3611,6 +7194,27 @@
         ]
       }
     },
+    "POST /api/v3/chat/red-packets": {
+      "fields": {
+        "request": {
+          "recipientIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/fish-games/{gameId}/comments": {
+      "fields": {
+        "response": {
+          "data.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
     "POST /api/v3/me/appearance-purchases": {
       "data": {
         "type": "object",
@@ -3634,6 +7238,65 @@
           "paidPoints",
           "expiresAt"
         ]
+      }
+    },
+    "POST /api/v3/me/bag/checkin1day/use": {
+      "fields": {
+        "response": {
+          "data.bag.list": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/me/bag/checkin2days/use": {
+      "fields": {
+        "response": {
+          "data.bag": {
+            "type": "object",
+            "properties": {
+              "list": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/me/drafts": {
+      "fields": {
+        "request": {
+          "thoughtContent": {
+            "type": "string"
+          }
+        },
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/DraftSummary"
+          }
+        }
       }
     },
     "POST /api/v3/me/parking/{action}": {
@@ -3844,6 +7507,21 @@
         }
       }
     },
+    "POST /api/v3/oauth/revoke": {
+      "responses": {
+        "200": {
+          "description": "请求已受理，返回空 JSON 对象。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "maxProperties": 0
+              }
+            }
+          }
+        }
+      }
+    },
     "POST /api/v3/review/identity-applications/{applicationId}/material/open": {
       "responses": {
         "200": {
@@ -3935,6 +7613,48 @@
               }
             ]
           }
+        },
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "articleId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminArticleDetail"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/breezemoons/{breezemoonId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "breezemoonId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminBreezemoonDetail"
+              }
+            }
+          }
         }
       }
     },
@@ -3947,6 +7667,84 @@
           },
           "revision": {
             "type": "integer"
+          }
+        }
+      },
+      "fields": {
+        "request": {
+          "client": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "group": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "authors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "userName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "links": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "href": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "recommended": {
+                "type": "boolean"
+              },
+              "sortOrder": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/comments/{commentId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "commentId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "integer"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminCommentDetail"
+              }
+            }
           }
         }
       }
@@ -4021,6 +7819,26 @@
         }
       }
     },
+    "PUT /api/v3/admin/oauth/clients/{clientId}": {
+      "fields": {
+        "request": {
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "response": {
+          "data.redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "PUT /api/v3/admin/parking/models/{model}": {
       "data": {
         "type": "object",
@@ -4056,6 +7874,26 @@
           },
           "updatedAt": {
             "type": "integer"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/admin/settings": {
+      "fields": {
+        "response": {
+          "data.options[].allowedValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "request": {
+          "options": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       }
@@ -4108,6 +7946,39 @@
         }
       }
     },
+    "PUT /api/v3/articles/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/breezemoons/{breezemoonId}": {
+      "fields": {
+        "response": {
+          "data.author": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/chat/messages/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "PUT /api/v3/comments/{commentId}/vote": {
       "fields": {
         "response": {
@@ -4116,6 +7987,18 @@
               "up",
               "down"
             ]
+          }
+        }
+      }
+    },
+    "PUT /api/v3/comments/{targetId}/reactions": {
+      "fields": {
+        "response": {
+          "data.summary.users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -4139,6 +8022,35 @@
           "frameId"
         ],
         "additionalProperties": false
+      }
+    },
+    "PUT /api/v3/me/columns/order": {
+      "fields": {
+        "request": {
+          "columnIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "response": {
+          "data.columnIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/drafts/{draftId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/DraftSummary"
+          }
+        }
       }
     },
     "PUT /api/v3/me/pet/brawl/profile": {
@@ -4171,6 +8083,97 @@
           "cardBg"
         ],
         "additionalProperties": false
+      }
+    },
+    "PUT /api/v3/me/settings/chat-tail": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "text": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/display": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/DisplaySettings"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/emotions": {
+      "fields": {
+        "request": {
+          "emotions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "response": {
+          "data.emotions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/functions": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/FunctionSettings"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/locale": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/LocaleSettings"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/location": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/LocationSettings"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/privacy": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/PrivacySettings"
+          }
+        }
+      }
+    },
+    "PUT /api/v3/me/settings/profile": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/ProfileSettings"
+          }
+        }
       }
     },
     "PUT /api/v3/repeater/items/{itemId}/like": {

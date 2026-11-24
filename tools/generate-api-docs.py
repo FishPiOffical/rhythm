@@ -256,7 +256,9 @@ def apply_contract(operation, contract, operation_key):
         unknown = contract.keys() - {'request', 'data', 'responses', 'fields'}
         if unknown or {'data', 'responses'} <= contract.keys():
             raise ValueError(f'{operation_key} 的 OpenAPI 补充格式不正确：{sorted(unknown)}')
-        if 'request' in contract:
+        if 'request' in contract and contract['request'] is None:
+            operation.pop('requestBody', None)
+        elif 'request' in contract:
             operation['requestBody'] = {'required': True, 'content': {
                 json_media: {'schema': contract['request']},
             }}
