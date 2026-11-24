@@ -264,7 +264,14 @@ def apply_contract(operation, contract, operation_key):
             }}
         if 'requestBody' in contract:
             operation['requestBody'] = contract['requestBody']
-        if contract.get('idempotencyKey'):
+        if contract.get('idempotencyKey') is False:
+            parameters = [param for param in operation.get('parameters', [])
+                          if (param['in'], param['name'].lower()) != ('header', 'idempotency-key')]
+            if parameters:
+                operation['parameters'] = parameters
+            else:
+                operation.pop('parameters', None)
+        elif contract.get('idempotencyKey'):
             parameters = operation.setdefault('parameters', [])
             for parameter in parameters:
                 if parameter['in'] == 'header' and parameter['name'].lower() == 'idempotency-key':

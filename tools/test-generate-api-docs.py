@@ -178,6 +178,17 @@ class OpenApiSchemaTest(unittest.TestCase):
         self.assertEqual('#/components/schemas/ArticleSummary', notification['article']['$ref'])
         self.assertEqual('#/components/schemas/PublicAuthor', notification['actor']['$ref'])
 
+    def test_realtime_tickets_do_not_require_an_idempotency_header(self):
+        for path in ('realtime/tickets', 'me/messages/realtime-ticket', 'chat/realtime-ticket',
+                     'articles/{articleId}/realtime-ticket', 'breezemoons/realtime-ticket'):
+            with self.subTest(path=path):
+                ticket = self.operation(path, 'post')
+                self.assertFalse(any(param['in'] == 'header' and param['name'].lower() == 'idempotency-key'
+                                     for param in ticket.get('parameters', [])))
+        article_ticket = self.operation('articles/{articleId}/realtime-ticket', 'post')
+        self.assertTrue(any(param['in'] == 'path' and param['name'] == 'articleId' and param['required']
+                            for param in article_ticket['parameters']))
+
     def test_realtime_handshake_documents_frames_as_websocket(self):
         socket = self.operation('realtime')
         self.assertEqual({'101'}, set(socket['responses']))

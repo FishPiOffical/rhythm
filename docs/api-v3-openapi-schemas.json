@@ -10562,6 +10562,9 @@
     "POST /api/v3/articles/{articleId}/comments": {
       "idempotencyKey": true
     },
+    "POST /api/v3/articles/{articleId}/realtime-ticket": {
+      "idempotencyKey": false
+    },
     "POST /api/v3/articles/{articleId}/reward": {
       "idempotencyKey": true
     },
@@ -10693,6 +10696,9 @@
           "channel"
         ]
       }
+    },
+    "POST /api/v3/chat/realtime-ticket": {
+      "idempotencyKey": false
     },
     "POST /api/v3/chat/red-packets": {
       "fields": {
@@ -10888,6 +10894,9 @@
     },
     "POST /api/v3/me/membership": {
       "idempotencyKey": true
+    },
+    "POST /api/v3/me/messages/realtime-ticket": {
+      "idempotencyKey": false
     },
     "POST /api/v3/me/notifications/{notificationId}/read": {
       "idempotencyKey": true
@@ -11729,6 +11738,9 @@
           }
         }
       }
+    },
+    "POST /api/v3/realtime/tickets": {
+      "idempotencyKey": false
     },
     "POST /api/v3/repeater/items": {
       "idempotencyKey": true
