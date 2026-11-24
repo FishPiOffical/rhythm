@@ -422,6 +422,73 @@
         }
       }
     },
+    "AdminCoupon": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "coupon_code": {
+          "type": "string"
+        },
+        "coupon_type": {
+          "type": "integer"
+        },
+        "discount": {
+          "type": "integer"
+        },
+        "times": {
+          "type": "integer"
+        },
+        "creater": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "AdminDomain": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "domainTitle": {
+          "type": "string"
+        },
+        "domainURI": {
+          "type": "string"
+        },
+        "domainDescription": {
+          "type": "string"
+        },
+        "domainIconPath": {
+          "type": "string"
+        },
+        "domainCSS": {
+          "type": "string"
+        },
+        "domainType": {
+          "type": "string"
+        },
+        "domainSort": {
+          "type": "integer"
+        },
+        "domainStatus": {
+          "type": "integer"
+        },
+        "domainNav": {
+          "type": "integer"
+        },
+        "domainTagCnt": {
+          "type": "integer"
+        }
+      }
+    },
     "AdminFishGame": {
       "type": "object",
       "properties": {
@@ -466,6 +533,76 @@
         }
       }
     },
+    "AdminMedalDefinition": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "medal_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "attr": {
+          "type": "string"
+        }
+      }
+    },
+    "AdminMilestone": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "milestoneTitle": {
+          "type": "string"
+        },
+        "milestoneContent": {
+          "type": "string"
+        },
+        "milestoneLink": {
+          "type": "string"
+        },
+        "milestoneAuthorId": {
+          "type": "string"
+        },
+        "authorName": {
+          "type": "string"
+        },
+        "milestoneMediaType": {
+          "type": "string"
+        },
+        "milestoneMediaUrl": {
+          "type": "string"
+        },
+        "milestoneMediaCaption": {
+          "type": "string"
+        },
+        "milestoneDate": {
+          "type": "integer"
+        },
+        "milestoneEndDate": {
+          "type": "integer"
+        },
+        "milestoneStatus": {
+          "type": "integer"
+        },
+        "milestoneCreateTime": {
+          "type": "integer"
+        },
+        "milestoneUpdateTime": {
+          "type": "integer"
+        }
+      }
+    },
     "AdminPagination": {
       "type": "object",
       "properties": {
@@ -489,6 +626,44 @@
         "totalPages"
       ]
     },
+    "AdminTag": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "tagTitle": {
+          "type": "string"
+        },
+        "tagURI": {
+          "type": "string"
+        },
+        "tagIconPath": {
+          "type": "string"
+        },
+        "tagCSS": {
+          "type": "string"
+        },
+        "tagDescription": {
+          "type": "string"
+        },
+        "tagReferenceCount": {
+          "type": "integer"
+        },
+        "tagStatus": {
+          "type": "integer"
+        },
+        "tagCommentCount": {
+          "type": "integer"
+        },
+        "tagFollowerCount": {
+          "type": "integer"
+        },
+        "tagLinkCount": {
+          "type": "integer"
+        }
+      }
+    },
     "AdminTaskAcceptance": {
       "type": "object",
       "properties": {
@@ -509,6 +684,210 @@
         },
         "status": {
           "type": "string"
+        }
+      }
+    },
+    "AdminUserDetail": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/AdminUserSummary"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "userURL": {
+                  "type": "string"
+                },
+                "userIntro": {
+                  "type": "string"
+                },
+                "userTags": {
+                  "type": "string"
+                },
+                "userArticleCount": {
+                  "type": "integer"
+                },
+                "userCommentCount": {
+                  "type": "integer"
+                },
+                "userTagCount": {
+                  "type": "integer"
+                },
+                "userCommentStatus": {
+                  "type": "integer"
+                },
+                "userPointStatus": {
+                  "type": "integer"
+                },
+                "userFollowerStatus": {
+                  "type": "integer"
+                },
+                "userFollowingUserStatus": {
+                  "type": "integer"
+                },
+                "userOnlineFlag": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
+        "recentOperations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/AdminAuditOperation"
+          }
+        },
+        "roleOptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "oId": {
+                "type": "string"
+              },
+              "roleName": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "bagItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "medals": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "AdminUserSummary": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "userNo": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userNickname": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "userPhoneMasked": {
+          "type": "string"
+        },
+        "userAvatarURL": {
+          "type": "string"
+        },
+        "userRole": {
+          "type": "string"
+        },
+        "roleName": {
+          "type": "string"
+        },
+        "userLatestLoginIP": {
+          "type": "string"
+        },
+        "userStatus": {
+          "type": "integer"
+        },
+        "userPoint": {
+          "type": "integer"
+        },
+        "userUsedPoint": {
+          "type": "integer"
+        },
+        "userLatestLoginTime": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "hasMfa": {
+          "type": "boolean"
+        },
+        "isSelf": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AdminUserVip": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "lvCode": {
+          "type": "string"
+        },
+        "state": {
+          "type": "integer"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "configJson": {
+          "type": "string"
+        }
+      }
+    },
+    "AdminVipLevel": {
+      "type": "object",
+      "properties": {
+        "oId": {
+          "type": "string"
+        },
+        "lvCode": {
+          "type": "string"
+        },
+        "lvName": {
+          "type": "string"
+        },
+        "price": {
+          "type": "integer"
+        },
+        "durationType": {
+          "type": "string"
+        },
+        "durationValue": {
+          "type": "integer"
+        },
+        "benefits": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
         }
       }
     },
@@ -611,6 +990,55 @@
         "version"
       ]
     },
+    "ChatBubblePalette": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "type": "string"
+        },
+        "ownBackground": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "ink": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "ChatBubbleStyle": {
+      "type": "object",
+      "properties": {
+        "light": {
+          "$ref": "#/components/schemas/ChatBubblePalette"
+        },
+        "dark": {
+          "$ref": "#/components/schemas/ChatBubblePalette"
+        },
+        "radius": {
+          "type": "integer"
+        },
+        "borderWidth": {
+          "type": "integer"
+        },
+        "shadow": {
+          "type": "boolean"
+        },
+        "motif": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "string"
+        }
+      }
+    },
     "ChatMessage": {
       "type": "object",
       "properties": {
@@ -651,7 +1079,7 @@
               "type": "integer"
             },
             "bubbleStyle": {
-              "type": "object"
+              "$ref": "#/components/schemas/ChatBubbleStyle"
             }
           }
         },
@@ -1168,6 +1596,23 @@
         }
       }
     },
+    "PetActivityCost": {
+      "type": "object",
+      "properties": {
+        "coins": {
+          "type": "integer"
+        },
+        "energy": {
+          "type": "integer"
+        },
+        "hunger": {
+          "type": "integer"
+        },
+        "water": {
+          "type": "integer"
+        }
+      }
+    },
     "PetActivityPage": {
       "type": "object",
       "properties": {
@@ -1288,10 +1733,10 @@
           ]
         },
         "cost": {
-          "type": "object"
+          "$ref": "#/components/schemas/PetActivityCost"
         },
         "rewards": {
-          "type": "object"
+          "$ref": "#/components/schemas/PetActivityReward"
         },
         "actualRewards": {
           "type": "object"
@@ -1300,6 +1745,46 @@
       "required": [
         "recordType"
       ]
+    },
+    "PetActivityReward": {
+      "type": "object",
+      "properties": {
+        "coins": {
+          "type": "integer"
+        },
+        "proficiency": {
+          "type": "integer"
+        },
+        "experience": {
+          "type": "integer"
+        },
+        "food": {
+          "type": "integer"
+        },
+        "mood": {
+          "type": "integer"
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "experience": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/PetItemQuantity"
+          }
+        }
+      }
     },
     "PetBrawlOrder": {
       "type": "object",
@@ -1357,6 +1842,71 @@
         "expiresAt",
         "status"
       ]
+    },
+    "PetCatalogActivity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "durationMs": {
+          "type": "integer"
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skillId": {
+                "type": "string"
+              },
+              "experience": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "cost": {
+          "$ref": "#/components/schemas/PetActivityCost"
+        },
+        "rewards": {
+          "$ref": "#/components/schemas/PetActivityReward"
+        }
+      }
+    },
+    "PetEquipmentOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string"
+        },
+        "exclusive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PetItemQuantity": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer"
+        }
+      }
     },
     "PetJournalEvent": {
       "type": "object",
@@ -1500,6 +2050,60 @@
         "petId",
         "committedAt"
       ]
+    },
+    "PetStoryDefinition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "entryIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "rewards": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/PetItemQuantity"
+              }
+            }
+          }
+        }
+      }
     },
     "PostExportResult": {
       "description": "导出结果",
@@ -1798,6 +2402,211 @@
         }
       }
     },
+    "ProfessionExportAutomation": {
+      "type": "object",
+      "properties": {
+        "automationCode": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        },
+        "currentRevisionNo": {
+          "type": "integer"
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "revisionNo": {
+                "type": "integer"
+              },
+              "schemaVersion": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string"
+              },
+              "configurationJson": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ProfessionExportEntry": {
+      "type": "object",
+      "properties": {
+        "professionCode": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        },
+        "currentRevisionNo": {
+          "type": "integer"
+        },
+        "currentSchemeRevisionNo": {
+          "type": "integer"
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProfessionExportRevision"
+          }
+        },
+        "schemes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProfessionExportScheme"
+          }
+        },
+        "automations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProfessionExportAutomation"
+          }
+        }
+      }
+    },
+    "ProfessionExportLevel": {
+      "type": "object",
+      "properties": {
+        "levelCode": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        },
+        "requiredTotalExperience": {
+          "type": "integer"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "achievementDescription": {
+          "type": "string"
+        },
+        "isTopLevel": {
+          "type": "boolean"
+        },
+        "presentations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "positionCode": {
+                "type": "string"
+              },
+              "lightConfigJson": {
+                "type": "string"
+              },
+              "darkConfigJson": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rewards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rewardCode": {
+                "type": "string"
+              },
+              "rewardType": {
+                "type": "string"
+              },
+              "rewardConfigJson": {
+                "type": "string"
+              },
+              "grantPolicy": {
+                "type": "string"
+              },
+              "downgradePolicy": {
+                "type": "string"
+              },
+              "sortOrder": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ProfessionExportRevision": {
+      "type": "object",
+      "properties": {
+        "revisionNo": {
+          "type": "integer"
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "defaultPresentationJson": {
+          "type": "string"
+        }
+      }
+    },
+    "ProfessionExportScheme": {
+      "type": "object",
+      "properties": {
+        "revisionNo": {
+          "type": "integer"
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "professionRevisionNo": {
+          "type": "integer"
+        },
+        "migrationPolicy": {
+          "type": "string"
+        },
+        "rewardMigrationPolicy": {
+          "type": "string"
+        },
+        "migrationConfigJson": {
+          "type": "string"
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProfessionExportLevel"
+          }
+        }
+      }
+    },
     "ProfessionLevelScheme": {
       "type": "object",
       "properties": {
@@ -2092,6 +2901,54 @@
           }
         }
       }
+    },
+    "SavedArticle": {
+      "oneOf": [
+        {
+          "$ref": "#/components/schemas/SavedArticleAvailable"
+        },
+        {
+          "$ref": "#/components/schemas/SavedArticleUnavailable"
+        }
+      ]
+    },
+    "SavedArticleAvailable": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/ArticleSummary"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean",
+              "const": true,
+              "description": "当前文章可读取，返回文章摘要。"
+            }
+          },
+          "required": [
+            "available"
+          ]
+        }
+      ]
+    },
+    "SavedArticleUnavailable": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean",
+          "const": false,
+          "description": "当前文章无法读取或已删除，仍可取消该收藏或订阅。"
+        }
+      },
+      "required": [
+        "id",
+        "available"
+      ],
+      "additionalProperties": false
     }
   },
   "operations": {
@@ -2556,7 +3413,7 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminCoupon"
             }
           }
         }
@@ -2662,7 +3519,36 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/AdminDomain"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "bindId": {
+                            "type": "string"
+                          },
+                          "tagId": {
+                            "type": "string"
+                          },
+                          "tagTitle": {
+                            "type": "string"
+                          },
+                          "tagURI": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
             }
           },
           "pagination": {
@@ -2779,7 +3665,7 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminMedalDefinition"
             }
           },
           "page": {
@@ -2804,7 +3690,34 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/AdminMedalDefinition"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "user_medal_oId": {
+                      "type": "string"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    },
+                    "expire_time": {
+                      "type": "integer"
+                    },
+                    "display": {
+                      "type": "boolean"
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -2850,7 +3763,7 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminMilestone"
             }
           },
           "pagination": {
@@ -3007,7 +3920,21 @@
             "type": "integer"
           },
           "policy": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "baseRate": {
+                "type": "integer"
+              },
+              "stepRate": {
+                "type": "integer"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "sinceAt": {
+                "type": "integer"
+              }
+            }
           },
           "occupancy": {
             "type": "object",
@@ -3104,7 +4031,10 @@
             "type": "string"
           },
           "operations": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "page": {
             "type": "integer"
@@ -3268,36 +4198,7 @@
           "professions": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "professionCode": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string"
-                },
-                "sortOrder": {
-                  "type": "integer"
-                },
-                "revisions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                },
-                "schemes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                },
-                "automations": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
+              "$ref": "#/components/schemas/ProfessionExportEntry"
             }
           }
         }
@@ -3674,7 +4575,7 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminTag"
             }
           },
           "pagination": {
@@ -3712,6 +4613,49 @@
         }
       }
     },
+    "GET /api/v3/admin/users": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "list": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminUserSummary"
+                }
+              },
+              "pagination": {
+                "$ref": "#/components/schemas/Pagination"
+              },
+              "roleOptions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "oId": {
+                      "type": "string"
+                    },
+                    "roleName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /api/v3/admin/users/{userId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "$ref": "#/components/schemas/AdminUserDetail"
+          }
+        }
+      }
+    },
     "GET /api/v3/admin/vip/levels": {
       "data": {
         "type": "object",
@@ -3719,7 +4663,7 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminVipLevel"
             }
           }
         }
@@ -3732,7 +4676,7 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/AdminUserVip"
             }
           },
           "pagination": {
@@ -4033,7 +4977,7 @@
                   "type": "string"
                 },
                 "style": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/ChatBubbleStyle"
                 },
                 "bubbleRevision": {
                   "type": "integer"
@@ -4115,7 +5059,7 @@
                 "type": "integer"
               },
               "bubbleStyle": {
-                "type": "object"
+                "$ref": "#/components/schemas/ChatBubbleStyle"
               }
             }
           },
@@ -4200,6 +5144,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "data.claims[].user": {
+            "$ref": "#/components/schemas/PublicAuthor"
           }
         }
       }
@@ -4501,42 +5448,7 @@
           "data.list": {
             "type": "array",
             "items": {
-              "oneOf": [
-                {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ArticleSummary"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "available": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "available"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "available": {
-                      "const": false
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "available"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
+              "$ref": "#/components/schemas/SavedArticle"
             }
           }
         }
@@ -5070,17 +5982,62 @@
           "collections": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "unlockedAt": {
+                  "type": "integer"
+                }
+              }
             }
           },
           "stories": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "completedSteps": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "completedAt": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "claimedAt": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              }
             }
           },
           "income": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "earned": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "remaining": {
+                "type": "integer"
+              }
+            }
           },
           "wallet": {
             "type": "object",
@@ -5150,6 +6107,35 @@
     "GET /api/v3/me/pet/activities": {
       "data": {
         "$ref": "#/components/schemas/PetActivityPage"
+      }
+    },
+    "GET /api/v3/me/pet/brawl": {
+      "fields": {
+        "response": {
+          "data.levels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "data.equipmentCatalog": {
+            "type": "object",
+            "properties": {
+              "weapons": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PetEquipmentOption"
+                }
+              },
+              "skills": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PetEquipmentOption"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "GET /api/v3/me/pet/brawl/matches": {
@@ -5541,42 +6527,7 @@
           "data.list": {
             "type": "array",
             "items": {
-              "oneOf": [
-                {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ArticleSummary"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "available": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "available"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "available": {
-                      "const": false
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "available"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
+              "$ref": "#/components/schemas/SavedArticle"
             }
           }
         }
@@ -5740,52 +6691,212 @@
           "stories": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/PetStoryDefinition"
             }
           },
           "items": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "hunger": {
+                  "type": "integer"
+                },
+                "effects": {
+                  "type": "object",
+                  "properties": {
+                    "hunger": {
+                      "type": "integer"
+                    },
+                    "water": {
+                      "type": "integer"
+                    },
+                    "mood": {
+                      "type": "integer"
+                    },
+                    "energy": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
             }
           },
           "rules": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "maxNameLength": {
+                "type": "integer"
+              },
+              "initialCoins": {
+                "type": "integer"
+              },
+              "initialFood": {
+                "type": "integer"
+              },
+              "dailyCoins": {
+                "type": "integer"
+              },
+              "dailyFood": {
+                "type": "integer"
+              },
+              "restDurationMs": {
+                "type": "integer"
+              },
+              "restEnergyPerHour": {
+                "type": "integer"
+              },
+              "growthDailyLimit": {
+                "type": "integer"
+              },
+              "careCooldownMs": {
+                "type": "integer"
+              },
+              "waterGain": {
+                "type": "integer"
+              },
+              "petMood": {
+                "type": "integer"
+              },
+              "playMood": {
+                "type": "integer"
+              },
+              "playEnergy": {
+                "type": "integer"
+              }
+            }
           },
           "skills": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
             }
           },
           "places": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/PetCatalogActivity"
             }
           },
           "courses": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/PetCatalogActivity"
             }
           },
           "jobs": {
             "type": "array",
             "items": {
-              "type": "object"
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PetCatalogActivity"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "requirement": {
+                      "type": "object",
+                      "properties": {
+                        "skillId": {
+                          "type": "string"
+                        },
+                        "experience": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
             }
           },
           "recipes": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "skillId": {
+                        "type": "string"
+                      },
+                      "experience": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                },
+                "coins": {
+                  "type": "integer"
+                },
+                "collectionId": {
+                  "type": "string"
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PetItemQuantity"
+                  }
+                }
+              }
             }
           },
           "collections": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
             }
           }
         }
@@ -5851,6 +6962,122 @@
         "response": {
           "data.pagination": {
             "$ref": "#/components/schemas/Pagination"
+          },
+          "data.list[].metrics": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "integer"
+              },
+              "experience": {
+                "type": "integer"
+              },
+              "points": {
+                "type": "integer"
+              },
+              "streak": {
+                "type": "integer"
+              },
+              "minutes": {
+                "type": "integer"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "clickCount": {
+                "type": "integer"
+              },
+              "times": {
+                "type": "integer"
+              },
+              "achievement": {
+                "type": "integer"
+              },
+              "know": {
+                "type": "integer"
+              },
+              "reset": {
+                "type": "integer"
+              },
+              "days": {
+                "type": "integer"
+              },
+              "currentKnow": {
+                "type": "integer"
+              },
+              "currentDays": {
+                "type": "integer"
+              },
+              "dieTimes": {
+                "type": "integer"
+              },
+              "allExTimes": {
+                "type": "integer"
+              },
+              "allBsTimes": {
+                "type": "integer"
+              },
+              "exp": {
+                "type": "integer"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "ancestry": {
+                "type": "string"
+              },
+              "gongfa": {
+                "type": "string"
+              }
+            }
+          },
+          "data.list[].user": {
+            "$ref": "#/components/schemas/PublicAuthor"
+          },
+          "data.list[].pet": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "speciesId": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer"
+              },
+              "experience": {
+                "type": "integer"
+              }
+            }
+          },
+          "data.list[].link": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          },
+          "data.summary": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "supportedDays": {
+                "type": "number"
+              }
+            }
           }
         }
       }
@@ -6128,6 +7355,50 @@
         }
       }
     },
+    "GET /api/v3/users/{userName}/professions/summary": {
+      "fields": {
+        "response": {
+          "data.primaryProfession": {
+            "type": "object",
+            "properties": {
+              "professionId": {
+                "type": "string"
+              },
+              "professionCode": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "shortName": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "levelCode": {
+                "type": "string"
+              },
+              "levelName": {
+                "type": "string"
+              },
+              "iconUrl": {
+                "type": "string"
+              },
+              "totalExperience": {
+                "type": "integer"
+              },
+              "requiredExperience": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
     "GET /api/v3/users/{userName}/watching": {
       "fields": {
         "response": {
@@ -6213,6 +7484,8 @@
                 "type": "string"
               },
               "articleStick": {
+                "type": "integer",
+                "description": "取消置顶后的置顶值，固定为 0。",
                 "const": 0
               },
               "replayed": {
@@ -6220,6 +7493,12 @@
               },
               "detail": {
                 "$ref": "#/components/schemas/AdminArticleDetail"
+              },
+              "oId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "integer"
               }
             }
           }
@@ -6239,13 +7518,20 @@
                 "type": "string"
               },
               "articleStick": {
-                "type": "integer"
+                "type": "integer",
+                "description": "本次操作后的置顶值。"
               },
               "replayed": {
                 "type": "boolean"
               },
               "detail": {
                 "$ref": "#/components/schemas/AdminArticleDetail"
+              },
+              "oId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "integer"
               }
             }
           }
@@ -7010,6 +8296,62 @@
         }
       }
     },
+    "POST /api/v3/admin/users/{userId}/deactivate": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminUserDetail"
+              },
+              "userStatus": {
+                "type": "integer"
+              },
+              "userName": {
+                "type": "string"
+              },
+              "deactivatedAt": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "POST /api/v3/admin/users/{userId}/remove-mfa": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminUserDetail"
+              },
+              "hasMfa": {
+                "type": "boolean",
+                "const": false
+              },
+              "updatedAt": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
     "POST /api/v3/admin/vip/levels": {
       "data": {
         "type": "object",
@@ -7031,7 +8373,15 @@
             "type": "string"
           },
           "membership": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "membership": {
+                "$ref": "#/components/schemas/AdminUserVip"
+              },
+              "activation": {
+                "type": "object"
+              }
+            }
           },
           "legacyReceipt": {
             "type": "boolean"
@@ -7053,7 +8403,24 @@
             "type": "integer"
           },
           "membership": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "days": {
+                "type": "integer"
+              },
+              "oldExpiresAt": {
+                "type": "integer"
+              },
+              "newExpiresAt": {
+                "type": "integer"
+              },
+              "membership": {
+                "$ref": "#/components/schemas/AdminUserVip"
+              }
+            }
           }
         }
       }
@@ -7066,7 +8433,27 @@
             "type": "string"
           },
           "refund": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "refundPoints": {
+                "type": "integer"
+              },
+              "remainingDays": {
+                "type": "integer"
+              },
+              "totalDays": {
+                "type": "integer"
+              },
+              "paidPoints": {
+                "type": "integer"
+              },
+              "membership": {
+                "$ref": "#/components/schemas/AdminUserVip"
+              }
+            }
           }
         }
       }
@@ -7588,7 +8975,7 @@
                 "type": "integer"
               },
               "style": {
-                "type": "object"
+                "$ref": "#/components/schemas/ChatBubbleStyle"
               }
             }
           }
@@ -7764,12 +9151,7 @@
     },
     "PUT /api/v3/admin/domains/{domainId}": {
       "data": {
-        "type": "object",
-        "properties": {
-          "oId": {
-            "type": "string"
-          }
-        }
+        "$ref": "#/components/schemas/AdminDomain"
       }
     },
     "PUT /api/v3/admin/fish-games/{gameId}": {
@@ -7811,12 +9193,7 @@
     },
     "PUT /api/v3/admin/milestones/{milestoneId}": {
       "data": {
-        "type": "object",
-        "properties": {
-          "oId": {
-            "type": "string"
-          }
-        }
+        "$ref": "#/components/schemas/AdminMilestone"
       }
     },
     "PUT /api/v3/admin/oauth/clients/{clientId}": {
@@ -7900,10 +9277,34 @@
     },
     "PUT /api/v3/admin/tags/{tagId}": {
       "data": {
-        "type": "object",
-        "properties": {
-          "oId": {
-            "type": "string"
+        "$ref": "#/components/schemas/AdminTag"
+      }
+    },
+    "PUT /api/v3/admin/users/{userId}": {
+      "fields": {
+        "response": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "replayed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/AdminUserDetail"
+              },
+              "updatedFields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "updatedAt": {
+                "type": "integer"
+              }
+            }
           }
         }
       }
@@ -7929,7 +9330,7 @@
             "type": "string"
           },
           "membership": {
-            "type": "object"
+            "$ref": "#/components/schemas/AdminUserVip"
           }
         }
       }
@@ -8066,6 +9467,107 @@
     "PUT /api/v3/me/pet/name": {
       "data": {
         "$ref": "#/components/schemas/PetOperationReceipt"
+      }
+    },
+    "PUT /api/v3/me/professions/privacy": {
+      "fields": {
+        "request": {
+          "moduleVisibility": {
+            "type": "object",
+            "properties": {
+              "primaryProfession": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "allProfessions": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "experience": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "rarity": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "majorContributions": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "contributionStats": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "activityFeed": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "levelHistory": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "rewards": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              },
+              "ranking": {
+                "type": "string",
+                "enum": [
+                  "PUBLIC",
+                  "LOGGED_IN",
+                  "SELF",
+                  "HIDDEN"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "PUT /api/v3/me/settings/card-background": {

@@ -65,6 +65,24 @@ class OpenApiSchemaTest(unittest.TestCase):
         for name in ('revisions', 'schemes', 'automations'):
             self.assertIn('$ref', components['ProfessionVersionTree']['properties'][name]['items'])
 
+    def test_saved_items_and_cancel_stick_have_explicit_types(self):
+        components = self.spec['components']['schemas']
+        for path in ('me/collections', 'me/subscriptions'):
+            self.assertEqual('#/components/schemas/SavedArticle',
+                             self.response_field(path, 'data.list[]')['$ref'])
+        available = components['SavedArticleAvailable']['allOf'][1]['properties']['available']
+        unavailable = components['SavedArticleUnavailable']['properties']['available']
+        for field, expected in ((available, True), (unavailable, False)):
+            self.assertEqual('boolean', field['type'])
+            self.assertIs(field['const'], expected)
+            self.assertTrue(field['description'])
+        receipt = self.operation('admin/articles/{articleId}/cancel-stick', 'post')
+        schema = receipt['responses']['2XX']['content']['application/json']['schema']
+        stick = generator.schema_field(schema, 'data.articleStick')
+        self.assertEqual('integer', stick['type'])
+        self.assertEqual(0, stick['const'])
+        self.assertTrue(stick['description'])
+
     def test_all_http_operations_have_a_success_representation(self):
         for path, operations in self.spec['paths'].items():
             for method, operation in operations.items():

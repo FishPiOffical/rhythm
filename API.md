@@ -7495,7 +7495,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/collections?p=1&size=
 | -- total | 总条数 | 整数 |
 | -- pageCount | 总页数 | 整数 |
 
-> 按添加关系的先后倒序。当前不可阅读或已删除的目标仅返回 `id` 与 `available=false`，仍可取消该关系；允许阅读的讨论帖正常返回。
+> 按添加关系的先后倒序。每条记录的 `available` 为布尔值。可读取的文章返回摘要与 `available=true`（包括有权阅读的讨论帖）；当前不可阅读或已删除的目标仅返回 `id` 与 `available=false`，仍可取消该关系。
 
 ##### 添加收藏文章
 
@@ -7606,7 +7606,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/me/subscriptions?p=1&siz
 | -- total | 总条数 | 整数 |
 | -- pageCount | 总页数 | 整数 |
 
-> 按添加关系的先后倒序。当前不可阅读或已删除的目标仅返回 `id` 与 `available=false`，仍可取消该关系；允许阅读的讨论帖正常返回。
+> 按添加关系的先后倒序。每条记录的 `available` 为布尔值。可读取的文章返回摘要与 `available=true`（包括有权阅读的讨论帖）；当前不可阅读或已删除的目标仅返回 `id` 与 `available=false`，仍可取消该关系。
 
 ##### 添加订阅文章
 
@@ -12598,7 +12598,13 @@ curl --request POST 'https://fishpi.cn/api/v3/admin/articles/1731571200000/cance
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | code | 0 表示成功 | 0 |
-| data | 包含 `articleId`、`articleStick=0`、`replayed` 及最新 `detail` | {} |
+| data | 取消置顶回执 | {} |
+| - oId | 文章 ID | 1731571200000 |
+| - articleId | 文章 ID | 1731571200000 |
+| - articleStick | 整数，取消置顶后固定为 0 | 0 |
+| - updatedAt | 原操作更新时间，Unix 毫秒时间戳 | 1731571200000 |
+| - replayed | 是否重放同一次操作的回执 | false |
+| - detail | 最新文章管理详情 | {} |
 
 ##### 移除管理文章
 
